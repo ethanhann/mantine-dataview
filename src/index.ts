@@ -22,7 +22,11 @@ export {
 	type DataPaginationProps,
 } from "./components/DataPagination";
 export { DataTable, type DataTableProps } from "./components/DataTable";
-export { DataToolbar, type DataToolbarProps } from "./components/DataToolbar";
+export {
+	DataToolbar,
+	type DataToolbarProps,
+	FilterControl,
+} from "./components/DataToolbar";
 export {
 	DataView,
 	type DataViewBodyProps,
