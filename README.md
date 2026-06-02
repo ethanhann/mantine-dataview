@@ -7,19 +7,17 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 A reusable React library that renders **server-driven, paginated datasets** as either a
-**table** or a **card grid**, switchable at runtime, with full feature parity between the two —
-built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack.com/table) v8.
+**table** or a **card grid**, switchable at runtime, with full feature parity between the two.
 
-> A table and a card grid are not two components — they are two _projections_ of one shared,
-> headless state. Sort, filter, search, selection, visibility and pagination all live in a single
-> core, so parity between the views is guaranteed by construction, not maintained by hand.
+Built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack.com/table) v8.
 
 ## Features
 
 - One hook drives both a Mantine `Table` and a Mantine `Card` grid; switch at runtime.
 - Server-side pagination, sorting (including multi-sort), column filters, and global search.
 - Column data types (`text`, `number`, `currency`, `date`, `boolean`) with automatic Intl-based formatting.
-- Seven filter variants with smart controls: `SegmentedControl` for booleans, `RangeSlider` for bounded numbers, `DatePickerInput` for dates.
+- Seven filter variants with smart controls: `SegmentedControl` for booleans, `RangeSlider` for bounded numbers,
+  `DatePickerInput` for dates.
 - Custom filter components — bring your own UI per column.
 - Column pinning (left/right) with sticky positioning.
 - CSV export with optional formatted output.
@@ -49,7 +47,7 @@ tree in a provider:
 ```tsx
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
-import { MantineProvider } from "@mantine/core";
+import {MantineProvider} from "@mantine/core";
 
 <MantineProvider>{/* ... */}</MantineProvider>;
 ```
@@ -60,50 +58,50 @@ The easiest path is `useDataViewFetcher`, which owns the fetch lifecycle for you
 
 ```tsx
 import {
-  DataView,
-  useDataViewFetcher,
-  createColumnHelper,
-  type DataColumnDef,
+    DataView,
+    useDataViewFetcher,
+    createColumnHelper,
+    type DataColumnDef,
 } from "@ethanhann/mantine-dataview";
 
 interface User {
-  id: string;
-  name: string;
-  email: string;
-  status: "active" | "invited";
+    id: string;
+    name: string;
+    email: string;
+    status: "active" | "invited";
 }
 
 const col = createColumnHelper<User>();
 const columns = [
-  col.accessor("name", { header: "Name", meta: { card: { role: "title" } } }),
-  col.accessor("email", { header: "Email", meta: { card: { role: "subtitle" } } }),
-  col.accessor("status", {
-    header: "Status",
-    meta: {
-      card: { role: "badge" },
-      filter: {
-        variant: "select",
-        options: [
-          { value: "active", label: "Active" },
-          { value: "invited", label: "Invited" },
-        ],
-      },
-    },
-  }),
+    col.accessor("name", {header: "Name", meta: {card: {role: "title"}}}),
+    col.accessor("email", {header: "Email", meta: {card: {role: "subtitle"}}}),
+    col.accessor("status", {
+        header: "Status",
+        meta: {
+            card: {role: "badge"},
+            filter: {
+                variant: "select",
+                options: [
+                    {value: "active", label: "Active"},
+                    {value: "invited", label: "Invited"},
+                ],
+            },
+        },
+    }),
 ] satisfies DataColumnDef<User>[];
 
 function Users() {
-  const view = useDataViewFetcher<User>({
-    columns,
-    getRowId: (u) => u.id,
-    fetcher: async (request) => {
-      const res = await fetch(`/api/users?${toParams(request)}`);
-      const json = await res.json();
-      return { rows: json.items, rowCount: json.total };
-    },
-  });
+    const view = useDataViewFetcher<User>({
+        columns,
+        getRowId: (u) => u.id,
+        fetcher: async (request) => {
+            const res = await fetch(`/api/users?${toParams(request)}`);
+            const json = await res.json();
+            return {rows: json.items, rowCount: json.total};
+        },
+    });
 
-  return <DataView view={view} />;
+    return <DataView view={view}/>;
 }
 ```
 
@@ -115,19 +113,19 @@ Compose your own layout by passing children:
 
 ```tsx
 <DataView view={view}>
-  <DataView.Toolbar />
-  <DataView.BulkActions />
-  <DataView.Body />
-  <DataView.Pagination />
+    <DataView.Toolbar/>
+    <DataView.BulkActions/>
+    <DataView.Body/>
+    <DataView.Pagination/>
 </DataView>
 ```
 
 Or use the standalone components directly for full control:
 
 ```tsx
-<DataToolbar view={view} showSearch showFilters />
-<DataTable view={view} striped highlightOnHover />
-<DataPagination view={view} />
+<DataToolbar view={view} showSearch showFilters/>
+<DataTable view={view} striped highlightOnHover/>
+<DataPagination view={view}/>
 ```
 
 ## Controlled (bring your own data layer)
@@ -136,24 +134,24 @@ Or use the standalone components directly for full control:
 you supply `rows`/`rowCount`/`status` and respond to `onRequestChange`:
 
 ```tsx
-const [resp, setResp] = useState({ rows: [], rowCount: 0 });
+const [resp, setResp] = useState({rows: [], rowCount: 0});
 const [status, setStatus] = useState<Status>("idle");
 
 const view = useDataView<User>({
-  columns,
-  getRowId: (u) => u.id,
-  rows: resp.rows,
-  rowCount: resp.rowCount,
-  status,
-  onRequestChange: async (request) => {
-    setStatus("loading");
-    try {
-      setResp(await myApi.list(request));
-      setStatus("success");
-    } catch {
-      setStatus("error");
-    }
-  },
+    columns,
+    getRowId: (u) => u.id,
+    rows: resp.rows,
+    rowCount: resp.rowCount,
+    status,
+    onRequestChange: async (request) => {
+        setStatus("loading");
+        try {
+            setResp(await myApi.list(request));
+            setStatus("success");
+        } catch {
+            setStatus("error");
+        }
+    },
 });
 ```
 
@@ -168,23 +166,23 @@ sorting, and filtering — formatting is display-only.
 
 ```tsx
 col.accessor("price", {
-  header: "Price",
-  meta: { dataType: "currency", align: "right" },
+    header: "Price",
+    meta: {dataType: "currency", align: "right"},
 });
 
 col.accessor("createdAt", {
-  header: "Created",
-  meta: { dataType: "date" },
+    header: "Created",
+    meta: {dataType: "date"},
 });
 ```
 
-| Data type  | Default format | Example |
-|------------|---------------|---------|
-| `text`     | `String(value)` | `"hello"` |
-| `number`   | `Intl.NumberFormat` | `1,234` |
-| `currency` | `Intl.NumberFormat` with currency | `$1,234.56` |
-| `date`     | `Intl.DateTimeFormat` | `Jun 2, 2026` |
-| `boolean`  | `"Yes"` / `"No"` | `Yes` |
+| Data type  | Default format                    | Example       |
+|------------|-----------------------------------|---------------|
+| `text`     | `String(value)`                   | `"hello"`     |
+| `number`   | `Intl.NumberFormat`               | `1,234`       |
+| `currency` | `Intl.NumberFormat` with currency | `$1,234.56`   |
+| `date`     | `Intl.DateTimeFormat`             | `Jun 2, 2026` |
+| `boolean`  | `"Yes"` / `"No"`                  | `Yes`         |
 
 ### Format overrides (three levels)
 
@@ -194,32 +192,32 @@ col.accessor("createdAt", {
 
 ```tsx
 const view = useDataViewFetcher({
-  columns,
-  getRowId,
-  fetcher,
-  // All dates in this table use short format, currency is EUR
-  formatDefaults: {
-    date: { dateStyle: "short" },
-    currency: { currency: "EUR" },
-  },
+    columns,
+    getRowId,
+    fetcher,
+    // All dates in this table use short format, currency is EUR
+    formatDefaults: {
+        date: {dateStyle: "short"},
+        currency: {currency: "EUR"},
+    },
 });
 
 // This column overrides the table default
 col.accessor("createdAt", {
-  header: "Created",
-  meta: {
-    dataType: "date",
-    format: { dateStyle: "long" },
-  },
+    header: "Created",
+    meta: {
+        dataType: "date",
+        format: {dateStyle: "long"},
+    },
 });
 
 // Or use a function for full control
 col.accessor("revenue", {
-  header: "Revenue",
-  meta: {
-    dataType: "currency",
-    format: (v) => `€${(v as number).toFixed(0)}`,
-  },
+    header: "Revenue",
+    meta: {
+        dataType: "currency",
+        format: (v) => `€${(v as number).toFixed(0)}`,
+    },
 });
 ```
 
@@ -244,7 +242,7 @@ headers only.
 Disable sorting on a specific column:
 
 ```tsx
-col.accessor("avatar", { header: "Avatar", enableSorting: false });
+col.accessor("avatar", {header: "Avatar", enableSorting: false});
 ```
 
 ## Custom headers
@@ -254,13 +252,13 @@ function to the `header` property:
 
 ```tsx
 col.accessor("revenue", {
-  header: () => (
-    <Group gap={4}>
-      <IconCurrencyDollar size={14} />
-      <span>Revenue</span>
-    </Group>
-  ),
-  meta: { align: "right" },
+    header: () => (
+        <Group gap={4}>
+            <IconCurrencyDollar size={14}/>
+            <span>Revenue</span>
+        </Group>
+    ),
+    meta: {align: "right"},
 });
 ```
 
@@ -272,18 +270,18 @@ Export the current page's visible columns as a CSV file:
 <Button onClick={() => view.exportCsv()}>Export CSV</Button>
 
 // With options
-view.exportCsv({ filename: "users.csv", separator: ";" });
+view.exportCsv({filename: "users.csv", separator: ";"});
 
 // Export formatted values instead of raw data
-view.exportCsv({ formatted: true });
+view.exportCsv({formatted: true});
 ```
 
 The `exportCsv` function is also available as a standalone utility:
 
 ```tsx
-import { exportCsv } from "@ethanhann/mantine-dataview";
+import {exportCsv} from "@ethanhann/mantine-dataview";
 
-exportCsv(view.table, { filename: "report.csv" });
+exportCsv(view.table, {filename: "report.csv"});
 ```
 
 ## Column pinning
@@ -294,12 +292,12 @@ Pin columns to the left or right edge so they stay visible while scrolling horiz
 
 ```tsx
 const view = useDataViewFetcher<User>({
-  columns,
-  getRowId,
-  fetcher,
-  initialState: {
-    columnPinning: { left: ["name"], right: ["actions"] },
-  },
+    columns,
+    getRowId,
+    fetcher,
+    initialState: {
+        columnPinning: {left: ["name"], right: ["actions"]},
+    },
 });
 ```
 
@@ -322,28 +320,50 @@ view.table.getColumn("name")?.pin(false); // unpin
 
 Define filters declaratively on column meta. Seven variants are built in:
 
-| Variant | Control | Notes |
-|---------|---------|-------|
-| `text` | `TextInput` | Free-text search |
-| `select` | `Select` (dropdown) | Single choice, clearable |
-| `multiselect` | `MultiSelect` | Multiple choices |
-| `boolean` | `SegmentedControl` (All/Yes/No) | One-click toggle |
+| Variant       | Control                             | Notes                           |
+|---------------|-------------------------------------|---------------------------------|
+| `text`        | `TextInput`                         | Free-text search                |
+| `select`      | `Select` (dropdown)                 | Single choice, clearable        |
+| `multiselect` | `MultiSelect`                       | Multiple choices                |
+| `boolean`     | `SegmentedControl` (All/Yes/No)     | One-click toggle                |
 | `numberRange` | `RangeSlider` or two `NumberInput`s | Slider when `min`/`max` are set |
-| `date` | `DatePickerInput` | Calendar picker |
-| `dateRange` | `DatePickerInput` (range) | Two-date calendar picker |
+| `date`        | `DatePickerInput`                   | Calendar picker                 |
+| `dateRange`   | `DatePickerInput` (range)           | Two-date calendar picker        |
 
 ```tsx
 // Boolean — renders as a segmented control
-meta: { filter: { variant: "boolean" } }
+meta: {
+    filter: {
+        variant: "boolean"
+    }
+}
 
 // Number range with slider
-meta: { filter: { variant: "numberRange", min: 0, max: 1000, step: 10 } }
+meta: {
+    filter: {
+        variant: "numberRange", min
+    :
+        0, max
+    :
+        1000, step
+    :
+        10
+    }
+}
 
 // Number range without bounds (falls back to two number inputs)
-meta: { filter: { variant: "numberRange" } }
+meta: {
+    filter: {
+        variant: "numberRange"
+    }
+}
 
 // Date range
-meta: { filter: { variant: "dateRange" } }
+meta: {
+    filter: {
+        variant: "dateRange"
+    }
+}
 ```
 
 ### Custom filter component
@@ -351,22 +371,22 @@ meta: { filter: { variant: "dateRange" } }
 For filters that don't fit the built-in variants, provide a `component` instead:
 
 ```tsx
-import type { CustomFilterComponentProps } from "@ethanhann/mantine-dataview";
+import type {CustomFilterComponentProps} from "@ethanhann/mantine-dataview";
 
-function LocationFilter({ value, onChange }: CustomFilterComponentProps) {
-  return (
-    <Chip.Group value={(value as string) ?? ""} onChange={(v) => onChange(v || undefined)}>
-      <Group gap={4}>
-        <Chip value="london" size="xs">London</Chip>
-        <Chip value="berlin" size="xs">Berlin</Chip>
-      </Group>
-    </Chip.Group>
-  );
+function LocationFilter({value, onChange}: CustomFilterComponentProps) {
+    return (
+        <Chip.Group value={(value as string) ?? ""} onChange={(v) => onChange(v || undefined)}>
+            <Group gap={4}>
+                <Chip value="london" size="xs">London</Chip>
+                <Chip value="berlin" size="xs">Berlin</Chip>
+            </Group>
+        </Chip.Group>
+    );
 }
 
 col.accessor("location", {
-  header: "Location",
-  meta: { filter: { component: LocationFilter } },
+    header: "Location",
+    meta: {filter: {component: LocationFilter}},
 });
 ```
 
@@ -375,15 +395,15 @@ col.accessor("location", {
 `FilterControl` is exported so you can place individual filters anywhere in your layout:
 
 ```tsx
-import { FilterControl } from "@ethanhann/mantine-dataview";
+import {FilterControl} from "@ethanhann/mantine-dataview";
 
 <DataView view={view}>
-  {view.table.getColumn("inStock") && (
-    <FilterControl column={view.table.getColumn("inStock")!} />
-  )}
-  <DataView.Toolbar />
-  <DataView.Body />
-  <DataView.Pagination />
+    {view.table.getColumn("inStock") && (
+        <FilterControl column={view.table.getColumn("inStock")!}/>
+    )}
+    <DataView.Toolbar/>
+    <DataView.Body/>
+    <DataView.Pagination/>
 </DataView>
 ```
 
@@ -399,7 +419,7 @@ import { FilterControl } from "@ethanhann/mantine-dataview";
 In card view, each visible column is placed by its `meta.card.role`:
 
 | role       | rendered as                 |
-| ---------- | --------------------------- |
+|------------|-----------------------------|
 | `title`    | card heading                |
 | `subtitle` | dimmed line under the title |
 | `media`    | full-bleed top section      |
@@ -416,14 +436,14 @@ For full control over card content, use `renderCard`:
 
 ```tsx
 <DataView
-  view={view}
-  renderCard={({ data, selected, toggleSelected }) => (
-    <Card withBorder padding="md" onClick={toggleSelected}>
-      <Text fw={700}>{data.name}</Text>
-      <Text size="sm" c="dimmed">{data.email}</Text>
-      {selected && <Badge>Selected</Badge>}
-    </Card>
-  )}
+    view={view}
+    renderCard={({data, selected, toggleSelected}) => (
+        <Card withBorder padding="md" onClick={toggleSelected}>
+            <Text fw={700}>{data.name}</Text>
+            <Text size="sm" c="dimmed">{data.email}</Text>
+            {selected && <Badge>Selected</Badge>}
+        </Card>
+    )}
 />
 ```
 
@@ -431,18 +451,18 @@ To keep the default composition but wrap it in a custom card shell, use the `Car
 
 ```tsx
 <DataView
-  view={view}
-  slots={{
-    Card: ({ data, selected, children }) => (
-      <Card
-        withBorder
-        padding="lg"
-        style={{ background: selected ? "var(--mantine-color-blue-light)" : undefined }}
-      >
-        {children}
-      </Card>
-    ),
-  }}
+    view={view}
+    slots={{
+        Card: ({data, selected, children}) => (
+            <Card
+                withBorder
+                padding="lg"
+                style={{background: selected ? "var(--mantine-color-blue-light)" : undefined}}
+            >
+                {children}
+            </Card>
+        ),
+    }}
 />
 ```
 
@@ -452,21 +472,21 @@ Provide a `BulkActions` slot to add actions when rows are selected:
 
 ```tsx
 <DataView
-  view={view}
-  slots={{
-    BulkActions: (selection) => (
-      <Button
-        color="red"
-        variant="light"
-        onClick={() => {
-          deleteUsers(selection.ids);
-          selection.clear();
-        }}
-      >
-        Delete {selection.count}
-      </Button>
-    ),
-  }}
+    view={view}
+    slots={{
+        BulkActions: (selection) => (
+            <Button
+                color="red"
+                variant="light"
+                onClick={() => {
+                    deleteUsers(selection.ids);
+                    selection.clear();
+                }}
+            >
+                Delete {selection.count}
+            </Button>
+        ),
+    }}
 />
 ```
 
@@ -479,18 +499,18 @@ Override loading, empty, and error states:
 
 ```tsx
 <DataView
-  view={view}
-  slots={{
-    Empty: () => <Text>No users found.</Text>,
-    ErrorState: ({ retry }) => (
-      <Stack align="center">
-        <Text c="red">Something went wrong.</Text>
-        <Button onClick={retry}>Retry</Button>
-      </Stack>
-    ),
-    LoadingTable: () => <MySkeleton />,
-    LoadingCards: () => <MyCardSkeleton />,
-  }}
+    view={view}
+    slots={{
+        Empty: () => <Text>No users found.</Text>,
+        ErrorState: ({retry}) => (
+            <Stack align="center">
+                <Text c="red">Something went wrong.</Text>
+                <Button onClick={retry}>Retry</Button>
+            </Stack>
+        ),
+        LoadingTable: () => <MySkeleton/>,
+        LoadingCards: () => <MyCardSkeleton/>,
+    }}
 />
 ```
 
@@ -502,14 +522,14 @@ users can reset without manually removing each filter.
 Router-agnostic. The default adapter uses the History API; memoize it once:
 
 ```tsx
-import { windowHistoryAdapter } from "@ethanhann/mantine-dataview/url";
+import {windowHistoryAdapter} from "@ethanhann/mantine-dataview/url";
 
 const adapter = useMemo(() => windowHistoryAdapter(), []);
 const view = useDataViewFetcher<User>({
-  columns,
-  getRowId,
-  fetcher,
-  urlSync: { adapter },
+    columns,
+    getRowId,
+    fetcher,
+    urlSync: {adapter},
 });
 ```
 
@@ -523,12 +543,14 @@ To integrate with a router, implement these three methods:
 
 ```ts
 interface UrlStateAdapter {
-  /** Current query params as a flat record. */
-  read(): Record<string, string>;
-  /** Write the next params; `replace` controls history entry vs push. */
-  write(next: Record<string, string>, opts?: { replace?: boolean }): void;
-  /** Optional: notify on external nav (back/forward). Returns an unsubscribe fn. */
-  subscribe?(onChange: () => void): () => void;
+    /** Current query params as a flat record. */
+    read(): Record<string, string>;
+
+    /** Write the next params; `replace` controls history entry vs push. */
+    write(next: Record<string, string>, opts?: { replace?: boolean }): void;
+
+    /** Optional: notify on external nav (back/forward). Returns an unsubscribe fn. */
+    subscribe?(onChange: () => void): () => void;
 }
 ```
 
@@ -537,36 +559,36 @@ interface UrlStateAdapter {
 ### React Router
 
 ```tsx
-import { useSearchParams } from "react-router-dom";
-import type { UrlStateAdapter } from "@ethanhann/mantine-dataview/url";
+import {useSearchParams} from "react-router-dom";
+import type {UrlStateAdapter} from "@ethanhann/mantine-dataview/url";
 
 function useReactRouterAdapter(): UrlStateAdapter {
-  const [searchParams, setSearchParams] = useSearchParams();
-  return useMemo<UrlStateAdapter>(
-    () => ({
-      read: () => Object.fromEntries(new URLSearchParams(window.location.search)),
-      write: (next, opts) => setSearchParams(next, { replace: opts?.replace }),
-    }),
-    [searchParams, setSearchParams],
-  );
+    const [searchParams, setSearchParams] = useSearchParams();
+    return useMemo<UrlStateAdapter>(
+        () => ({
+            read: () => Object.fromEntries(new URLSearchParams(window.location.search)),
+            write: (next, opts) => setSearchParams(next, {replace: opts?.replace}),
+        }),
+        [searchParams, setSearchParams],
+    );
 }
 ```
 
 ### TanStack Router
 
 ```tsx
-import { useNavigate } from "@tanstack/react-router";
-import type { UrlStateAdapter } from "@ethanhann/mantine-dataview/url";
+import {useNavigate} from "@tanstack/react-router";
+import type {UrlStateAdapter} from "@ethanhann/mantine-dataview/url";
 
 function useTanStackRouterAdapter(): UrlStateAdapter {
-  const navigate = useNavigate();
-  return useMemo<UrlStateAdapter>(
-    () => ({
-      read: () => Object.fromEntries(new URLSearchParams(window.location.search)),
-      write: (next, opts) => navigate({ search: () => next, replace: opts?.replace }),
-    }),
-    [navigate],
-  );
+    const navigate = useNavigate();
+    return useMemo<UrlStateAdapter>(
+        () => ({
+            read: () => Object.fromEntries(new URLSearchParams(window.location.search)),
+            write: (next, opts) => navigate({search: () => next, replace: opts?.replace}),
+        }),
+        [navigate],
+    );
 }
 ```
 
@@ -582,16 +604,17 @@ Force the card view below a breakpoint:
 
 ```tsx
 const view = useDataViewFetcher<User>({
-  columns,
-  getRowId,
-  fetcher,
-  responsive: { forceCardsBelow: "sm", lockSwitcherOnMobile: true },
+    columns,
+    getRowId,
+    fetcher,
+    responsive: {forceCardsBelow: "sm", lockSwitcherOnMobile: true},
 });
 
-<DataView view={view} lockSwitcherOnMobile />;
+<DataView view={view} lockSwitcherOnMobile/>;
 ```
 
 When `forceCardsBelow` is set and the viewport is below that breakpoint:
+
 - The view is forced to cards regardless of the user's choice.
 - The user's explicit choice is preserved and restored above the breakpoint.
 - The view switcher is disabled (or hidden entirely with `lockSwitcherOnMobile`).
@@ -599,15 +622,15 @@ When `forceCardsBelow` is set and the viewport is below that breakpoint:
 
 ## API overview
 
-| Export                                                                | Purpose                                       |
-| --------------------------------------------------------------------- | --------------------------------------------- |
-| `useDataView`                                                         | Headless core — owns all feature state        |
-| `useDataViewFetcher`                                                  | Convenience wrapper that manages the fetch    |
+| Export                                                               | Purpose                                       |
+|----------------------------------------------------------------------|-----------------------------------------------|
+| `useDataView`                                                        | Headless core — owns all feature state        |
+| `useDataViewFetcher`                                                 | Convenience wrapper that manages the fetch    |
 | `DataView` (+ `.Toolbar` / `.BulkActions` / `.Body` / `.Pagination`) | Orchestrator + compound parts                 |
-| `DataTable`, `DataCards`                                              | The two presentations (usable standalone)     |
+| `DataTable`, `DataCards`                                             | The two presentations (usable standalone)     |
 | `DataToolbar`, `DataPagination`, `DataBulkActions`                   | Standalone affordances                        |
-| `FilterControl`                                                       | Individual filter control (place anywhere)    |
-| `exportCsv`                                                           | Standalone CSV export utility                 |
+| `FilterControl`                                                      | Individual filter control (place anywhere)    |
+| `exportCsv`                                                          | Standalone CSV export utility                 |
 | `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`      | Column helpers                                |
 | `@ethanhann/mantine-dataview/url`                                    | `windowHistoryAdapter` + serializer utilities |
 
@@ -615,15 +638,15 @@ When `forceCardsBelow` is set and the viewport is below that breakpoint:
 
 Passed via the `slots` prop on `DataView` or the presentation components:
 
-| Slot           | Receives                                   | Purpose                           |
-| -------------- | ------------------------------------------ | --------------------------------- |
-| `Empty`        | `{ view }`                                 | No data state                     |
-| `ErrorState`   | `{ retry }`                                | Error with retry action           |
-| `LoadingTable` | —                                          | Table skeleton replacement        |
-| `LoadingCards`  | —                                          | Card skeleton replacement         |
-| `Row`          | `{ row, children }`                        | Wrap each table row               |
-| `Card`         | `{ row, data, selected, children }`        | Wrap each card                    |
-| `BulkActions`  | `{ count, ids, rows, clear }`              | Bulk action bar content           |
+| Slot           | Receives                            | Purpose                    |
+|----------------|-------------------------------------|----------------------------|
+| `Empty`        | `{ view }`                          | No data state              |
+| `ErrorState`   | `{ retry }`                         | Error with retry action    |
+| `LoadingTable` | —                                   | Table skeleton replacement |
+| `LoadingCards` | —                                   | Card skeleton replacement  |
+| `Row`          | `{ row, children }`                 | Wrap each table row        |
+| `Card`         | `{ row, data, selected, children }` | Wrap each card             |
+| `BulkActions`  | `{ count, ids, rows, clear }`       | Bulk action bar content    |
 
 ## Development
 
