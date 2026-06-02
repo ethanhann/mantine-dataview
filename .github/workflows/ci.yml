@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -34,6 +32,3 @@ jobs:
 
       - name: Build library
         run: npm run build
-
-      - name: Build Storybook
-        run: npm run storybook:build
