@@ -148,12 +148,12 @@ export function DataTable<TData>({
 
 	return (
 		<div style={hasPinning ? { overflowX: "auto" } : undefined}>
-			<Table {...tableProps}>
+			<Table layout="fixed" {...tableProps}>
 				<Table.Thead>
 					{table.getHeaderGroups().map((group) => (
 						<Table.Tr key={group.id}>
 							{selectionEnabled && (
-								<Table.Th style={{ width: 1 }}>
+								<Table.Th style={{ width: 40 }}>
 									<Checkbox
 										aria-label="Select all rows on this page"
 										checked={table.getIsAllPageRowsSelected()}

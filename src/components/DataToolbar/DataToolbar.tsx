@@ -2,7 +2,7 @@
 // affordances that drive one core state, so they behave the same for the table and the cards.
 // Each section can be turned off, and sensible defaults derive from the column model.
 
-import { Group, type GroupProps, TextInput } from "@mantine/core";
+import { CloseButton, Group, type GroupProps, TextInput } from "@mantine/core";
 import type { UseDataViewReturn } from "../../types/options";
 import { SearchIcon } from "../icons";
 import { FilterControls } from "./FilterControls";
@@ -53,6 +53,15 @@ export function DataToolbar<TData>({
 						leftSection={<SearchIcon />}
 						value={state.globalFilter}
 						onChange={(e) => table.setGlobalFilter(e.currentTarget.value)}
+						rightSection={
+							state.globalFilter ? (
+								<CloseButton
+									size="sm"
+									aria-label="Clear search"
+									onClick={() => table.setGlobalFilter("")}
+								/>
+							) : undefined
+						}
 					/>
 				)}
 				{filtersOn && (

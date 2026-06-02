@@ -3,7 +3,6 @@
 
 import {
 	Button,
-	CloseButton,
 	Drawer,
 	Group,
 	Popover,
@@ -13,7 +12,7 @@ import {
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { belowBreakpointQuery } from "../../core/useForceCards";
 import type { UseDataViewReturn } from "../../types/options";
-import { FilterIcon } from "../icons";
+import { CloseIcon, FilterIcon } from "../icons";
 import { FilterControl } from "./FilterControl";
 
 function ClearFiltersButton<TData>({
@@ -24,11 +23,15 @@ function ClearFiltersButton<TData>({
 	const active = view.state.columnFilters.length > 0;
 	if (!active) return null;
 	return (
-		<CloseButton
-			aria-label="Clear filters"
-			size="sm"
+		<Button
+			variant="subtle"
+			size="compact-sm"
+			color="gray"
+			leftSection={<CloseIcon />}
 			onClick={() => view.table.resetColumnFilters()}
-		/>
+		>
+			Reset filters
+		</Button>
 	);
 }
 

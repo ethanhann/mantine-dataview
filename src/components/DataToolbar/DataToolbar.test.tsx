@@ -118,10 +118,12 @@ describe("DataToolbar", () => {
 	it("shows a clear filters button when a filter is active", async () => {
 		const onRequestChange = reqSpy();
 		renderToolbar({ onRequestChange });
-		expect(screen.queryByLabelText("Clear filters")).toBeNull();
+		expect(screen.queryByRole("button", { name: /Reset filters/ })).toBeNull();
 		selectOption("Status", "Active");
-		expect(screen.getByLabelText("Clear filters")).toBeVisible();
-		await userEvent.click(screen.getByLabelText("Clear filters"));
+		expect(screen.getByRole("button", { name: /Reset filters/ })).toBeVisible();
+		await userEvent.click(
+			screen.getByRole("button", { name: /Reset filters/ }),
+		);
 		expect(lastRequest(onRequestChange).filters).toEqual([]);
 	});
 

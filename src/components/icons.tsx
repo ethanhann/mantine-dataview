@@ -77,6 +77,10 @@ export function ChevronDownIcon() {
 	return <Glyph title="open" d="M6 9l6 6 6-6" />;
 }
 
+export function CloseIcon() {
+	return <Glyph title="close" d="M18 6L6 18M6 6l12 12" />;
+}
+
 export function PinLeftIcon() {
 	return <Glyph title="pin left" d="M4 4v16M9 8h8M9 12h6M9 16h8" />;
 }

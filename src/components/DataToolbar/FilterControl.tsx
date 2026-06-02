@@ -34,7 +34,11 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 
 	if (meta.component) {
 		const Custom = meta.component;
-		return <Custom value={value} onChange={set} column={column} />;
+		return (
+			<Input.Wrapper label={label}>
+				<Custom value={value} onChange={set} column={column} />
+			</Input.Wrapper>
+		);
 	}
 
 	switch (meta.variant) {
