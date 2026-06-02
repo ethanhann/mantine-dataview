@@ -10,18 +10,26 @@ A reusable React library that renders **server-driven, paginated datasets** as e
 **table** or a **card grid**, switchable at runtime, with full feature parity between the two —
 built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack.com/table) v8.
 
+> A table and a card grid are not two components — they are two _projections_ of one shared,
+> headless state. Sort, filter, search, selection, visibility and pagination all live in a single
+> core, so parity between the views is guaranteed by construction, not maintained by hand.
+
 ## Features
 
 - One hook drives both a Mantine `Table` and a Mantine `Card` grid; switch at runtime.
-- Server-side pagination, sorting, column filters, and global search — backend-agnostic.
+- Server-side pagination, sorting (including multi-sort), column filters, and global search.
+- Column data types (`text`, `number`, `currency`, `date`, `boolean`) with automatic Intl-based formatting.
+- Seven filter variants with smart controls: `SegmentedControl` for booleans, `RangeSlider` for bounded numbers, `DatePickerInput` for dates.
+- Custom filter components — bring your own UI per column.
+- Column pinning (left/right) with sticky positioning.
+- CSV export with optional formatted output.
 - Router-agnostic URL state sync with a default History-API adapter.
 - Cross-page row selection + a shared bulk-action bar.
-- Column-meta card composition (`title`/`subtitle`/`media`/`badge`/`meta`) + a `renderCard`
-  escape hatch.
-- Custom filter components — bring your own UI per column.
+- Column-meta card composition (`title`/`subtitle`/`media`/`badge`/`meta`) + a `renderCard` escape hatch.
 - Responsive: force-to-cards below a breakpoint, filters collapse to a bottom drawer on mobile.
 - Loading / empty / filtered-empty / error states, consistent across both views.
-- Strongly typed end to end; ships its own `.d.ts`. No icon or data-fetching dependency.
+- Dark mode support via Mantine's color scheme system.
+- Strongly typed end to end; ships its own `.d.ts`. No icon dependency.
 
 ## Install
 
@@ -32,7 +40,7 @@ npm install @ethanhann/mantine-dataview
 ### Peer dependencies
 
 ```sh
-npm install react react-dom @mantine/core @mantine/hooks @tanstack/react-table
+npm install react react-dom @mantine/core @mantine/dates @mantine/hooks @tanstack/react-table
 ```
 
 The library renders Mantine components, so your app must import Mantine's styles and wrap the
@@ -40,6 +48,7 @@ tree in a provider:
 
 ```tsx
 import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
 import { MantineProvider } from "@mantine/core";
 
 <MantineProvider>{/* ... */}</MantineProvider>;
@@ -150,6 +159,73 @@ const view = useDataView<User>({
 
 The request is emitted immediately for pagination/sorting and debounced for search/filters.
 
+## Column data types and formatting
+
+Set `dataType` on a column's meta to enable automatic value formatting. When no explicit
+`cell` renderer is provided, the library formats values using `Intl.NumberFormat` or
+`Intl.DateTimeFormat` based on the data type. Raw values are preserved for server requests,
+sorting, and filtering — formatting is display-only.
+
+```tsx
+col.accessor("price", {
+  header: "Price",
+  meta: { dataType: "currency", align: "right" },
+});
+
+col.accessor("createdAt", {
+  header: "Created",
+  meta: { dataType: "date" },
+});
+```
+
+| Data type  | Default format | Example |
+|------------|---------------|---------|
+| `text`     | `String(value)` | `"hello"` |
+| `number`   | `Intl.NumberFormat` | `1,234` |
+| `currency` | `Intl.NumberFormat` with currency | `$1,234.56` |
+| `date`     | `Intl.DateTimeFormat` | `Jun 2, 2026` |
+| `boolean`  | `"Yes"` / `"No"` | `Yes` |
+
+### Format overrides (three levels)
+
+1. **Library defaults** — built-in formatters per data type (above).
+2. **Table-scoped** — `formatDefaults` on the hook options, keyed by data type.
+3. **Column-scoped** — `format` on `ColumnMeta`, overrides everything for that column.
+
+```tsx
+const view = useDataViewFetcher({
+  columns,
+  getRowId,
+  fetcher,
+  // All dates in this table use short format, currency is EUR
+  formatDefaults: {
+    date: { dateStyle: "short" },
+    currency: { currency: "EUR" },
+  },
+});
+
+// This column overrides the table default
+col.accessor("createdAt", {
+  header: "Created",
+  meta: {
+    dataType: "date",
+    format: { dateStyle: "long" },
+  },
+});
+
+// Or use a function for full control
+col.accessor("revenue", {
+  header: "Revenue",
+  meta: {
+    dataType: "currency",
+    format: (v) => `€${(v as number).toFixed(0)}`,
+  },
+});
+```
+
+If you provide your own `cell` renderer on a column, it takes full precedence over `dataType`
+formatting.
+
 ## Sorting
 
 Columns are sortable by default via table header clicks. The `request.sorting` array is sent
@@ -188,9 +264,6 @@ col.accessor("revenue", {
 });
 ```
 
-The header render function receives TanStack's `HeaderContext` with access to the column
-and table instances.
-
 ## CSV export
 
 Export the current page's visible columns as a CSV file:
@@ -200,6 +273,9 @@ Export the current page's visible columns as a CSV file:
 
 // With options
 view.exportCsv({ filename: "users.csv", separator: ";" });
+
+// Export formatted values instead of raw data
+view.exportCsv({ formatted: true });
 ```
 
 The `exportCsv` function is also available as a standalone utility:
@@ -236,16 +312,9 @@ edge; clicking it again unpins.
 ### Programmatic
 
 ```tsx
-// Pin a column
 view.table.getColumn("name")?.pin("left");
-
-// Unpin
-view.table.getColumn("name")?.pin(false);
+view.table.getColumn("name")?.pin(false); // unpin
 ```
-
-Pinned columns use `position: sticky` with a solid background so content doesn't show through
-when scrolling. The table container automatically enables horizontal scrolling when any column
-is pinned.
 
 ## Filters
 
@@ -253,26 +322,27 @@ is pinned.
 
 Define filters declaratively on column meta. Seven variants are built in:
 
+| Variant | Control | Notes |
+|---------|---------|-------|
+| `text` | `TextInput` | Free-text search |
+| `select` | `Select` (dropdown) | Single choice, clearable |
+| `multiselect` | `MultiSelect` | Multiple choices |
+| `boolean` | `SegmentedControl` (All/Yes/No) | One-click toggle |
+| `numberRange` | `RangeSlider` or two `NumberInput`s | Slider when `min`/`max` are set |
+| `date` | `DatePickerInput` | Calendar picker |
+| `dateRange` | `DatePickerInput` (range) | Two-date calendar picker |
+
 ```tsx
-// Text search
-meta: { filter: { variant: "text" } }
-
-// Single select
-meta: { filter: { variant: "select", options: [{ value: "active", label: "Active" }] } }
-
-// Multi select
-meta: { filter: { variant: "multiselect", options: [...] } }
-
-// Boolean (Yes/No)
+// Boolean — renders as a segmented control
 meta: { filter: { variant: "boolean" } }
 
-// Number range (min/max)
+// Number range with slider
+meta: { filter: { variant: "numberRange", min: 0, max: 1000, step: 10 } }
+
+// Number range without bounds (falls back to two number inputs)
 meta: { filter: { variant: "numberRange" } }
 
-// Date
-meta: { filter: { variant: "date" } }
-
-// Date range (from/to)
+// Date range
 meta: { filter: { variant: "dateRange" } }
 ```
 
@@ -282,7 +352,6 @@ For filters that don't fit the built-in variants, provide a `component` instead:
 
 ```tsx
 import type { CustomFilterComponentProps } from "@ethanhann/mantine-dataview";
-import { Chip, Group } from "@mantine/core";
 
 function LocationFilter({ value, onChange }: CustomFilterComponentProps) {
   return (
@@ -290,7 +359,6 @@ function LocationFilter({ value, onChange }: CustomFilterComponentProps) {
       <Group gap={4}>
         <Chip value="london" size="xs">London</Chip>
         <Chip value="berlin" size="xs">Berlin</Chip>
-        <Chip value="tokyo" size="xs">Tokyo</Chip>
       </Group>
     </Chip.Group>
   );
@@ -302,20 +370,29 @@ col.accessor("location", {
 });
 ```
 
-Custom filter components receive:
+### Inline filter placement
 
-| Prop       | Type                           | Description                              |
-| ---------- | ------------------------------ | ---------------------------------------- |
-| `value`    | `unknown`                      | Current filter value (`undefined` = off) |
-| `onChange`  | `(value: unknown) => void`    | Update the filter; `undefined` to clear  |
-| `column`   | `Column<any>`                  | TanStack column instance                 |
+`FilterControl` is exported so you can place individual filters anywhere in your layout:
+
+```tsx
+import { FilterControl } from "@ethanhann/mantine-dataview";
+
+<DataView view={view}>
+  {view.table.getColumn("inStock") && (
+    <FilterControl column={view.table.getColumn("inStock")!} />
+  )}
+  <DataView.Toolbar />
+  <DataView.Body />
+  <DataView.Pagination />
+</DataView>
+```
 
 ### Filter display behavior
 
 - **Desktop, few filters** (at or below `filterInlineThreshold`, default 3): rendered inline in the toolbar.
 - **Desktop, many filters**: collapsed into a "Filters" popover button with active count badge.
 - **Mobile** (below `sm` breakpoint): always collapsed into a bottom drawer.
-- A clear button appears automatically when any filter is active.
+- A "Reset filters" button appears automatically when any filter is active.
 
 ## Card composition
 
@@ -497,7 +574,7 @@ function useTanStackRouterAdapter(): UrlStateAdapter {
 
 - Restrict which slices sync with `urlSync.include` (e.g. only pagination and sorting).
 - Override param names or codecs with `urlSync.serialize`.
-- Selection and column visibility are not URL-synced by design.
+- Selection, column visibility, and column pinning are not URL-synced by design.
 
 ## Responsive behavior
 
@@ -518,6 +595,7 @@ When `forceCardsBelow` is set and the viewport is below that breakpoint:
 - The view is forced to cards regardless of the user's choice.
 - The user's explicit choice is preserved and restored above the breakpoint.
 - The view switcher is disabled (or hidden entirely with `lockSwitcherOnMobile`).
+- Filters always open in a bottom drawer on mobile.
 
 ## API overview
 
@@ -528,6 +606,8 @@ When `forceCardsBelow` is set and the viewport is below that breakpoint:
 | `DataView` (+ `.Toolbar` / `.BulkActions` / `.Body` / `.Pagination`) | Orchestrator + compound parts                 |
 | `DataTable`, `DataCards`                                              | The two presentations (usable standalone)     |
 | `DataToolbar`, `DataPagination`, `DataBulkActions`                   | Standalone affordances                        |
+| `FilterControl`                                                       | Individual filter control (place anywhere)    |
+| `exportCsv`                                                           | Standalone CSV export utility                 |
 | `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`      | Column helpers                                |
 | `@ethanhann/mantine-dataview/url`                                    | `windowHistoryAdapter` + serializer utilities |
 
