@@ -1,0 +1,74 @@
+// Toolbar. Search, filters, sort, column visibility, and the view switch are all shared
+// affordances that drive one core state, so they behave the same for the table and the cards.
+// Each section can be turned off, and sensible defaults derive from the column model.
+
+import { Group, type GroupProps, TextInput } from "@mantine/core";
+import type { UseDataViewReturn } from "../../types/options";
+import { SearchIcon } from "../icons";
+import { FilterControls } from "./FilterControls";
+import { SortControl } from "./SortControl";
+import { ViewSwitcher } from "./ViewSwitcher";
+import { VisibilityMenu } from "./VisibilityMenu";
+
+export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
+	/** The `useDataView` instance to drive. */
+	view: UseDataViewReturn<TData>;
+	searchPlaceholder?: string;
+	/** Filterable columns up to this count render inline. More than that collapse into a popover. */
+	filterInlineThreshold?: number;
+	lockSwitcherOnMobile?: boolean;
+	showSearch?: boolean;
+	showFilters?: boolean;
+	showSort?: boolean;
+	showVisibility?: boolean;
+	showViewSwitcher?: boolean;
+}
+
+export function DataToolbar<TData>({
+	view,
+	searchPlaceholder = "Search…",
+	filterInlineThreshold = 3,
+	lockSwitcherOnMobile,
+	showSearch,
+	showFilters,
+	showSort,
+	showVisibility,
+	showViewSwitcher,
+	...groupProps
+}: DataToolbarProps<TData>) {
+	const { table, state } = view;
+	const searchOn = showSearch ?? table.options.enableGlobalFilter !== false;
+	const filtersOn = showFilters ?? view.filterableColumns.length > 0;
+	const sortOn = showSort ?? view.sortableColumns.length > 0;
+	const visibilityOn = showVisibility ?? true;
+	const switcherOn = showViewSwitcher ?? true;
+
+	return (
+		<Group justify="space-between" wrap="wrap" gap="sm" {...groupProps}>
+			<Group wrap="wrap" gap="sm">
+				{searchOn && (
+					<TextInput
+						aria-label="Search"
+						placeholder={searchPlaceholder}
+						leftSection={<SearchIcon />}
+						value={state.globalFilter}
+						onChange={(e) => table.setGlobalFilter(e.currentTarget.value)}
+					/>
+				)}
+				{filtersOn && (
+					<FilterControls view={view} inlineThreshold={filterInlineThreshold} />
+				)}
+				{sortOn && <SortControl view={view} />}
+			</Group>
+			<Group wrap="wrap" gap="sm">
+				{visibilityOn && <VisibilityMenu view={view} />}
+				{switcherOn && (
+					<ViewSwitcher
+						view={view}
+						lockSwitcherOnMobile={lockSwitcherOnMobile}
+					/>
+				)}
+			</Group>
+		</Group>
+	);
+}

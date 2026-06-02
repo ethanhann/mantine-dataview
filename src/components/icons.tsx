@@ -1,0 +1,78 @@
+// Minimal inline SVG icons. The library ships no icon dependency to stay lean. Consumers are
+// free to bring something like @tabler/icons-react for their own cells and actions.
+
+import type { SortDirection } from "@tanstack/react-table";
+
+/**
+ * Sort indicator. It highlights the up or down chevron when active and dims both when unsorted.
+ * It is decorative. The accessible sort state is conveyed by `aria-sort` on the header cell.
+ */
+export function SortIcon({ direction }: { direction: SortDirection | false }) {
+	return (
+		<svg
+			width="14"
+			height="14"
+			viewBox="0 0 24 24"
+			fill="none"
+			aria-hidden="true"
+			focusable="false"
+			style={{ flexShrink: 0 }}
+		>
+			<title>sort</title>
+			<path
+				d="M8 10l4-4 4 4"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				opacity={direction === "asc" ? 1 : 0.35}
+			/>
+			<path
+				d="M8 14l4 4 4-4"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				opacity={direction === "desc" ? 1 : 0.35}
+			/>
+		</svg>
+	);
+}
+
+function Glyph({ d, title }: { d: string; title: string }) {
+	return (
+		<svg
+			width="16"
+			height="16"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+			focusable="false"
+			style={{ flexShrink: 0 }}
+		>
+			<title>{title}</title>
+			<path d={d} />
+		</svg>
+	);
+}
+
+export function SearchIcon() {
+	return (
+		<Glyph
+			title="search"
+			d="M21 21l-4.3-4.3M11 19a8 8 0 110-16 8 8 0 010 16z"
+		/>
+	);
+}
+
+export function FilterIcon() {
+	return <Glyph title="filter" d="M3 5h18M7 12h10M10 19h4" />;
+}
+
+export function ChevronDownIcon() {
+	return <Glyph title="open" d="M6 9l6 6 6-6" />;
+}

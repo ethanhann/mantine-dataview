@@ -1,0 +1,89 @@
+// Column model. A single `DataColumnDef` drives both renderers. Card layout, filter UI, and
+// labels live on the column itself through module augmentation of TanStack's `ColumnMeta`. That
+// gives one source of truth, which is what makes parity between the table and the cards automatic.
+
+import type { Column, ColumnDef, RowData } from "@tanstack/react-table";
+import type { ComponentType } from "react";
+
+/**
+ * The column definition consumers author. Use it with `satisfies DataColumnDef<T>[]`.
+ *
+ * The value type is `any` to mirror TanStack's own `TableOptions['columns']`. A column array is
+ * mixed because each column resolves a different value type. A single `unknown` cannot hold them
+ * without variance errors, and it would break the `satisfies` pattern. Consumers still get full
+ * `TData` typing and the augmented `meta` below.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: matches @tanstack/react-table's columns type
+export type DataColumnDef<TData> = ColumnDef<TData, any>;
+
+/** Where a column's value lands in the default card composition. */
+export type CardRole =
+	| "title"
+	| "subtitle"
+	| "badge"
+	| "media"
+	| "meta"
+	| "hidden";
+
+/** Declarative filter UI. The toolbar renders it identically in both views. */
+export type FilterVariant =
+	| "text"
+	| "select"
+	| "multiselect"
+	| "numberRange"
+	| "date"
+	| "dateRange"
+	| "boolean";
+
+export type ColumnAlign = "left" | "center" | "right";
+
+export interface CardFieldMeta {
+	role?: CardRole;
+	/** Ordering within its role group. */
+	order?: number;
+	/** Render the field label next to the value. */
+	showLabel?: boolean;
+}
+
+export interface FilterOption {
+	label: string;
+	value: string;
+}
+
+/** Props received by a custom filter component. */
+export interface CustomFilterComponentProps {
+	/** Current filter value. `undefined` means no filter is active. */
+	value: unknown;
+	/** Update the filter value. Pass `undefined` to clear. */
+	onChange: (value: unknown) => void;
+	// biome-ignore lint/suspicious/noExplicitAny: column generic varies per column
+	column: Column<any>;
+}
+
+export type ColumnFilterMeta =
+	| {
+			variant: FilterVariant;
+			options?: FilterOption[];
+			placeholder?: string;
+			component?: undefined;
+	  }
+	| {
+			component: ComponentType<CustomFilterComponentProps>;
+			variant?: FilterVariant;
+			options?: FilterOption[];
+			placeholder?: string;
+	  };
+
+declare module "@tanstack/react-table" {
+	// The type parameters are required to match TanStack's declaration for merging, even
+	// though this augmentation does not reference them.
+	interface ColumnMeta<TData extends RowData, TValue> {
+		/** Human label used by the toolbar, sort control, and card field labels. */
+		label?: string;
+		/** Controls how this column appears in card view. */
+		card?: CardFieldMeta;
+		/** Declarative filter UI. It renders identically in both views. */
+		filter?: ColumnFilterMeta;
+		align?: ColumnAlign;
+	}
+}

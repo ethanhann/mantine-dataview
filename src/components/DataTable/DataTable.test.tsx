@@ -1,0 +1,181 @@
+import { MantineProvider } from "@mantine/core";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
+import { useDataView } from "../../core/useDataView";
+import { createColumnHelper } from "../../index";
+import type { DataColumnDef } from "../../types/column";
+import type { DataViewRequest } from "../../types/request";
+import type { DataViewState, Status } from "../../types/state";
+import type { DataViewSlots } from "../types";
+import { DataTable } from "./DataTable";
+
+interface User {
+	id: string;
+	name: string;
+	email: string;
+	age: number;
+}
+
+const helper = createColumnHelper<User>();
+const columns = [
+	helper.accessor("name", { header: "Name" }),
+	helper.accessor("email", { header: "Email", enableSorting: false }),
+	helper.accessor("age", { header: "Age", meta: { align: "right" } }),
+] satisfies DataColumnDef<User>[];
+
+const sampleRows: User[] = [
+	{ id: "1", name: "Ada", email: "ada@x.com", age: 36 },
+	{ id: "2", name: "Linus", email: "linus@x.com", age: 54 },
+];
+
+interface HarnessProps {
+	rows?: User[];
+	status?: Status;
+	initialState?: Partial<DataViewState>;
+	onRequestChange?: (request: DataViewRequest) => void;
+	slots?: DataViewSlots<User>;
+	enableSelection?: boolean;
+}
+
+function Harness(props: HarnessProps) {
+	const view = useDataView<User>({
+		columns,
+		rows: props.rows ?? sampleRows,
+		rowCount: props.rows?.length ?? sampleRows.length,
+		status: props.status ?? "success",
+		getRowId: (u) => u.id,
+		onRequestChange: props.onRequestChange,
+		initialState: props.initialState,
+		debounce: 0,
+	});
+	return (
+		<DataTable
+			view={view}
+			slots={props.slots}
+			enableSelection={props.enableSelection}
+			data-testid="dt"
+		/>
+	);
+}
+
+const renderTable = (props: HarnessProps = {}) =>
+	render(
+		<MantineProvider>
+			<Harness {...props} />
+		</MantineProvider>,
+	);
+
+describe("DataTable", () => {
+	it("renders headers and data rows", () => {
+		renderTable();
+		expect(screen.getByRole("columnheader", { name: /Name/ })).toBeVisible();
+		expect(screen.getByText("Ada")).toBeVisible();
+		expect(screen.getByText("linus@x.com")).toBeVisible();
+	});
+
+	it("toggles sorting from a sortable header and exposes aria-sort", async () => {
+		const onRequestChange = vi.fn();
+		renderTable({ onRequestChange });
+		await userEvent.click(screen.getByRole("button", { name: /Name/ }));
+		expect(screen.getByRole("columnheader", { name: /Name/ })).toHaveAttribute(
+			"aria-sort",
+			"ascending",
+		);
+		expect(onRequestChange).toHaveBeenCalled();
+	});
+
+	it("does not make non-sortable headers interactive", () => {
+		renderTable();
+		expect(screen.queryByRole("button", { name: /Email/ })).toBeNull();
+	});
+
+	it("selects a row via its checkbox", async () => {
+		renderTable();
+		const rowCheckbox = screen.getAllByLabelText("Select row")[0];
+		expect(rowCheckbox).not.toBeChecked();
+		await userEvent.click(rowCheckbox as HTMLElement);
+		expect(rowCheckbox).toBeChecked();
+	});
+
+	it("select-all toggles every row on the page", async () => {
+		renderTable();
+		await userEvent.click(
+			screen.getByLabelText("Select all rows on this page"),
+		);
+		for (const cb of screen.getAllByLabelText("Select row")) {
+			expect(cb).toBeChecked();
+		}
+	});
+
+	it("respects column visibility from state", () => {
+		renderTable({ initialState: { columnVisibility: { email: false } } });
+		expect(screen.queryByRole("columnheader", { name: /Email/ })).toBeNull();
+		expect(screen.queryByText("ada@x.com")).toBeNull();
+	});
+
+	it("applies meta.align to cells", () => {
+		renderTable();
+		expect(screen.getByText("36")).toHaveStyle({ textAlign: "right" });
+	});
+
+	it("renders skeleton rows while loading", () => {
+		const { container } = renderTable({ status: "loading" });
+		expect(
+			container.querySelectorAll(".mantine-Skeleton-root").length,
+		).toBeGreaterThan(0);
+		expect(screen.queryByText("Ada")).toBeNull();
+	});
+
+	it("shows the empty state on a successful empty result", () => {
+		renderTable({ rows: [], status: "success" });
+		expect(screen.getByText("No results.")).toBeVisible();
+	});
+
+	it("shows a distinct filtered-empty state that can clear filters", async () => {
+		renderTable({
+			rows: [],
+			status: "success",
+			initialState: { globalFilter: "zzz" },
+		});
+		expect(screen.getByText("No matches.")).toBeVisible();
+		await userEvent.click(
+			screen.getByRole("button", { name: /Clear filters/ }),
+		);
+		// Filters are cleared, so it is still empty but now shows the plain empty state.
+		expect(screen.getByText("No results.")).toBeVisible();
+	});
+
+	it("shows the error state and retries", async () => {
+		const onRequestChange = vi.fn();
+		renderTable({ status: "error", onRequestChange });
+		const callsBefore = onRequestChange.mock.calls.length;
+		expect(screen.getByText("Something went wrong.")).toBeVisible();
+		await userEvent.click(screen.getByRole("button", { name: /Retry/ }));
+		expect(onRequestChange.mock.calls.length).toBe(callsBefore + 1);
+	});
+
+	it("renders a custom Row slot", () => {
+		renderTable({
+			slots: {
+				Row: ({ row, cells }) => (
+					<tr data-row-id={row.id} data-custom="yes">
+						{cells}
+					</tr>
+				),
+			},
+		});
+		expect(document.querySelector('[data-custom="yes"]')).not.toBeNull();
+	});
+
+	it("forwards extra props to the Mantine table", () => {
+		renderTable();
+		expect(screen.getByTestId("dt").tagName).toBe("TABLE");
+	});
+
+	it("has no accessibility violations in the ready state", async () => {
+		const { container } = renderTable();
+		expect(await axe(container)).toHaveNoViolations();
+	});
+});
