@@ -4,6 +4,7 @@
 // `DataViewRequest` onto their transport, whether that is offset and limit, a cursor, or GraphQL
 // variables. They then map the result back into a `DataViewResponse`.
 
+import type { FacetData } from "./facets";
 import type { DataViewFilter, DataViewPagination, DataViewSort } from "./state";
 
 /** Emitted by the core whenever view state changes. The consumer turns it into a fetch. */
@@ -20,4 +21,6 @@ export interface DataViewResponse<TData> {
 	rows: TData[];
 	/** Total rows across all pages, used for page math. */
 	rowCount: number;
+	/** Optional facet aggregation data, keyed by column ID. */
+	facets?: Record<string, FacetData>;
 }

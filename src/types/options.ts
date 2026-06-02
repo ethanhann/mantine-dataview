@@ -9,6 +9,7 @@ import type {
 	ColumnFormatOption,
 	DataColumnDef,
 } from "./column";
+import type { FacetData } from "./facets";
 import type { DataViewRequest } from "./request";
 import type { DataViewState, DataViewStatus, Status, ViewMode } from "./state";
 
@@ -72,6 +73,8 @@ export interface UseDataViewOptions<TData> {
 	urlSync?: UrlSyncOptions;
 	/** Table-level format defaults keyed by data type. Column-level `format` overrides these. */
 	formatDefaults?: Partial<Record<ColumnDataType, ColumnFormatOption>>;
+	/** Facet aggregation data from the server, keyed by column ID. */
+	facets?: Record<string, FacetData>;
 }
 
 /** Current selection, derived from `rowSelection` keyed by `getRowId`. */
@@ -109,4 +112,6 @@ export interface UseDataViewReturn<TData> {
 	selection: DataViewSelection<TData>;
 	/** Export visible columns and current page rows as a CSV file download. */
 	exportCsv: (options?: ExportCsvOptions) => void;
+	/** Latest facet data from the server response, keyed by column ID. */
+	facets: Record<string, FacetData>;
 }

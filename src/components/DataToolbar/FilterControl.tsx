@@ -2,8 +2,12 @@
 // variant and reads or writes the value straight through the TanStack column. The same control
 // drives state the same way for both the table and the card views. That gives one component and
 // true parity.
+//
+// When facet data is provided, controls adapt: options show counts, zero-count items are dimmed,
+// and range facets render clickable bucket chips above the slider/picker.
 
 import {
+	Anchor,
 	Group,
 	Input,
 	MultiSelect,
@@ -11,17 +15,46 @@ import {
 	RangeSlider,
 	SegmentedControl,
 	Select,
+	Stack,
+	Text,
 	TextInput,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
 import type { Column } from "@tanstack/react-table";
 import { resolveColumnLabel } from "../../core/cardComposition";
 import { resolveFormatter } from "../../core/formatValue";
+import type { FacetData, ValueFacet } from "../../types/facets";
+import { FacetBuckets } from "./FacetBuckets";
 
 // @ts-expect-error CSS import has no type declarations
 import "@mantine/dates/styles.css";
 
 type NumOrNull = number | null;
+
+function LabelWithClear({
+	label,
+	onClear,
+}: {
+	label: string;
+	onClear: () => void;
+}) {
+	return (
+		<Group justify="space-between" wrap="nowrap">
+			<Text size="sm" fw={500}>
+				{label}
+			</Text>
+			<Anchor
+				component="button"
+				type="button"
+				size="xs"
+				c="dimmed"
+				onClick={onClear}
+			>
+				clear
+			</Anchor>
+		</Group>
+	);
+}
 
 function toIsoDate(v: Date | string | null | undefined): string | null {
 	if (!v) return null;
@@ -33,7 +66,27 @@ function asArray(value: unknown): [unknown, unknown] {
 	return Array.isArray(value) ? [value[0], value[1]] : [null, null];
 }
 
-export function FilterControl<TData>({ column }: { column: Column<TData> }) {
+function facetSelectData(
+	facet: ValueFacet,
+	fallbackOptions?: { value: string; label: string }[],
+) {
+	if (facet.values.length > 0) {
+		return facet.values.map((v) => ({
+			value: v.value,
+			label: `${v.label ?? v.value} (${v.count})`,
+			disabled: v.count === 0,
+		}));
+	}
+	return fallbackOptions ?? [];
+}
+
+export function FilterControl<TData>({
+	column,
+	facet,
+}: {
+	column: Column<TData>;
+	facet?: FacetData;
+}) {
 	const meta = column.columnDef.meta?.filter;
 	if (!meta) return null;
 
@@ -51,6 +104,9 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 		);
 	}
 
+	const valueFacet = facet?.type === "values" ? facet : undefined;
+	const rangeFacet = facet?.type === "ranges" ? facet : undefined;
+
 	switch (meta.variant) {
 		case "select":
 			return (
@@ -58,7 +114,11 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 					label={label}
 					placeholder={placeholder}
 					clearable
-					data={meta.options ?? []}
+					data={
+						valueFacet
+							? facetSelectData(valueFacet, meta.options)
+							: (meta.options ?? [])
+					}
 					value={(value as string | undefined) ?? null}
 					onChange={(v) => set(v ?? undefined)}
 				/>
@@ -68,13 +128,21 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 				<MultiSelect
 					label={label}
 					placeholder={placeholder}
-					data={meta.options ?? []}
+					data={
+						valueFacet
+							? facetSelectData(valueFacet, meta.options)
+							: (meta.options ?? [])
+					}
 					value={(value as string[] | undefined) ?? []}
 					onChange={(v) => set(v.length > 0 ? v : undefined)}
 				/>
 			);
 		case "boolean": {
 			const current = value == null ? "all" : value ? "yes" : "no";
+			const yesEntry = valueFacet?.values.find((v) => v.value === "true");
+			const noEntry = valueFacet?.values.find((v) => v.value === "false");
+			const yesLabel = yesEntry ? `Yes (${yesEntry.count})` : "Yes";
+			const noLabel = noEntry ? `No (${noEntry.count})` : "No";
 			return (
 				<Input.Wrapper label={label}>
 					<SegmentedControl
@@ -82,8 +150,8 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 						size="xs"
 						data={[
 							{ value: "all", label: "All" },
-							{ value: "yes", label: "Yes" },
-							{ value: "no", label: "No" },
+							{ value: "yes", label: yesLabel },
+							{ value: "no", label: noLabel },
 						]}
 						value={current}
 						onChange={(v) => {
@@ -96,34 +164,54 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 		}
 		case "numberRange": {
 			const [min, max] = asArray(value) as [NumOrNull, NumOrNull];
-			const hasBounds = meta.min != null && meta.max != null;
+			const sliderMin = meta.min ?? (rangeFacet?.min as number | undefined);
+			const sliderMax = meta.max ?? (rangeFacet?.max as number | undefined);
+			const hasBounds = sliderMin != null && sliderMax != null;
+			const hasValue = value != null;
+
+			const buckets = rangeFacet ? (
+				<FacetBuckets facet={rangeFacet} value={value} onChange={set} />
+			) : null;
+
+			const rangeLabel = hasValue ? (
+				<LabelWithClear label={label} onClear={() => set(undefined)} />
+			) : (
+				label
+			);
 
 			if (hasBounds) {
 				const sliderValue: [number, number] = [
-					min ?? (meta.min as number),
-					max ?? (meta.max as number),
+					min ?? (sliderMin as number),
+					max ?? (sliderMax as number),
 				];
 				const dataType = column.columnDef.meta?.dataType;
 				const formatFn = dataType
 					? resolveFormatter(dataType, column.columnDef.meta?.format, undefined)
 					: (v: unknown) => String(v);
 				return (
-					<Input.Wrapper label={label}>
-						<RangeSlider
-							min={meta.min}
-							max={meta.max}
-							step={meta.step ?? 1}
-							value={sliderValue}
-							onChange={([lo, hi]) => {
-								const isDefault = lo === meta.min && hi === meta.max;
-								set(isDefault ? undefined : [lo, hi]);
-							}}
-							label={(v) => formatFn(v)}
-							minRange={meta.step ?? 1}
-							aria-label={label}
-						/>
+					<Input.Wrapper label={rangeLabel}>
+						<Stack gap="xs">
+							{buckets}
+							<RangeSlider
+								min={sliderMin}
+								max={sliderMax}
+								step={meta.step ?? 1}
+								value={sliderValue}
+								onChange={([lo, hi]) => {
+									const isDefault = lo === sliderMin && hi === sliderMax;
+									set(isDefault ? undefined : [lo, hi]);
+								}}
+								label={(v) => formatFn(v)}
+								minRange={meta.step ?? 1}
+								aria-label={label}
+							/>
+						</Stack>
 					</Input.Wrapper>
 				);
+			}
+
+			if (buckets) {
+				return <Input.Wrapper label={rangeLabel}>{buckets}</Input.Wrapper>;
 			}
 
 			const update = (next: [NumOrNull, NumOrNull]) =>
@@ -170,20 +258,32 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 				start ? new Date(start) : null,
 				end ? new Date(end) : null,
 			];
+			const dateRangeLabel =
+				value != null ? (
+					<LabelWithClear label={label} onClear={() => set(undefined)} />
+				) : (
+					label
+				);
 			return (
-				<DatePickerInput
-					type="range"
-					popoverProps={{ withinPortal: false }}
-					label={label}
-					placeholder={placeholder}
-					clearable
-					value={rangeValue}
-					onChange={([s, e]) => {
-						const sv = toIsoDate(s);
-						const ev = toIsoDate(e);
-						set(sv == null && ev == null ? undefined : [sv, ev]);
-					}}
-				/>
+				<Input.Wrapper label={dateRangeLabel}>
+					<Stack gap="xs">
+						{rangeFacet && (
+							<FacetBuckets facet={rangeFacet} value={value} onChange={set} />
+						)}
+						<DatePickerInput
+							type="range"
+							popoverProps={{ withinPortal: false }}
+							placeholder={placeholder}
+							clearable
+							value={rangeValue}
+							onChange={([s, e]) => {
+								const sv = toIsoDate(s);
+								const ev = toIsoDate(e);
+								set(sv == null && ev == null ? undefined : [sv, ev]);
+							}}
+						/>
+					</Stack>
+				</Input.Wrapper>
 			);
 		}
 		default:

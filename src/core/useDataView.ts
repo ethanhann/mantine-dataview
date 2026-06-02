@@ -117,7 +117,10 @@ export function useDataView<TData>(
 		debounce,
 		responsive,
 		formatDefaults,
+		facets: facetsInput,
 	} = options;
+
+	const facets = facetsInput ?? {};
 
 	const columns = useMemo(
 		() =>
@@ -443,5 +446,6 @@ export function useDataView<TData>(
 		filterableColumns,
 		selection,
 		exportCsv,
+		facets,
 	};
 }

@@ -74,7 +74,11 @@ export function FilterControls<TData>({
 	if (columns.length === 0) return null;
 
 	const controls = columns.map((column) => (
-		<FilterControl key={column.id} column={column} />
+		<FilterControl
+			key={column.id}
+			column={column}
+			facet={view.facets[column.id]}
+		/>
 	));
 	const activeCount = view.state.columnFilters.length;
 

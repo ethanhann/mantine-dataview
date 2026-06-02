@@ -62,6 +62,7 @@ export function useDataViewFetcher<TData>({
 		...options,
 		rows: response.rows,
 		rowCount: response.rowCount,
+		facets: response.facets,
 		status,
 		error,
 		onRequestChange,

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DataView } from "../components/DataView";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
 import { createColumnHelper, type DataColumnDef } from "../index";
+import type { FacetData } from "../types/facets";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
 import { windowHistoryAdapter } from "../url";
 import { columns, createMockFetcher, type Person } from "./data";
@@ -463,6 +464,226 @@ export const CustomStates: Story = {
 						),
 					}}
 				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/** Faceted search with dynamic counts. Filter one dimension and watch counts update on others. */
+export const FacetedSearch: Story = {
+	render: () => {
+		type Size = "XS" | "S" | "M" | "L" | "XL";
+		interface Shirt {
+			id: string;
+			name: string;
+			size: Size;
+			price: number;
+			inStock: boolean;
+		}
+
+		const SIZES: Size[] = ["XS", "S", "M", "L", "XL"];
+		const NAMES = [
+			"Classic Tee",
+			"V-Neck",
+			"Henley",
+			"Polo",
+			"Tank Top",
+			"Long Sleeve",
+			"Raglan",
+			"Crew Neck",
+			"Slim Fit",
+			"Oversized",
+			"Pocket Tee",
+			"Graphic Tee",
+			"Striped",
+			"Linen Blend",
+			"Performance",
+			"Vintage Wash",
+			"Organic Cotton",
+			"Jersey Knit",
+			"Thermal",
+			"Muscle Tee",
+		];
+		const shirts: Shirt[] = NAMES.map((name, i) => ({
+			id: String(i + 1),
+			name,
+			size: SIZES[i % SIZES.length] as Size,
+			price: 15 + ((i * 13) % 85),
+			inStock: i % 3 !== 0,
+		}));
+
+		const shirtCol = createColumnHelper<Shirt>();
+		const shirtColumns = [
+			shirtCol.accessor("name", {
+				header: "Name",
+				meta: {
+					label: "Name",
+					dataType: "text",
+					card: { role: "title" },
+					filter: { variant: "text" },
+				},
+			}),
+			shirtCol.accessor("size", {
+				header: "Size",
+				meta: {
+					label: "Size",
+					card: { role: "badge" },
+					filter: {
+						variant: "select",
+						options: SIZES.map((s) => ({ value: s, label: s })),
+					},
+				},
+			}),
+			shirtCol.accessor("price", {
+				header: "Price",
+				meta: {
+					label: "Price",
+					dataType: "currency",
+					align: "right",
+					card: { role: "meta" },
+					filter: { variant: "numberRange" },
+				},
+			}),
+			shirtCol.accessor("inStock", {
+				header: "In Stock",
+				meta: {
+					label: "In Stock",
+					dataType: "boolean",
+					card: { role: "badge" },
+					filter: { variant: "boolean" },
+				},
+			}),
+		] satisfies DataColumnDef<Shirt>[];
+
+		function computeFacets(filtered: Shirt[]): Record<string, FacetData> {
+			const sizeCounts = new Map<string, number>();
+			for (const s of SIZES) sizeCounts.set(s, 0);
+			const stockCounts = { true: 0, false: 0 };
+			for (const s of filtered) {
+				sizeCounts.set(s.size, (sizeCounts.get(s.size) ?? 0) + 1);
+				stockCounts[String(s.inStock) as "true" | "false"]++;
+			}
+			return {
+				size: {
+					type: "values",
+					values: SIZES.map((s) => ({
+						value: s,
+						label: s,
+						count: sizeCounts.get(s) ?? 0,
+					})),
+				},
+				price: {
+					type: "ranges",
+					ranges: [
+						{
+							label: "Under $25",
+							from: 0,
+							to: 25,
+							count: filtered.filter((s) => s.price < 25).length,
+						},
+						{
+							label: "$25–$50",
+							from: 25,
+							to: 50,
+							count: filtered.filter((s) => s.price >= 25 && s.price < 50)
+								.length,
+						},
+						{
+							label: "$50–$75",
+							from: 50,
+							to: 75,
+							count: filtered.filter((s) => s.price >= 50 && s.price < 75)
+								.length,
+						},
+						{
+							label: "$75+",
+							from: 75,
+							to: 999,
+							count: filtered.filter((s) => s.price >= 75).length,
+						},
+					],
+					min: 15,
+					max: 99,
+				},
+				inStock: {
+					type: "values",
+					values: [
+						{ value: "true", label: "Yes", count: stockCounts.true },
+						{ value: "false", label: "No", count: stockCounts.false },
+					],
+				},
+			};
+		}
+
+		function Example() {
+			const fetcher = useMemo(
+				() =>
+					async (req: DataViewRequest): Promise<DataViewResponse<Shirt>> => {
+						await new Promise((r) => setTimeout(r, 200));
+						let result = shirts.slice();
+
+						if (req.globalFilter) {
+							const q = req.globalFilter.toLowerCase();
+							result = result.filter((s) => s.name.toLowerCase().includes(q));
+						}
+						for (const f of req.filters) {
+							result = result.filter((s) => {
+								const v = f.value;
+								if (v == null || v === "") return true;
+								if (f.id === "price" && Array.isArray(v)) {
+									const [lo, hi] = v as [number, number];
+									return s.price >= lo && s.price < hi;
+								}
+								if (f.id === "inStock") return s.inStock === v;
+								if (f.id === "size") return s.size === v;
+								return String(s[f.id as keyof Shirt])
+									.toLowerCase()
+									.includes(String(v).toLowerCase());
+							});
+						}
+
+						if (req.sorting.length > 0) {
+							result.sort((a, b) => {
+								for (const sort of req.sorting) {
+									const av = a[sort.id as keyof Shirt];
+									const bv = b[sort.id as keyof Shirt];
+									if (av === bv) continue;
+									const cmp = av < bv ? -1 : 1;
+									return sort.desc ? -cmp : cmp;
+								}
+								return 0;
+							});
+						}
+
+						const facets = computeFacets(result);
+						const total = result.length;
+						const { pageIndex, pageSize } = req.pagination;
+						const start = pageIndex * pageSize;
+						return {
+							rows: result.slice(start, start + pageSize),
+							rowCount: total,
+							facets,
+						};
+					},
+				[],
+			);
+
+			const view = useDataViewFetcher<Shirt>({
+				columns: shirtColumns,
+				getRowId: (s) => s.id,
+				fetcher,
+				formatDefaults: { currency: { currency: "USD" } },
+			});
+
+			return (
+				<Stack gap="xs">
+					<Text size="sm" c="dimmed">
+						Filter by size, price range, or stock status. Watch the counts
+						update on other filters as you narrow your selection.
+					</Text>
+					<DataView view={view} />
+				</Stack>
 			);
 		}
 		return <Example />;

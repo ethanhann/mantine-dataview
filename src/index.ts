@@ -78,6 +78,13 @@ export type {
 	NumberFormatOptions,
 } from "./types/column";
 export type {
+	FacetData,
+	RangeFacet,
+	RangeFacetEntry,
+	ValueFacet,
+	ValueFacetEntry,
+} from "./types/facets";
+export type {
 	DataViewSelection,
 	DebounceOptions,
 	ResponsiveOptions,
