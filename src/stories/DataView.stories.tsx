@@ -1,6 +1,6 @@
 import { Button, Group, Stack, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataView } from "../components/DataView";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
 import { windowHistoryAdapter } from "../url";
@@ -93,12 +93,11 @@ export const CustomRenderCard: Story = {
 	},
 };
 
-/** State synced to the URL (`?page`/`sort`/`q`/`view`/`f.*`). Watch the address bar. */
+/** State synced to the URL. In Storybook the iframe URL is not visible in the address bar, so a live readout is shown below. */
 export const WithUrlSync: Story = {
 	render: () => {
 		function Example() {
 			const fetcher = useMemo(() => createMockFetcher(), []);
-			// Memoize the adapter once, as consumers should.
 			const adapter = useMemo(() => windowHistoryAdapter(), []);
 			const view = useDataViewFetcher<Person>({
 				columns,
@@ -106,11 +105,30 @@ export const WithUrlSync: Story = {
 				fetcher,
 				urlSync: { adapter },
 			});
-			return <DataView view={view} />;
+			return (
+				<Stack gap="xs">
+					<DataView view={view} />
+					<UrlReadout />
+				</Stack>
+			);
 		}
 		return <Example />;
 	},
 };
+
+function UrlReadout() {
+	const [search, setSearch] = useState(window.location.search);
+	useEffect(() => {
+		const update = () => setSearch(window.location.search);
+		const id = setInterval(update, 300);
+		return () => clearInterval(id);
+	}, []);
+	return (
+		<Text size="xs" ff="monospace" c="dimmed">
+			URL: {search || "(no query params)"}
+		</Text>
+	);
+}
 
 /** Bulk actions supplied by the consumer. Select rows to reveal the bar. */
 export const BulkActions: Story = {

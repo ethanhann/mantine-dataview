@@ -198,14 +198,16 @@ export function createMockFetcher(data: Person[] = people, delay = 450) {
 		for (const f of request.filters) {
 			result = result.filter((p) => matchesFilter(p, f.id, f.value));
 		}
-		const sort = request.sorting[0];
-		if (sort) {
+		if (request.sorting.length > 0) {
 			result.sort((a, b) => {
-				const av = field(a, sort.id);
-				const bv = field(b, sort.id);
-				if (av === bv) return 0;
-				const cmp = (av ?? "") < (bv ?? "") ? -1 : 1;
-				return sort.desc ? -cmp : cmp;
+				for (const sort of request.sorting) {
+					const av = field(a, sort.id);
+					const bv = field(b, sort.id);
+					if (av === bv) continue;
+					const cmp = (av ?? "") < (bv ?? "") ? -1 : 1;
+					return sort.desc ? -cmp : cmp;
+				}
+				return 0;
 			});
 		}
 
