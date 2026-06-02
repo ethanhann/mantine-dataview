@@ -48,6 +48,8 @@ export {
 	composeCardLayout,
 	resolveColumnLabel,
 } from "./core/cardComposition";
+// CSV export utility.
+export { type ExportCsvOptions, exportCsv } from "./core/exportCsv";
 // Core hook.
 export { useDataView } from "./core/useDataView";
 // Optional wrapper that manages fetching.

@@ -185,6 +185,8 @@ function HeaderCell<TData>({ header }: { header: Header<TData, unknown> }) {
 	const { column } = header;
 	const align = column.columnDef.meta?.align;
 	const sorted = column.getIsSorted();
+	const sortIndex = column.getSortIndex();
+	const multiSorted = sortIndex > 0;
 	const content = header.isPlaceholder
 		? null
 		: flexRender(column.columnDef.header, header.getContext());
@@ -212,6 +214,15 @@ function HeaderCell<TData>({ header }: { header: Header<TData, unknown> }) {
 				>
 					{content}
 					<SortIcon direction={sorted} />
+					{multiSorted && (
+						<span
+							role="note"
+							style={{ fontSize: "0.7em", opacity: 0.6 }}
+							aria-label={`Sort priority ${sortIndex + 1}`}
+						>
+							{sortIndex + 1}
+						</span>
+					)}
 				</UnstyledButton>
 			) : (
 				content

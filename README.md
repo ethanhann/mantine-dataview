@@ -150,6 +150,66 @@ const view = useDataView<User>({
 
 The request is emitted immediately for pagination/sorting and debounced for search/filters.
 
+## Sorting
+
+Columns are sortable by default via table header clicks. The `request.sorting` array is sent
+to the server so it can apply the sort.
+
+### Multi-column sorting
+
+Hold **Shift** and click additional column headers to add secondary, tertiary, etc. sort keys.
+The header shows a small index number (2, 3, ...) next to the sort icon for secondary sorts.
+
+The toolbar's sort control drives the primary sort. Multi-sort is available through table
+headers only.
+
+### Disabling sorting
+
+Disable sorting on a specific column:
+
+```tsx
+col.accessor("avatar", { header: "Avatar", enableSorting: false });
+```
+
+## Custom headers
+
+Column headers support the same render function pattern as cells — pass a component or
+function to the `header` property:
+
+```tsx
+col.accessor("revenue", {
+  header: () => (
+    <Group gap={4}>
+      <IconCurrencyDollar size={14} />
+      <span>Revenue</span>
+    </Group>
+  ),
+  meta: { align: "right" },
+});
+```
+
+The header render function receives TanStack's `HeaderContext` with access to the column
+and table instances.
+
+## CSV export
+
+Export the current page's visible columns as a CSV file:
+
+```tsx
+<Button onClick={() => view.exportCsv()}>Export CSV</Button>
+
+// With options
+view.exportCsv({ filename: "users.csv", separator: ";" });
+```
+
+The `exportCsv` function is also available as a standalone utility:
+
+```tsx
+import { exportCsv } from "@ethanhann/mantine-dataview";
+
+exportCsv(view.table, { filename: "report.csv" });
+```
+
 ## Filters
 
 ### Built-in filter variants

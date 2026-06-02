@@ -2,6 +2,7 @@
 
 import type { MantineBreakpoint } from "@mantine/core";
 import type { Column, Table } from "@tanstack/react-table";
+import type { ExportCsvOptions } from "../core/exportCsv";
 import type { UrlSerializer, UrlStateAdapter } from "../url/types";
 import type { DataColumnDef } from "./column";
 import type { DataViewRequest } from "./request";
@@ -100,4 +101,6 @@ export interface UseDataViewReturn<TData> {
 	sortableColumns: Column<TData>[];
 	filterableColumns: Column<TData>[];
 	selection: DataViewSelection<TData>;
+	/** Export visible columns and current page rows as a CSV file download. */
+	exportCsv: (options?: ExportCsvOptions) => void;
 }

@@ -27,6 +27,7 @@ import {
 	resolveUrlConfig,
 	useUrlSync,
 } from "../url/useUrlSync";
+import { exportCsv as exportCsvFn } from "./exportCsv";
 import { resolveDataViewStatus } from "./resolveStatus";
 import { useForceCards } from "./useForceCards";
 
@@ -385,6 +386,11 @@ export function useDataView<TData>(
 		};
 	}, [resolvedState.rowSelection, rows, getRowId, clearSelection]);
 
+	const exportCsv = useCallback(
+		(opts?: Parameters<typeof exportCsvFn>[1]) => exportCsvFn(table, opts),
+		[table],
+	);
+
 	return {
 		table,
 		request,
@@ -400,5 +406,6 @@ export function useDataView<TData>(
 		sortableColumns,
 		filterableColumns,
 		selection,
+		exportCsv,
 	};
 }
