@@ -106,7 +106,9 @@ export function FilterControls<TData>({
 	return (
 		<Popover position="bottom-start" trapFocus>
 			<Popover.Target>
-				<FilterButton activeCount={activeCount} />
+				<Button variant="default" leftSection={<FilterIcon />}>
+					{filterButtonLabel(activeCount)}
+				</Button>
 			</Popover.Target>
 			<Popover.Dropdown>
 				<FilterStack view={view} controls={controls} />
