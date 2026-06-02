@@ -84,6 +84,8 @@ export type ColumnFilterMeta =
 			min?: number;
 			/** Max bound for `numberRange` variant. When both min and max are set, renders a RangeSlider. */
 			max?: number;
+			/** Step increment for the RangeSlider. Default: 1. */
+			step?: number;
 			component?: undefined;
 	  }
 	| {
@@ -93,6 +95,7 @@ export type ColumnFilterMeta =
 			placeholder?: string;
 			min?: number;
 			max?: number;
+			step?: number;
 	  };
 
 declare module "@tanstack/react-table" {

@@ -112,13 +112,14 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 						<RangeSlider
 							min={meta.min}
 							max={meta.max}
+							step={meta.step ?? 1}
 							value={sliderValue}
 							onChange={([lo, hi]) => {
 								const isDefault = lo === meta.min && hi === meta.max;
 								set(isDefault ? undefined : [lo, hi]);
 							}}
 							label={(v) => formatFn(v)}
-							minRange={1}
+							minRange={meta.step ?? 1}
 							aria-label={label}
 						/>
 					</Input.Wrapper>
@@ -157,6 +158,7 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 					label={label}
 					placeholder={placeholder}
 					clearable
+					popoverProps={{ withinPortal: false }}
 					value={dateValue}
 					onChange={(d) => set(toIsoDate(d) ?? undefined)}
 				/>
@@ -171,6 +173,7 @@ export function FilterControl<TData>({ column }: { column: Column<TData> }) {
 			return (
 				<DatePickerInput
 					type="range"
+					popoverProps={{ withinPortal: false }}
 					label={label}
 					placeholder={placeholder}
 					clearable

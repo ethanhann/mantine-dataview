@@ -277,7 +277,7 @@ export const DataTypes: Story = {
 					dataType: "currency",
 					align: "right",
 					card: { role: "meta" },
-					filter: { variant: "numberRange", min: 0, max: 600 },
+					filter: { variant: "numberRange", min: 0, max: 600, step: 10 },
 				},
 			}),
 			productCol.accessor("quantity", {
@@ -287,7 +287,7 @@ export const DataTypes: Story = {
 					dataType: "number",
 					align: "right",
 					card: { role: "meta" },
-					filter: { variant: "numberRange", min: 0, max: 1500 },
+					filter: { variant: "numberRange", min: 0, max: 1500, step: 50 },
 				},
 			}),
 			productCol.accessor("inStock", {
@@ -305,7 +305,7 @@ export const DataTypes: Story = {
 					label: "Created",
 					dataType: "date",
 					card: { role: "meta" },
-					filter: { variant: "date" },
+					filter: { variant: "dateRange" },
 				},
 			}),
 		] satisfies DataColumnDef<Product>[];

@@ -107,7 +107,7 @@ export function FilterControls<TData>({
 	}
 
 	return (
-		<Popover position="bottom-start" trapFocus>
+		<Popover position="bottom-start" closeOnClickOutside={false}>
 			<Popover.Target>
 				<Button variant="default" leftSection={<FilterIcon />}>
 					{filterButtonLabel(activeCount)}
