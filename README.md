@@ -1,9 +1,9 @@
 # @ethanhann/mantine-dataview
 
 [![npm version](https://img.shields.io/npm/v/@ethanhann/mantine-dataview.svg)](https://www.npmjs.com/package/@ethanhann/mantine-dataview)
-[![CI](https://github.com/ethanhann/mantine-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/ethanhann/mantine-grid/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fethanhann.github.io%2Fmantine-grid%2Fcoverage-badge.json)](https://ethanhann.github.io/mantine-grid)
-[![Storybook](https://img.shields.io/badge/Storybook-deployed-ff4785?logo=storybook&logoColor=white)](https://ethanhann.github.io/mantine-grid)
+[![CI](https://github.com/ethanhann/mantine-dataview/actions/workflows/ci.yml/badge.svg)](https://github.com/ethanhann/mantine-dataview/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fethanhann.github.io%2Fmantine-dataview%2Fcoverage-badge.json)](https://ethanhann.github.io/mantine-dataview)
+[![Storybook](https://img.shields.io/badge/Storybook-deployed-ff4785?logo=storybook&logoColor=white)](https://ethanhann.github.io/mantine-dataview)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 A reusable React library that renders **server-driven, paginated datasets** as either a
