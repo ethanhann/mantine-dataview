@@ -1,10 +1,45 @@
-// Column visibility menu. Toggling a column hides both its table column and its card field,
-// because the card composition reads visible columns. One control gives parity by design.
+// Column visibility and pinning menu. Toggling a column hides both its table column and its
+// card field. Pin controls let users freeze columns to the left or right edge of the table.
 
-import { Button, Checkbox, Menu, Stack } from "@mantine/core";
+import {
+	ActionIcon,
+	Button,
+	Checkbox,
+	Group,
+	Menu,
+	Stack,
+} from "@mantine/core";
+import type { Column } from "@tanstack/react-table";
 import { resolveColumnLabel } from "../../core/cardComposition";
 import type { UseDataViewReturn } from "../../types/options";
-import { ChevronDownIcon } from "../icons";
+import { ChevronDownIcon, PinLeftIcon, PinRightIcon } from "../icons";
+
+function PinControls<TData>({ column }: { column: Column<TData> }) {
+	if (!column.getCanPin()) return null;
+	const pinned = column.getIsPinned();
+	return (
+		<Group gap={2}>
+			<ActionIcon
+				size="xs"
+				variant={pinned === "left" ? "filled" : "subtle"}
+				color={pinned === "left" ? "blue" : "gray"}
+				aria-label={`Pin ${resolveColumnLabel(column)} left`}
+				onClick={() => column.pin(pinned === "left" ? false : "left")}
+			>
+				<PinLeftIcon />
+			</ActionIcon>
+			<ActionIcon
+				size="xs"
+				variant={pinned === "right" ? "filled" : "subtle"}
+				color={pinned === "right" ? "blue" : "gray"}
+				aria-label={`Pin ${resolveColumnLabel(column)} right`}
+				onClick={() => column.pin(pinned === "right" ? false : "right")}
+			>
+				<PinRightIcon />
+			</ActionIcon>
+		</Group>
+	);
+}
 
 export function VisibilityMenu<TData>({
 	view,
@@ -24,12 +59,21 @@ export function VisibilityMenu<TData>({
 			<Menu.Dropdown>
 				<Stack gap="xs" p="xs">
 					{columns.map((column) => (
-						<Checkbox
+						<Group
 							key={column.id}
-							label={resolveColumnLabel(column)}
-							checked={column.getIsVisible()}
-							onChange={(e) => column.toggleVisibility(e.currentTarget.checked)}
-						/>
+							gap="xs"
+							justify="space-between"
+							wrap="nowrap"
+						>
+							<Checkbox
+								label={resolveColumnLabel(column)}
+								checked={column.getIsVisible()}
+								onChange={(e) =>
+									column.toggleVisibility(e.currentTarget.checked)
+								}
+							/>
+							<PinControls column={column} />
+						</Group>
 					))}
 				</Stack>
 			</Menu.Dropdown>

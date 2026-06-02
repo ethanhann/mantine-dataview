@@ -33,6 +33,12 @@ export interface DataViewFilter {
  * The single source of truth for every feature. All affordances such as table headers, card
  * overlays, and toolbar controls are projections of this object, keyed by column id.
  */
+/** Columns pinned to the left or right edge of the table. */
+export interface DataViewColumnPinning {
+	left?: string[];
+	right?: string[];
+}
+
 export interface DataViewState {
 	pagination: DataViewPagination;
 	sorting: DataViewSort[];
@@ -41,6 +47,7 @@ export interface DataViewState {
 	/** Keyed by `getRowId`, so selection survives paging and refetches. */
 	rowSelection: Record<string, boolean>;
 	columnVisibility: Record<string, boolean>;
+	columnPinning: DataViewColumnPinning;
 	view: ViewMode;
 }
 

@@ -4,6 +4,7 @@
 
 import {
 	type ColumnFiltersState,
+	type ColumnPinningState,
 	functionalUpdate,
 	getCoreRowModel,
 	type OnChangeFn,
@@ -91,6 +92,7 @@ function buildDefaultState<TData>(
 		globalFilter: "",
 		rowSelection: {},
 		columnVisibility: {},
+		columnPinning: { left: [], right: [] },
 		view: options.defaultView ?? "table",
 		...options.initialState,
 	};
@@ -241,6 +243,18 @@ export function useDataView<TData>(
 		[applyPatch],
 	);
 
+	const onColumnPinningChange = useCallback<OnChangeFn<ColumnPinningState>>(
+		(updater) => {
+			applyPatch({
+				columnPinning: functionalUpdate(
+					updater,
+					resolvedStateRef.current.columnPinning,
+				),
+			});
+		},
+		[applyPatch],
+	);
+
 	const table = useReactTable<TData>({
 		data: rows,
 		columns,
@@ -264,6 +278,7 @@ export function useDataView<TData>(
 			globalFilter: resolvedState.globalFilter,
 			rowSelection: resolvedState.rowSelection,
 			columnVisibility: resolvedState.columnVisibility,
+			columnPinning: resolvedState.columnPinning,
 		},
 		onPaginationChange,
 		onSortingChange,
@@ -271,6 +286,7 @@ export function useDataView<TData>(
 		onGlobalFilterChange,
 		onRowSelectionChange,
 		onColumnVisibilityChange,
+		onColumnPinningChange,
 	});
 
 	// The normalized request holds only the slices the server cares about. View, selection, and

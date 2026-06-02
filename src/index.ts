@@ -79,6 +79,7 @@ export type {
 } from "./types/options";
 export type { DataViewRequest, DataViewResponse } from "./types/request";
 export type {
+	DataViewColumnPinning,
 	DataViewFilter,
 	DataViewPagination,
 	DataViewSort,

@@ -210,6 +210,43 @@ import { exportCsv } from "@ethanhann/mantine-dataview";
 exportCsv(view.table, { filename: "report.csv" });
 ```
 
+## Column pinning
+
+Pin columns to the left or right edge so they stay visible while scrolling horizontally.
+
+### Via initial state
+
+```tsx
+const view = useDataViewFetcher<User>({
+  columns,
+  getRowId,
+  fetcher,
+  initialState: {
+    columnPinning: { left: ["name"], right: ["actions"] },
+  },
+});
+```
+
+### Via the UI
+
+The **Columns** dropdown in the toolbar includes pin toggle buttons (left/right) next to each
+column's visibility checkbox. Clicking a pin button freezes that column to the corresponding
+edge; clicking it again unpins.
+
+### Programmatic
+
+```tsx
+// Pin a column
+view.table.getColumn("name")?.pin("left");
+
+// Unpin
+view.table.getColumn("name")?.pin(false);
+```
+
+Pinned columns use `position: sticky` with a solid background so content doesn't show through
+when scrolling. The table container automatically enables horizontal scrolling when any column
+is pinned.
+
 ## Filters
 
 ### Built-in filter variants

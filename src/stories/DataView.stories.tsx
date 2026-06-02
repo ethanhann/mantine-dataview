@@ -1,4 +1,4 @@
-import { Button, Stack, Text } from "@mantine/core";
+import { Button, Group, Stack, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo } from "react";
 import { DataView } from "../components/DataView";
@@ -137,6 +137,90 @@ export const BulkActions: Story = {
 						),
 					}}
 				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/** Multi-sort: Shift+click column headers to add secondary sort keys. */
+export const MultiSort: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const view = useDataViewFetcher<Person>({
+				columns,
+				getRowId,
+				fetcher,
+				initialState: {
+					sorting: [
+						{ id: "role", desc: false },
+						{ id: "name", desc: false },
+					],
+				},
+			});
+			return (
+				<Stack gap="xs">
+					<Text size="sm" c="dimmed">
+						Sorted by Role then Name. Shift+click headers to adjust multi-sort.
+					</Text>
+					<DataView view={view} />
+				</Stack>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/** CSV export button wired to view.exportCsv(). */
+export const CsvExport: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const view = useDataViewFetcher<Person>({ columns, getRowId, fetcher });
+			return (
+				<Stack gap="xs">
+					<Group>
+						<Button
+							variant="default"
+							size="xs"
+							onClick={() => view.exportCsv({ filename: "users.csv" })}
+						>
+							Export CSV
+						</Button>
+					</Group>
+					<DataView view={view} />
+				</Stack>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/** Column pinning: Name pinned left, Location pinned right. Scroll horizontally to see the effect. */
+export const ColumnPinning: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const view = useDataViewFetcher<Person>({
+				columns,
+				getRowId,
+				fetcher,
+				initialState: {
+					columnPinning: { left: ["name"], right: ["location"] },
+				},
+			});
+			return (
+				<Stack gap="xs">
+					<Text size="sm" c="dimmed">
+						Name is pinned left, Location is pinned right. Use the Columns menu
+						to change pinning, or scroll horizontally to see the sticky
+						behavior.
+					</Text>
+					<div style={{ maxWidth: 600 }}>
+						<DataView view={view} />
+					</div>
+				</Stack>
 			);
 		}
 		return <Example />;

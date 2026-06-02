@@ -10,12 +10,24 @@ import {
 	type TableProps,
 	UnstyledButton,
 } from "@mantine/core";
-import { flexRender, type Header } from "@tanstack/react-table";
-import type { ReactNode } from "react";
+import { type Column, flexRender, type Header } from "@tanstack/react-table";
+import type { CSSProperties, ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import { SortIcon } from "../icons";
 import { EmptyContent, ErrorContent } from "../StateMessage";
 import type { DataViewSlots } from "../types";
+
+function pinningStyle<TData>(column: Column<TData>): CSSProperties | undefined {
+	const pinned = column.getIsPinned();
+	if (!pinned) return undefined;
+	return {
+		position: "sticky",
+		[pinned]:
+			pinned === "left" ? column.getStart("left") : column.getAfter("right"),
+		zIndex: 1,
+		backgroundColor: "var(--mantine-color-body)",
+	};
+}
 
 export interface DataTableProps<TData>
 	extends Omit<TableProps, "data" | "children"> {
@@ -102,7 +114,10 @@ export function DataTable<TData>({
 										return (
 											<Table.Td
 												key={cell.id}
-												style={align ? { textAlign: align } : undefined}
+												style={{
+													...pinningStyle(cell.column),
+													...(align ? { textAlign: align } : undefined),
+												}}
 											>
 												{flexRender(
 													cell.column.columnDef.cell,
@@ -129,32 +144,36 @@ export function DataTable<TData>({
 		}
 	};
 
+	const hasPinning = table.getIsSomeColumnsPinned();
+
 	return (
-		<Table {...tableProps}>
-			<Table.Thead>
-				{table.getHeaderGroups().map((group) => (
-					<Table.Tr key={group.id}>
-						{selectionEnabled && (
-							<Table.Th style={{ width: 1 }}>
-								<Checkbox
-									aria-label="Select all rows on this page"
-									checked={table.getIsAllPageRowsSelected()}
-									indeterminate={
-										table.getIsSomePageRowsSelected() &&
-										!table.getIsAllPageRowsSelected()
-									}
-									onChange={table.getToggleAllPageRowsSelectedHandler()}
-								/>
-							</Table.Th>
-						)}
-						{group.headers.map((header) => (
-							<HeaderCell key={header.id} header={header} />
-						))}
-					</Table.Tr>
-				))}
-			</Table.Thead>
-			{renderBody()}
-		</Table>
+		<div style={hasPinning ? { overflowX: "auto" } : undefined}>
+			<Table {...tableProps}>
+				<Table.Thead>
+					{table.getHeaderGroups().map((group) => (
+						<Table.Tr key={group.id}>
+							{selectionEnabled && (
+								<Table.Th style={{ width: 1 }}>
+									<Checkbox
+										aria-label="Select all rows on this page"
+										checked={table.getIsAllPageRowsSelected()}
+										indeterminate={
+											table.getIsSomePageRowsSelected() &&
+											!table.getIsAllPageRowsSelected()
+										}
+										onChange={table.getToggleAllPageRowsSelectedHandler()}
+									/>
+								</Table.Th>
+							)}
+							{group.headers.map((header) => (
+								<HeaderCell key={header.id} header={header} />
+							))}
+						</Table.Tr>
+					))}
+				</Table.Thead>
+				{renderBody()}
+			</Table>
+		</div>
 	);
 }
 
@@ -193,7 +212,10 @@ function HeaderCell<TData>({ header }: { header: Header<TData, unknown> }) {
 
 	return (
 		<Table.Th
-			style={align ? { textAlign: align } : undefined}
+			style={{
+				...pinningStyle(column),
+				...(align ? { textAlign: align } : undefined),
+			}}
 			aria-sort={
 				sorted === "asc"
 					? "ascending"
