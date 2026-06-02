@@ -63,11 +63,15 @@ export type {
 	CardFieldMeta,
 	CardRole,
 	ColumnAlign,
+	ColumnDataType,
 	ColumnFilterMeta,
+	ColumnFormatOption,
 	CustomFilterComponentProps,
 	DataColumnDef,
+	DateFormatOptions,
 	FilterOption,
 	FilterVariant,
+	NumberFormatOptions,
 } from "./types/column";
 export type {
 	DataViewSelection,

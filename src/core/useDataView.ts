@@ -29,6 +29,7 @@ import {
 	useUrlSync,
 } from "../url/useUrlSync";
 import { exportCsv as exportCsvFn } from "./exportCsv";
+import { resolveFormatter } from "./formatValue";
 import { resolveDataViewStatus } from "./resolveStatus";
 import { useForceCards } from "./useForceCards";
 
@@ -102,7 +103,7 @@ export function useDataView<TData>(
 	options: UseDataViewOptions<TData>,
 ): UseDataViewReturn<TData> {
 	const {
-		columns,
+		columns: rawColumns,
 		rows,
 		rowCount,
 		status,
@@ -115,7 +116,26 @@ export function useDataView<TData>(
 		enableGlobalFilter = true,
 		debounce,
 		responsive,
+		formatDefaults,
 	} = options;
+
+	const columns = useMemo(
+		() =>
+			rawColumns.map((col) => {
+				const dataType = col.meta?.dataType;
+				if (!dataType || col.cell) return col;
+				const formatter = resolveFormatter(
+					dataType,
+					col.meta?.format,
+					formatDefaults,
+				);
+				return {
+					...col,
+					cell: (ctx: { getValue: () => unknown }) => formatter(ctx.getValue()),
+				};
+			}),
+		[rawColumns, formatDefaults],
+	);
 
 	// URL sync setup. Both pieces must exist before the state initializer runs. That way the
 	// first render already reflects the URL, and so does the first request it emits.

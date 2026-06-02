@@ -1,6 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import type { Preview } from "@storybook/react";
 import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
 
 const preview: Preview = {
 	globalTypes: {

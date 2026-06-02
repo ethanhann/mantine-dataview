@@ -37,6 +37,8 @@ export default defineConfig({
 				"react/jsx-runtime",
 				"react-dom",
 				"@mantine/core",
+				"@mantine/dates",
+				"@mantine/dates/styles.css",
 				"@mantine/hooks",
 				"@tanstack/react-table",
 			],

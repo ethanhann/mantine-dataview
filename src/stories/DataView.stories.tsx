@@ -3,6 +3,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useMemo, useState } from "react";
 import { DataView } from "../components/DataView";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
+import { createColumnHelper, type DataColumnDef } from "../index";
+import type { DataViewRequest, DataViewResponse } from "../types/request";
 import { windowHistoryAdapter } from "../url";
 import { columns, createMockFetcher, type Person } from "./data";
 
@@ -240,6 +242,191 @@ export const ColumnPinning: Story = {
 					</div>
 				</Stack>
 			);
+		}
+		return <Example />;
+	},
+};
+
+/** Demonstrates all five data types with automatic formatting. */
+export const DataTypes: Story = {
+	render: () => {
+		interface Product {
+			id: string;
+			name: string;
+			price: number;
+			quantity: number;
+			inStock: boolean;
+			createdAt: string;
+		}
+
+		const productCol = createColumnHelper<Product>();
+		const productColumns = [
+			productCol.accessor("name", {
+				header: "Product",
+				meta: {
+					label: "Product",
+					dataType: "text",
+					card: { role: "title" },
+					filter: { variant: "text" },
+				},
+			}),
+			productCol.accessor("price", {
+				header: "Price",
+				meta: {
+					label: "Price",
+					dataType: "currency",
+					align: "right",
+					card: { role: "meta" },
+					filter: { variant: "numberRange", min: 0, max: 600 },
+				},
+			}),
+			productCol.accessor("quantity", {
+				header: "Quantity",
+				meta: {
+					label: "Quantity",
+					dataType: "number",
+					align: "right",
+					card: { role: "meta" },
+					filter: { variant: "numberRange", min: 0, max: 1500 },
+				},
+			}),
+			productCol.accessor("inStock", {
+				header: "In Stock",
+				meta: {
+					label: "In Stock",
+					dataType: "boolean",
+					card: { role: "badge" },
+					filter: { variant: "boolean" },
+				},
+			}),
+			productCol.accessor("createdAt", {
+				header: "Created",
+				meta: {
+					label: "Created",
+					dataType: "date",
+					card: { role: "meta" },
+					filter: { variant: "date" },
+				},
+			}),
+		] satisfies DataColumnDef<Product>[];
+
+		const products: Product[] = [
+			{
+				id: "1",
+				name: "Mechanical Keyboard",
+				price: 149.99,
+				quantity: 1250,
+				inStock: true,
+				createdAt: "2025-11-15",
+			},
+			{
+				id: "2",
+				name: "Ergonomic Mouse",
+				price: 79.5,
+				quantity: 843,
+				inStock: true,
+				createdAt: "2026-01-03",
+			},
+			{
+				id: "3",
+				name: "USB-C Hub",
+				price: 45,
+				quantity: 0,
+				inStock: false,
+				createdAt: "2024-06-22",
+			},
+			{
+				id: "4",
+				name: '27" Monitor',
+				price: 399.99,
+				quantity: 312,
+				inStock: true,
+				createdAt: "2026-03-10",
+			},
+			{
+				id: "5",
+				name: "Webcam HD",
+				price: 59.95,
+				quantity: 0,
+				inStock: false,
+				createdAt: "2025-08-01",
+			},
+			{
+				id: "6",
+				name: "Standing Desk",
+				price: 599,
+				quantity: 87,
+				inStock: true,
+				createdAt: "2026-05-18",
+			},
+		];
+
+		function field(p: Product, id: string): string | number | boolean {
+			return p[id as keyof Product] as string | number | boolean;
+		}
+
+		function Example() {
+			const fetcher = useMemo(
+				() =>
+					async (req: DataViewRequest): Promise<DataViewResponse<Product>> => {
+						await new Promise((r) => setTimeout(r, 300));
+						let result = products.slice();
+
+						if (req.globalFilter) {
+							const q = req.globalFilter.toLowerCase();
+							result = result.filter((p) => p.name.toLowerCase().includes(q));
+						}
+						for (const f of req.filters) {
+							result = result.filter((p) => {
+								const v = f.value;
+								if (v == null || v === "") return true;
+								if (f.id === "price" || f.id === "quantity") {
+									if (!Array.isArray(v)) return true;
+									const [min, max] = v as [number | null, number | null];
+									const cell = field(p, f.id) as number;
+									return (
+										(min == null || cell >= min) && (max == null || cell <= max)
+									);
+								}
+								if (f.id === "inStock") return p.inStock === v;
+								const cell = String(field(p, f.id)).toLowerCase();
+								return cell.includes(String(v).toLowerCase());
+							});
+						}
+
+						if (req.sorting.length > 0) {
+							result.sort((a, b) => {
+								for (const sort of req.sorting) {
+									const av = field(a, sort.id);
+									const bv = field(b, sort.id);
+									if (av === bv) continue;
+									const cmp = av < bv ? -1 : 1;
+									return sort.desc ? -cmp : cmp;
+								}
+								return 0;
+							});
+						}
+
+						const total = result.length;
+						const { pageIndex, pageSize } = req.pagination;
+						const start = pageIndex * pageSize;
+						return {
+							rows: result.slice(start, start + pageSize),
+							rowCount: total,
+						};
+					},
+				[],
+			);
+			const view = useDataViewFetcher<Product>({
+				columns: productColumns,
+				getRowId: (p) => p.id,
+				fetcher,
+				formatDefaults: {
+					currency: { currency: "USD" },
+					date: { dateStyle: "medium" },
+				},
+			});
+			return <DataView view={view} />;
 		}
 		return <Example />;
 	},

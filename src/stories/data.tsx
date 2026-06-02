@@ -130,6 +130,7 @@ export const columns = [
 			align: "right",
 			card: { role: "meta" },
 			filter: { variant: "numberRange" },
+			dataType: "number",
 		},
 	}),
 	col.accessor("location", {

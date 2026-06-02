@@ -4,7 +4,11 @@ import type { MantineBreakpoint } from "@mantine/core";
 import type { Column, Table } from "@tanstack/react-table";
 import type { ExportCsvOptions } from "../core/exportCsv";
 import type { UrlSerializer, UrlStateAdapter } from "../url/types";
-import type { DataColumnDef } from "./column";
+import type {
+	ColumnDataType,
+	ColumnFormatOption,
+	DataColumnDef,
+} from "./column";
 import type { DataViewRequest } from "./request";
 import type { DataViewState, DataViewStatus, Status, ViewMode } from "./state";
 
@@ -66,6 +70,8 @@ export interface UseDataViewOptions<TData> {
 
 	responsive?: ResponsiveOptions;
 	urlSync?: UrlSyncOptions;
+	/** Table-level format defaults keyed by data type. Column-level `format` overrides these. */
+	formatDefaults?: Partial<Record<ColumnDataType, ColumnFormatOption>>;
 }
 
 /** Current selection, derived from `rowSelection` keyed by `getRowId`. */

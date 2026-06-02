@@ -37,6 +37,21 @@ export type FilterVariant =
 
 export type ColumnAlign = "left" | "center" | "right";
 
+export type ColumnDataType =
+	| "text"
+	| "number"
+	| "currency"
+	| "date"
+	| "boolean";
+
+export type NumberFormatOptions = Intl.NumberFormatOptions;
+export type DateFormatOptions = Intl.DateTimeFormatOptions;
+
+export type ColumnFormatOption =
+	| NumberFormatOptions
+	| DateFormatOptions
+	| ((value: unknown) => string);
+
 export interface CardFieldMeta {
 	role?: CardRole;
 	/** Ordering within its role group. */
@@ -65,6 +80,10 @@ export type ColumnFilterMeta =
 			variant: FilterVariant;
 			options?: FilterOption[];
 			placeholder?: string;
+			/** Min bound for `numberRange` variant. When both min and max are set, renders a RangeSlider. */
+			min?: number;
+			/** Max bound for `numberRange` variant. When both min and max are set, renders a RangeSlider. */
+			max?: number;
 			component?: undefined;
 	  }
 	| {
@@ -72,6 +91,8 @@ export type ColumnFilterMeta =
 			variant?: FilterVariant;
 			options?: FilterOption[];
 			placeholder?: string;
+			min?: number;
+			max?: number;
 	  };
 
 declare module "@tanstack/react-table" {
@@ -85,5 +106,9 @@ declare module "@tanstack/react-table" {
 		/** Declarative filter UI. It renders identically in both views. */
 		filter?: ColumnFilterMeta;
 		align?: ColumnAlign;
+		/** Column data type. Enables automatic value formatting when no explicit `cell` is provided. */
+		dataType?: ColumnDataType;
+		/** Column-level format override. Intl options object or a `(value) => string` function. */
+		format?: ColumnFormatOption;
 	}
 }
