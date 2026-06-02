@@ -32,18 +32,8 @@ function ClearFiltersButton<TData>({
 	);
 }
 
-function FilterButton({
-	activeCount,
-	onClick,
-}: {
-	activeCount: number;
-	onClick?: () => void;
-}) {
-	return (
-		<Button variant="default" leftSection={<FilterIcon />} onClick={onClick}>
-			Filters{activeCount > 0 ? ` (${activeCount})` : ""}
-		</Button>
-	);
+function filterButtonLabel(activeCount: number): string {
+	return activeCount > 0 ? `Filters (${activeCount})` : "Filters";
 }
 
 function FilterStack<TData>({
@@ -88,7 +78,9 @@ export function FilterControls<TData>({
 	if (isMobile) {
 		return (
 			<>
-				<FilterButton activeCount={activeCount} onClick={open} />
+				<Button variant="default" leftSection={<FilterIcon />} onClick={open}>
+					{filterButtonLabel(activeCount)}
+				</Button>
 				<Drawer
 					opened={modalOpen}
 					onClose={close}
@@ -112,7 +104,7 @@ export function FilterControls<TData>({
 	}
 
 	return (
-		<Popover position="bottom-start" withinPortal trapFocus>
+		<Popover position="bottom-start" trapFocus>
 			<Popover.Target>
 				<FilterButton activeCount={activeCount} />
 			</Popover.Target>
