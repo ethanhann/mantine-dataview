@@ -50,7 +50,8 @@ tree in a provider:
 ```tsx
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
-import {MantineProvider} from "@mantine/core";
+import "@ethanhann/mantine-dataview/styles.css"; // required for row animations
+import { MantineProvider } from "@mantine/core";
 
 <MantineProvider>{/* ... */}</MantineProvider>;
 ```
@@ -910,24 +911,6 @@ Passed via the `slots` prop on `DataViewer` or the presentation components:
 | `Row`          | `{ row, children }`                 | Wrap each table row        |
 | `Card`         | `{ row, data, selected, children }` | Wrap each card             |
 | `BulkActions`  | `{ count, ids, rows, clear }`       | Bulk action bar content    |
-
-## Known issues
-
-### `DataViewer` name shadows the JS global
-
-The `DataViewer` component shares its name with the JavaScript `DataViewer` global (typed arrays).
-Linters like Biome's `noShadowRestrictedNames` will flag the import. Suppress it with:
-
-```tsx
-// biome-ignore lint/suspicious/noShadowRestrictedNames: component name
-import {DataViewer} from "@ethanhann/mantine-dataview";
-```
-
-Or import with an alias:
-
-```tsx
-import {DataViewer as MantineDataView} from "@ethanhann/mantine-dataview";
-```
 
 ## Development
 

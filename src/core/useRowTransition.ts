@@ -1,5 +1,5 @@
 import type { Row } from "@tanstack/react-table";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export interface RowTransitionResult<TData> {
 	rows: Row<TData>[];
@@ -15,6 +15,35 @@ export function useRowTransition<TData>(
 	const prevIdsRef = useRef<string[]>([]);
 	const hasMountedRef = useRef(false);
 	const generationRef = useRef(0);
+	const warnedRef = useRef(false);
+
+	useEffect(() => {
+		if (
+			enabled &&
+			!warnedRef.current &&
+			typeof document !== "undefined" &&
+			process.env.NODE_ENV !== "production"
+		) {
+			const sheet = Array.from(document.styleSheets);
+			const hasKeyframes = sheet.some((s) => {
+				try {
+					return Array.from(s.cssRules).some(
+						(r) =>
+							r instanceof CSSKeyframesRule && r.name === "dataview-row-enter",
+					);
+				} catch {
+					return false;
+				}
+			});
+			if (!hasKeyframes) {
+				console.warn(
+					"[@ethanhann/mantine-dataview] animateRows is enabled but the CSS keyframes are missing. " +
+						'Import "@ethanhann/mantine-dataview/styles.css" in your app entry.',
+				);
+			}
+			warnedRef.current = true;
+		}
+	}, [enabled]);
 
 	const currentIds = currentRows.map((r) => r.id);
 	const entering = new Set<string>();
