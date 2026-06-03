@@ -244,11 +244,14 @@ function HeaderCell<TData>({
 		: flexRender(column.columnDef.header, header.getContext());
 	const sortable = column.getCanSort() && !disabled;
 
+	const colSize = column.columnDef.size;
+
 	return (
 		<Table.Th
 			style={{
 				...pinningStyle(column),
 				...(align ? { textAlign: align } : undefined),
+				...(colSize != null ? { width: colSize } : undefined),
 			}}
 			aria-sort={
 				sorted === "asc"

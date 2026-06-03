@@ -24,6 +24,8 @@ export interface ColOptions<TData> {
 	cell?: CellFn<TData>;
 	enableSorting?: boolean;
 	options?: FilterOption[];
+	/** Column width in pixels. Sets TanStack's `size` property. */
+	width?: number;
 }
 
 export function humanize(field: string): string {
@@ -86,6 +88,7 @@ export class ColumnBuilder<TData> {
 			header: label,
 			...(opts?.cell ? { cell: opts.cell } : {}),
 			...(opts?.enableSorting === false ? { enableSorting: false } : {}),
+			...(opts?.width != null ? { size: opts.width } : {}),
 			meta: {
 				label,
 				...(config.dataType ? { dataType: config.dataType } : {}),

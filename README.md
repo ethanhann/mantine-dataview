@@ -150,7 +150,26 @@ Headers are auto-humanized from field names (`createdAt` → `"Created At"`,
 `first_name` → `"First Name"`). Override with `{ header: "Custom Label" }`.
 
 Options: `header`, `card` (role shorthand), `cardOrder`, `filter` (`false` to disable,
-or object to merge), `format`, `align`, `cell`, `enableSorting`.
+or object to merge), `format`, `align`, `cell`, `enableSorting`, `width`.
+
+### Column widths
+
+Set `width` (pixels) on columns that need a fixed size. Columns without a width share
+the remaining space equally:
+
+```tsx
+col<User>()
+  .text("name")                    // shares remaining space
+  .text("status", { width: 120 }) // fixed 120px
+  .number("age", { width: 80 })   // fixed 80px
+  .build();
+```
+
+With raw column defs, use TanStack's `size` property:
+
+```tsx
+col.accessor("status", { header: "Status", size: 120 });
+```
 
 ## Custom layout
 

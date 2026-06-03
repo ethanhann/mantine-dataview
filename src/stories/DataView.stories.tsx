@@ -265,14 +265,16 @@ export const DataTypes: Story = {
 			.text("name", { header: "Product", card: "title" })
 			.currency("price", {
 				card: "meta",
+				width: 120,
 				filter: { min: 0, max: 600, step: 10 },
 			})
 			.number("quantity", {
 				card: "meta",
+				width: 120,
 				filter: { min: 0, max: 1500, step: 50 },
 			})
-			.boolean("inStock", { card: "badge" })
-			.date("createdAt", { card: "meta" })
+			.boolean("inStock", { card: "badge", width: 100 })
+			.date("createdAt", { card: "meta", width: 160 })
 			.build();
 
 		const products: Product[] = [
