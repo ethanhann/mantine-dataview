@@ -866,6 +866,12 @@ fade and slide in, removed rows fade out, and unchanged rows stay in place:
 <DataViewer view={view} animateRows/>
 ```
 
+Be sure the CSS file from the package is included alongside Mantine's CSS:
+
+```tsx
+import "@ethanhann/mantine-dataview/styles.css";
+```
+
 When `animateRows` is enabled:
 
 - Previous rows stay visible while new data loads (no skeleton flash).
