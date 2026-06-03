@@ -38,6 +38,8 @@ export interface DataTableProps<TData>
 	enableSelection?: boolean;
 	/** Skeleton rows shown while loading. It defaults to the current page size, capped at 8. */
 	loadingRowCount?: number;
+	/** Disable sorting interactions while data is loading. Default: true. */
+	disableWhileLoading?: boolean;
 }
 
 export function DataTable<TData>({
@@ -45,9 +47,11 @@ export function DataTable<TData>({
 	slots,
 	enableSelection,
 	loadingRowCount,
+	disableWhileLoading = true,
 	...tableProps
 }: DataTableProps<TData>) {
 	const { table, renderStatus } = view;
+	const interactionDisabled = disableWhileLoading && view.status === "loading";
 	const leafColumns = table.getVisibleLeafColumns();
 	const selectionEnabled =
 		enableSelection ?? table.options.enableRowSelection !== false;
@@ -166,7 +170,11 @@ export function DataTable<TData>({
 								</Table.Th>
 							)}
 							{group.headers.map((header) => (
-								<HeaderCell key={header.id} header={header} />
+								<HeaderCell
+									key={header.id}
+									header={header}
+									disabled={interactionDisabled}
+								/>
 							))}
 						</Table.Tr>
 					))}
@@ -200,7 +208,13 @@ function MessageBody({
 	);
 }
 
-function HeaderCell<TData>({ header }: { header: Header<TData, unknown> }) {
+function HeaderCell<TData>({
+	header,
+	disabled,
+}: {
+	header: Header<TData, unknown>;
+	disabled?: boolean;
+}) {
 	const { column } = header;
 	const align = column.columnDef.meta?.align;
 	const sorted = column.getIsSorted();
@@ -209,6 +223,7 @@ function HeaderCell<TData>({ header }: { header: Header<TData, unknown> }) {
 	const content = header.isPlaceholder
 		? null
 		: flexRender(column.columnDef.header, header.getContext());
+	const sortable = column.getCanSort() && !disabled;
 
 	return (
 		<Table.Th
@@ -224,7 +239,7 @@ function HeaderCell<TData>({ header }: { header: Header<TData, unknown> }) {
 						: undefined
 			}
 		>
-			{column.getCanSort() ? (
+			{sortable ? (
 				<UnstyledButton
 					onClick={column.getToggleSortingHandler()}
 					style={{
@@ -247,7 +262,17 @@ function HeaderCell<TData>({ header }: { header: Header<TData, unknown> }) {
 					)}
 				</UnstyledButton>
 			) : (
-				content
+				<span
+					style={{
+						display: "inline-flex",
+						alignItems: "center",
+						gap: 4,
+						...(disabled ? { opacity: 0.5 } : {}),
+					}}
+				>
+					{content}
+					{sorted && <SortIcon direction={sorted} />}
+				</span>
 			)}
 		</Table.Th>
 	);

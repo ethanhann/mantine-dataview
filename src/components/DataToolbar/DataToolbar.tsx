@@ -22,6 +22,8 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 	showSort?: boolean;
 	showVisibility?: boolean;
 	showViewSwitcher?: boolean;
+	/** Disable search, filter, and sort controls while data is loading. Default: true. */
+	disableWhileLoading?: boolean;
 }
 
 export function DataToolbar<TData>({
@@ -34,9 +36,11 @@ export function DataToolbar<TData>({
 	showSort,
 	showVisibility,
 	showViewSwitcher,
+	disableWhileLoading = true,
 	...groupProps
 }: DataToolbarProps<TData>) {
 	const { table, state } = view;
+	const loading = disableWhileLoading && view.status === "loading";
 	const searchOn = showSearch ?? table.options.enableGlobalFilter !== false;
 	const filtersOn = showFilters ?? view.filterableColumns.length > 0;
 	const sortOn = showSort ?? view.sortableColumns.length > 0;
@@ -64,20 +68,33 @@ export function DataToolbar<TData>({
 						}
 					/>
 				)}
-				{filtersOn && (
-					<FilterControls view={view} inlineThreshold={filterInlineThreshold} />
-				)}
-				{sortOn && <SortControl view={view} />}
+				<fieldset
+					disabled={loading}
+					style={{ display: "contents", border: "none", padding: 0, margin: 0 }}
+				>
+					{filtersOn && (
+						<FilterControls
+							view={view}
+							inlineThreshold={filterInlineThreshold}
+						/>
+					)}
+					{sortOn && <SortControl view={view} />}
+				</fieldset>
 			</Group>
-			<Group wrap="wrap" gap="sm">
-				{visibilityOn && <VisibilityMenu view={view} />}
-				{switcherOn && (
-					<ViewSwitcher
-						view={view}
-						lockSwitcherOnMobile={lockSwitcherOnMobile}
-					/>
-				)}
-			</Group>
+			<fieldset
+				disabled={loading}
+				style={{ display: "contents", border: "none", padding: 0, margin: 0 }}
+			>
+				<Group wrap="wrap" gap="sm">
+					{visibilityOn && <VisibilityMenu view={view} />}
+					{switcherOn && (
+						<ViewSwitcher
+							view={view}
+							lockSwitcherOnMobile={lockSwitcherOnMobile}
+						/>
+					)}
+				</Group>
+			</fieldset>
 		</Group>
 	);
 }
