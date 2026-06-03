@@ -426,6 +426,24 @@ col.accessor("revenue", {
 });
 ```
 
+## View mode in cell renderers
+
+Cell renderers can check whether they're rendering in table or card view using `getViewMode`:
+
+```tsx
+import { getViewMode } from "@ethanhann/mantine-dataview";
+
+col.accessor("name", {
+  cell: (ctx) => {
+    const mode = getViewMode(ctx); // "table" | "cards"
+    return mode === "cards" ? <Text>{ctx.getValue()}</Text> : <Anchor>{ctx.getValue()}</Anchor>;
+  },
+});
+```
+
+`getViewMode` accepts a cell context, header context, or table instance. It updates
+automatically when the user toggles the view.
+
 ## CSV export
 
 Export the current page's visible columns as a CSV file:

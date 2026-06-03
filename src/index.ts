@@ -58,6 +58,8 @@ export {
 export { type ColOptions, ColumnBuilder, col } from "./core/colBuilder";
 // CSV export utility.
 export { type ExportCsvOptions, exportCsv } from "./core/exportCsv";
+// View mode helper for cell renderers.
+export { getViewMode } from "./core/getViewMode";
 // Core hook.
 export { useDataView } from "./core/useDataView";
 // Optional wrapper that manages fetching.

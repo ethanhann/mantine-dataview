@@ -288,8 +288,12 @@ export function useDataView<TData>(
 		[applyPatch],
 	);
 
+	const isMobileForced = useForceCards(responsive);
+	const view: ViewMode = isMobileForced ? "cards" : resolvedState.view;
+
 	const table = useReactTable<TData>({
 		data: rows,
+		meta: { viewMode: view },
 		columns,
 		getCoreRowModel: getCoreRowModel(),
 		// The server owns sorting, filtering, and pagination. The core never processes data.
@@ -398,11 +402,6 @@ export function useDataView<TData>(
 			}),
 		[status, error, rows.length, resolvedState],
 	);
-
-	// Responsive behavior. Below the configured breakpoint the view is forced to cards. The
-	// stored `view` is preserved, so the explicit choice returns once the viewport is wide again.
-	const isMobileForced = useForceCards(responsive);
-	const view: ViewMode = isMobileForced ? "cards" : resolvedState.view;
 
 	const setView = useCallback(
 		(next: ViewMode) => applyPatch({ view: next }),
