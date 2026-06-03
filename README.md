@@ -179,13 +179,13 @@ and `rightSection`:
 
 ```tsx
 <DataViewer.Toolbar
-  leftSection={<Text fw={600}>Users</Text>}
-  rightSection={
-    <Group gap="xs">
-      <Button size="xs" onClick={() => view.exportCsv()}>Export</Button>
-      <Button size="xs" onClick={() => view.refetch()}>Refresh</Button>
-    </Group>
-  }
+    leftSection={<Text fw={600}>Users</Text>}
+    rightSection={
+        <Group gap="xs">
+            <Button size="xs" onClick={() => view.exportCsv()}>Export</Button>
+            <Button size="xs" onClick={() => view.refetch()}>Refresh</Button>
+        </Group>
+    }
 />
 ```
 
@@ -199,14 +199,14 @@ Both sections are disabled during loading along with the other toolbar controls.
 The `ViewSwitcher` is exported for standalone use with customizable labels:
 
 ```tsx
-import { ViewSwitcher } from "@ethanhann/mantine-dataview";
+import {ViewSwitcher} from "@ethanhann/mantine-dataview";
 
 // Default
-<ViewSwitcher view={view} />
+<ViewSwitcher view={view}/>
 
 // Custom labels (text or icons)
-<ViewSwitcher view={view} tableLabel="List" cardsLabel="Grid" />
-<ViewSwitcher view={view} tableLabel={<IconList />} cardsLabel={<IconGrid />} />
+<ViewSwitcher view={view} tableLabel="List" cardsLabel="Grid"/>
+<ViewSwitcher view={view} tableLabel={<IconList/>} cardsLabel={<IconGrid/>}/>
 ```
 
 Or drive the view programmatically:
@@ -579,42 +579,42 @@ dynamic counts, disable zero-result options, and render clickable range buckets.
 
 ```tsx
 fetcher: async (request) => {
-  const res = await api.list(request);
-  return {
-    rows: res.items,
-    rowCount: res.total,
-    facets: {
-      size: {
-        type: "values",
-        values: [
-          { value: "S", label: "Small", count: 12 },
-          { value: "M", label: "Medium", count: 34 },
-          { value: "L", label: "Large", count: 0 },
-        ],
-      },
-      price: {
-        type: "ranges",
-        ranges: [
-          { label: "Under $25", from: 0, to: 25, count: 15 },
-          { label: "$25-$50", from: 25, to: 50, count: 28 },
-          { label: "$50+", from: 50, to: 999, count: 7 },
-        ],
-        min: 5,
-        max: 249,
-      },
-    },
-  };
+    const res = await api.list(request);
+    return {
+        rows: res.items,
+        rowCount: res.total,
+        facets: {
+            size: {
+                type: "values",
+                values: [
+                    {value: "S", label: "Small", count: 12},
+                    {value: "M", label: "Medium", count: 34},
+                    {value: "L", label: "Large", count: 0},
+                ],
+            },
+            price: {
+                type: "ranges",
+                ranges: [
+                    {label: "Under $25", from: 0, to: 25, count: 15},
+                    {label: "$25-$50", from: 25, to: 50, count: 28},
+                    {label: "$50+", from: 50, to: 999, count: 7},
+                ],
+                min: 5,
+                max: 249,
+            },
+        },
+    };
 };
 ```
 
 ### How controls adapt
 
-| Filter type | Without facets | With value facets | With range facets |
-|------------|---------------|-------------------|-------------------|
-| Select | Static options | Options with counts, zero-count dimmed | - |
-| Boolean | All / Yes / No | All / Yes (12) / No (3) | - |
-| Number range | Slider or inputs | Slider (bounds from facet) | Clickable range buckets + slider |
-| Date range | Date picker | Date picker | Clickable range buckets + picker |
+| Filter type  | Without facets   | With value facets                      | With range facets                |
+|--------------|------------------|----------------------------------------|----------------------------------|
+| Select       | Static options   | Options with counts, zero-count dimmed | -                                |
+| Boolean      | All / Yes / No   | All / Yes (12) / No (3)                | -                                |
+| Number range | Slider or inputs | Slider (bounds from facet)             | Clickable range buckets + slider |
+| Date range   | Date picker      | Date picker                            | Clickable range buckets + picker |
 
 Facets are optional and backward compatible. Facet data updates on every fetch, creating the
 classic faceted search loop where filtering one dimension updates counts on all others.
@@ -624,16 +624,16 @@ classic faceted search loop where filtering one dimension updates counts on all 
 ```ts
 // Discrete values - for select, multiselect, boolean filters
 type ValueFacet = {
-  type: "values";
-  values: { value: string; label?: string; count: number }[];
+    type: "values";
+    values: { value: string; label?: string; count: number }[];
 };
 
 // Bucketed ranges - for numberRange, dateRange filters
 type RangeFacet = {
-  type: "ranges";
-  ranges: { label: string; from: number | string; to: number | string; count: number }[];
-  min?: number | string;
-  max?: number | string;
+    type: "ranges";
+    ranges: { label: string; from: number | string; to: number | string; count: number }[];
+    min?: number | string;
+    max?: number | string;
 };
 ```
 
@@ -853,8 +853,8 @@ typing during debounced search.
 Opt out per component:
 
 ```tsx
-<DataTable view={view} disableWhileLoading={false} />
-<DataToolbar view={view} disableWhileLoading={false} />
+<DataTable view={view} disableWhileLoading={false}/>
+<DataToolbar view={view} disableWhileLoading={false}/>
 ```
 
 ### Animated row transitions
@@ -863,10 +863,11 @@ Instead of skeleton loading, rows can animate in and out with CSS transitions. N
 fade and slide in, removed rows fade out, and unchanged rows stay in place:
 
 ```tsx
-<DataViewer view={view} animateRows />
+<DataViewer view={view} animateRows/>
 ```
 
 When `animateRows` is enabled:
+
 - Previous rows stay visible while new data loads (no skeleton flash).
 - New rows enter with a slide-down fade-in animation (200ms).
 - Removed rows fade out (150ms) before being removed from the DOM.
@@ -876,19 +877,19 @@ This is opt-in. The default behavior (skeleton loading) is unchanged.
 
 ## API overview
 
-| Export                                                               | Purpose                                       |
-|----------------------------------------------------------------------|-----------------------------------------------|
-| `useDataView`                                                        | Headless core, owns all feature state         |
-| `useDataViewFetcher`                                                 | Convenience wrapper that manages the fetch    |
+| Export                                                                 | Purpose                                       |
+|------------------------------------------------------------------------|-----------------------------------------------|
+| `useDataView`                                                          | Headless core, owns all feature state         |
+| `useDataViewFetcher`                                                   | Convenience wrapper that manages the fetch    |
 | `DataViewer` (+ `.Toolbar` / `.BulkActions` / `.Body` / `.Pagination`) | Orchestrator + compound parts                 |
-| `DataTable`, `DataCards`                                             | The two presentations (usable standalone)     |
-| `DataToolbar`, `DataPagination`, `DataBulkActions`                   | Standalone affordances                        |
-| `FilterControl`                                                      | Individual filter control (place anywhere)    |
-| `ViewSwitcher`                                                       | Table/Cards toggle (customizable labels)      |
-| `exportCsv`                                                          | Standalone CSV export utility                 |
-| `col`                                                                | Fluent column builder factory                 |
-| `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`      | Column helpers                                |
-| `@ethanhann/mantine-dataview/url`                                    | `windowHistoryAdapter` + serializer utilities |
+| `DataTable`, `DataCards`                                               | The two presentations (usable standalone)     |
+| `DataToolbar`, `DataPagination`, `DataBulkActions`                     | Standalone affordances                        |
+| `FilterControl`                                                        | Individual filter control (place anywhere)    |
+| `ViewSwitcher`                                                         | Table/Cards toggle (customizable labels)      |
+| `exportCsv`                                                            | Standalone CSV export utility                 |
+| `col`                                                                  | Fluent column builder factory                 |
+| `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`        | Column helpers                                |
+| `@ethanhann/mantine-dataview/url`                                      | `windowHistoryAdapter` + serializer utilities |
 
 ### Customization slots
 
