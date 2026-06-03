@@ -740,6 +740,29 @@ export const ToolbarSections: Story = {
 	},
 };
 
+/** Animated rows: sort or filter to see rows enter/exit with transitions instead of skeletons. */
+export const AnimatedRows: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const view = useDataViewFetcher<Person>({
+				columns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<Stack gap="xs">
+					<Text size="sm" c="dimmed">
+						Sort or filter to see rows animate in and out. No skeleton flash.
+					</Text>
+					<DataView view={view} animateRows />
+				</Stack>
+			);
+		}
+		return <Example />;
+	},
+};
+
 /** Standalone ViewSwitcher with custom labels, placed outside the toolbar. */
 export const CustomViewSwitcher: Story = {
 	render: () => {

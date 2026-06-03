@@ -18,14 +18,14 @@ Built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack
 - Column data types (`text`, `number`, `currency`, `date`, `boolean`) with automatic Intl-based formatting.
 - Seven filter variants with smart controls: `SegmentedControl` for booleans, `RangeSlider` for bounded numbers,
   `DatePickerInput` for dates.
-- Custom filter components — bring your own UI per column.
+- Custom filter components. Bring your own UI per column.
 - Column pinning (left/right) with sticky positioning.
 - CSV export with optional formatted output.
 - Router-agnostic URL state sync with a default History-API adapter.
 - Cross-page row selection + a shared bulk-action bar.
 - Column-meta card composition (`title`/`subtitle`/`media`/`badge`/`meta`) + a `renderCard` escape hatch.
 - Responsive: force-to-cards below a breakpoint, filters collapse to a bottom drawer on mobile.
-- Faceted search — server-provided counts on filter options, range buckets with dynamic totals.
+- Faceted search with server-provided counts on filter options and range buckets with dynamic totals.
 - External parameters (`params`) for scope selectors, toggles, and other non-column filters.
 - Controls automatically disabled while data is loading (opt-out with `disableWhileLoading`).
 - Loading / empty / filtered-empty / error states, consistent across both views.
@@ -189,8 +189,8 @@ and `rightSection`:
 />
 ```
 
-- `leftSection` — renders before the search input (start of the left group)
-- `rightSection` — renders after the view switcher (end of the right group)
+- `leftSection` renders before the search input (start of the left group).
+- `rightSection` renders after the view switcher (end of the right group).
 
 Both sections are disabled during loading along with the other toolbar controls.
 
@@ -218,8 +218,8 @@ view.view;             // current view: "table" | "cards"
 
 ## Controlled (bring your own data layer)
 
-`useDataViewFetcher` is a thin convenience wrapper. The core, `useDataView`, is fully controlled —
-you supply `rows`/`rowCount`/`status` and respond to `onRequestChange`:
+`useDataViewFetcher` is a thin convenience wrapper. The core, `useDataView`, is fully controlled.
+You supply `rows`/`rowCount`/`status` and respond to `onRequestChange`:
 
 ```tsx
 const [resp, setResp] = useState({rows: [], rowCount: 0});
@@ -306,7 +306,7 @@ error retry button uses.
 Set `dataType` on a column's meta to enable automatic value formatting. When no explicit
 `cell` renderer is provided, the library formats values using `Intl.NumberFormat` or
 `Intl.DateTimeFormat` based on the data type. Raw values are preserved for server requests,
-sorting, and filtering — formatting is display-only.
+sorting, and filtering. Formatting is display-only.
 
 ```tsx
 col.accessor("price", {
@@ -330,9 +330,9 @@ col.accessor("createdAt", {
 
 ### Format overrides (three levels)
 
-1. **Library defaults** — built-in formatters per data type (above).
-2. **Table-scoped** — `formatDefaults` on the hook options, keyed by data type.
-3. **Column-scoped** — `format` on `ColumnMeta`, overrides everything for that column.
+1. **Library defaults**, the built-in formatters per data type (above).
+2. **Table-scoped**, `formatDefaults` on the hook options, keyed by data type.
+3. **Column-scoped**, `format` on `ColumnMeta`, overrides everything for that column.
 
 ```tsx
 const view = useDataViewFetcher({
@@ -391,7 +391,7 @@ col.accessor("avatar", {header: "Avatar", enableSorting: false});
 
 ## Custom headers
 
-Column headers support the same render function pattern as cells — pass a component or
+Column headers support the same render function pattern as cells. Pass a component or
 function to the `header` property:
 
 ```tsx
@@ -475,7 +475,7 @@ Define filters declaratively on column meta. Seven variants are built in:
 | `dateRange`   | `DatePickerInput` (range)           | Two-date calendar picker        |
 
 ```tsx
-// Boolean — renders as a segmented control
+// Boolean, renders as a segmented control
 meta: {
     filter: {
         variant: "boolean"
@@ -553,7 +553,7 @@ import {FilterControl} from "@ethanhann/mantine-dataview";
 
 ### Programmatic filter control
 
-Reset all filters or clear a specific column from anywhere — no need to be inside the toolbar:
+Reset all filters or clear a specific column from anywhere, no need to be inside the toolbar:
 
 ```tsx
 // Reset all filters
@@ -737,7 +737,7 @@ Override loading, empty, and error states:
 />
 ```
 
-A filtered-empty state is handled automatically — it shows a "clear filters" action so
+A filtered-empty state is handled automatically. It shows a "clear filters" action so
 users can reset without manually removing each filter.
 
 ## URL state sync
@@ -857,11 +857,28 @@ Opt out per component:
 <DataToolbar view={view} disableWhileLoading={false} />
 ```
 
+### Animated row transitions
+
+Instead of skeleton loading, rows can animate in and out with CSS transitions. New rows
+fade and slide in, removed rows fade out, and unchanged rows stay in place:
+
+```tsx
+<DataView view={view} animateRows />
+```
+
+When `animateRows` is enabled:
+- Previous rows stay visible while new data loads (no skeleton flash).
+- New rows enter with a slide-down fade-in animation (200ms).
+- Removed rows fade out (150ms) before being removed from the DOM.
+- Works in both table and card views.
+
+This is opt-in. The default behavior (skeleton loading) is unchanged.
+
 ## API overview
 
 | Export                                                               | Purpose                                       |
 |----------------------------------------------------------------------|-----------------------------------------------|
-| `useDataView`                                                        | Headless core — owns all feature state        |
+| `useDataView`                                                        | Headless core, owns all feature state         |
 | `useDataViewFetcher`                                                 | Convenience wrapper that manages the fetch    |
 | `DataView` (+ `.Toolbar` / `.BulkActions` / `.Body` / `.Pagination`) | Orchestrator + compound parts                 |
 | `DataTable`, `DataCards`                                             | The two presentations (usable standalone)     |

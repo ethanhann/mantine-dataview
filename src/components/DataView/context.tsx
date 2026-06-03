@@ -15,6 +15,7 @@ export interface DataViewContextValue<TData> {
 	renderCard?: DataCardsProps<TData>["renderCard"];
 	fallbackRole?: ComposeCardOptions["fallbackRole"];
 	lockSwitcherOnMobile?: boolean;
+	animateRows?: boolean;
 }
 
 // React context cannot be generic. Store it as `unknown` and narrow it again in the hook.

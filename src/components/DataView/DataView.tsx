@@ -25,6 +25,8 @@ export interface DataViewProps<TData> extends Omit<StackProps, "children"> {
 	renderCard?: DataCardsProps<TData>["renderCard"];
 	fallbackRole?: DataCardsProps<TData>["fallbackRole"];
 	lockSwitcherOnMobile?: boolean;
+	/** Animate row enter/exit instead of showing skeletons. Default: false. */
+	animateRows?: boolean;
 	/** Custom composition. It defaults to Toolbar, BulkActions, Body, and Pagination. */
 	children?: ReactNode;
 }
@@ -35,12 +37,20 @@ export function DataView<TData>({
 	renderCard,
 	fallbackRole,
 	lockSwitcherOnMobile,
+	animateRows,
 	children,
 	...stackProps
 }: DataViewProps<TData>) {
 	const ctx = useMemo<DataViewContextValue<TData>>(
-		() => ({ view, slots, renderCard, fallbackRole, lockSwitcherOnMobile }),
-		[view, slots, renderCard, fallbackRole, lockSwitcherOnMobile],
+		() => ({
+			view,
+			slots,
+			renderCard,
+			fallbackRole,
+			lockSwitcherOnMobile,
+			animateRows,
+		}),
+		[view, slots, renderCard, fallbackRole, lockSwitcherOnMobile, animateRows],
 	);
 
 	return (
@@ -84,17 +94,24 @@ function DataViewBody<TData>({
 	tableProps,
 	cardsProps,
 }: DataViewBodyProps<TData>) {
-	const { view, slots, renderCard, fallbackRole } = useDataViewContext<TData>();
+	const { view, slots, renderCard, fallbackRole, animateRows } =
+		useDataViewContext<TData>();
 	return view.view === "cards" ? (
 		<DataCards
 			view={view}
 			slots={slots}
 			renderCard={renderCard}
 			fallbackRole={fallbackRole}
+			animateRows={animateRows}
 			{...cardsProps}
 		/>
 	) : (
-		<DataTable view={view} slots={slots} {...tableProps} />
+		<DataTable
+			view={view}
+			slots={slots}
+			animateRows={animateRows}
+			{...tableProps}
+		/>
 	);
 }
 

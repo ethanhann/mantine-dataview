@@ -22,8 +22,11 @@ import {
 	type ComposeCardOptions,
 	composeCardLayout,
 } from "../../core/cardComposition";
+import { useRowTransition } from "../../core/useRowTransition";
 import type { UseDataViewReturn } from "../../types/options";
 import { EmptyContent, ErrorContent } from "../StateMessage";
+// @ts-expect-error CSS import has no type declarations
+import "../DataTable/transitions.css";
 import type { DataViewSlots } from "../types";
 
 const DEFAULT_COLS: SimpleGridProps["cols"] = { base: 1, sm: 2, lg: 3 };
@@ -45,6 +48,8 @@ export interface DataCardsProps<TData>
 	enableSelection?: boolean;
 	/** Skeleton cards shown while loading. It defaults to the current page size, capped at 6. */
 	loadingCardCount?: number;
+	/** Animate card enter/exit instead of showing skeletons. Default: false. */
+	animateRows?: boolean;
 }
 
 export function DataCards<TData>({
@@ -54,6 +59,7 @@ export function DataCards<TData>({
 	fallbackRole,
 	enableSelection,
 	loadingCardCount,
+	animateRows = false,
 	cols = DEFAULT_COLS,
 	...gridProps
 }: DataCardsProps<TData>) {
@@ -63,6 +69,68 @@ export function DataCards<TData>({
 	const skeletonCards =
 		loadingCardCount ?? Math.min(view.state.pagination.pageSize, 6);
 	const grid = { cols, ...gridProps };
+	const transition = useRowTransition(table.getRowModel().rows, animateRows);
+
+	const renderCards = (rowsToRender: typeof transition.rows) => {
+		const layout = composeCardLayout(table, { fallbackRole });
+		return (
+			<SimpleGrid
+				key={transition.generation}
+				data-changed={animateRows || undefined}
+				{...grid}
+			>
+				{rowsToRender.map((row) => {
+					const selected = row.getIsSelected();
+					const toggleSelected = () => row.toggleSelected();
+					const ctx = { row, data: row.original, selected, toggleSelected };
+					const entering = transition.entering.has(row.id) || undefined;
+
+					if (renderCard) {
+						return (
+							<div key={row.id} data-entering={entering}>
+								{renderCard(ctx)}
+							</div>
+						);
+					}
+
+					const body = (
+						<DefaultCardBody
+							row={row}
+							layout={layout}
+							selectionEnabled={selectionEnabled}
+						/>
+					);
+					if (slots?.Card) {
+						return (
+							<div key={row.id} data-entering={entering}>
+								{slots.Card({ ...ctx, children: body })}
+							</div>
+						);
+					}
+					return (
+						<Card
+							key={row.id}
+							withBorder
+							padding="lg"
+							pos="relative"
+							data-selected={selected || undefined}
+							data-entering={entering}
+						>
+							{body}
+						</Card>
+					);
+				})}
+			</SimpleGrid>
+		);
+	};
+
+	if (
+		animateRows &&
+		renderStatus.phase === "loading" &&
+		transition.rows.length > 0
+	) {
+		return renderCards(transition.rows);
+	}
 
 	switch (renderStatus.phase) {
 		case "loading":
@@ -95,54 +163,9 @@ export function DataCards<TData>({
 					<EmptyContent view={view} slots={slots} />
 				</Center>
 			);
-		default: {
-			const layout = composeCardLayout(table, { fallbackRole });
-			return (
-				<SimpleGrid {...grid}>
-					{table.getRowModel().rows.map((row) => {
-						const selected = row.getIsSelected();
-						const toggleSelected = () => row.toggleSelected();
-						const ctx = { row, data: row.original, selected, toggleSelected };
-
-						if (renderCard) {
-							return <CardKey key={row.id}>{renderCard(ctx)}</CardKey>;
-						}
-
-						const body = (
-							<DefaultCardBody
-								row={row}
-								layout={layout}
-								selectionEnabled={selectionEnabled}
-							/>
-						);
-						if (slots?.Card) {
-							return (
-								<CardKey key={row.id}>
-									{slots.Card({ ...ctx, children: body })}
-								</CardKey>
-							);
-						}
-						return (
-							<Card
-								key={row.id}
-								withBorder
-								padding="lg"
-								pos="relative"
-								data-selected={selected || undefined}
-							>
-								{body}
-							</Card>
-						);
-					})}
-				</SimpleGrid>
-			);
-		}
+		default:
+			return renderCards(transition.rows);
 	}
-}
-
-/** Carries the React key for a card element the consumer supplies. */
-function CardKey({ children }: { children: ReactNode }) {
-	return <>{children}</>;
 }
 
 function DefaultCardBody<TData>({

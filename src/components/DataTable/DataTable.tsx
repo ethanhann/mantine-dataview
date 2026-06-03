@@ -12,10 +12,13 @@ import {
 } from "@mantine/core";
 import { type Column, flexRender, type Header } from "@tanstack/react-table";
 import type { CSSProperties, ReactNode } from "react";
+import { useRowTransition } from "../../core/useRowTransition";
 import type { UseDataViewReturn } from "../../types/options";
 import { SortIcon } from "../icons";
 import { EmptyContent, ErrorContent } from "../StateMessage";
 import type { DataViewSlots } from "../types";
+// @ts-expect-error CSS import has no type declarations
+import "./transitions.css";
 
 function pinningStyle<TData>(column: Column<TData>): CSSProperties | undefined {
 	const pinned = column.getIsPinned();
@@ -40,6 +43,8 @@ export interface DataTableProps<TData>
 	loadingRowCount?: number;
 	/** Disable sorting interactions while data is loading. Default: true. */
 	disableWhileLoading?: boolean;
+	/** Animate row enter/exit instead of showing skeletons. Default: false. */
+	animateRows?: boolean;
 }
 
 export function DataTable<TData>({
@@ -48,10 +53,12 @@ export function DataTable<TData>({
 	enableSelection,
 	loadingRowCount,
 	disableWhileLoading = true,
+	animateRows = false,
 	...tableProps
 }: DataTableProps<TData>) {
 	const { table, renderStatus } = view;
 	const interactionDisabled = disableWhileLoading && view.status === "loading";
+	const transition = useRowTransition(table.getRowModel().rows, animateRows);
 	const leafColumns = table.getVisibleLeafColumns();
 	const selectionEnabled =
 		enableSelection ?? table.options.enableRowSelection !== false;
@@ -59,7 +66,66 @@ export function DataTable<TData>({
 	const skeletonRows =
 		loadingRowCount ?? Math.min(view.state.pagination.pageSize, 8);
 
+	const renderDataRows = (rowsToRender: typeof transition.rows): ReactNode => (
+		<Table.Tbody
+			key={transition.generation}
+			data-changed={animateRows || undefined}
+		>
+			{rowsToRender.map((row) => {
+				const isEntering = transition.entering.has(row.id) || undefined;
+				const cells = (
+					<>
+						{selectionEnabled && (
+							<Table.Td>
+								<Checkbox
+									aria-label="Select row"
+									checked={row.getIsSelected()}
+									disabled={!row.getCanSelect()}
+									indeterminate={row.getIsSomeSelected()}
+									onChange={row.getToggleSelectedHandler()}
+								/>
+							</Table.Td>
+						)}
+						{row.getVisibleCells().map((cell) => {
+							const align = cell.column.columnDef.meta?.align;
+							return (
+								<Table.Td
+									key={cell.id}
+									style={{
+										...pinningStyle(cell.column),
+										...(align ? { textAlign: align } : undefined),
+									}}
+								>
+									{flexRender(cell.column.columnDef.cell, cell.getContext())}
+								</Table.Td>
+							);
+						})}
+					</>
+				);
+				return slots?.Row ? (
+					<RowKey key={row.id}>{slots.Row({ row, cells })}</RowKey>
+				) : (
+					<Table.Tr
+						key={row.id}
+						data-selected={row.getIsSelected() || undefined}
+						data-entering={isEntering}
+					>
+						{cells}
+					</Table.Tr>
+				);
+			})}
+		</Table.Tbody>
+	);
+
 	const renderBody = (): ReactNode => {
+		if (
+			animateRows &&
+			renderStatus.phase === "loading" &&
+			transition.rows.length > 0
+		) {
+			return renderDataRows(transition.rows);
+		}
+
 		switch (renderStatus.phase) {
 			case "loading":
 				return slots?.LoadingTable ? (
@@ -97,54 +163,7 @@ export function DataTable<TData>({
 					</MessageBody>
 				);
 			default:
-				return (
-					<Table.Tbody>
-						{table.getRowModel().rows.map((row) => {
-							const cells = (
-								<>
-									{selectionEnabled && (
-										<Table.Td>
-											<Checkbox
-												aria-label="Select row"
-												checked={row.getIsSelected()}
-												disabled={!row.getCanSelect()}
-												indeterminate={row.getIsSomeSelected()}
-												onChange={row.getToggleSelectedHandler()}
-											/>
-										</Table.Td>
-									)}
-									{row.getVisibleCells().map((cell) => {
-										const align = cell.column.columnDef.meta?.align;
-										return (
-											<Table.Td
-												key={cell.id}
-												style={{
-													...pinningStyle(cell.column),
-													...(align ? { textAlign: align } : undefined),
-												}}
-											>
-												{flexRender(
-													cell.column.columnDef.cell,
-													cell.getContext(),
-												)}
-											</Table.Td>
-										);
-									})}
-								</>
-							);
-							return slots?.Row ? (
-								<RowKey key={row.id}>{slots.Row({ row, cells })}</RowKey>
-							) : (
-								<Table.Tr
-									key={row.id}
-									data-selected={row.getIsSelected() || undefined}
-								>
-									{cells}
-								</Table.Tr>
-							);
-						})}
-					</Table.Tbody>
-				);
+				return renderDataRows(transition.rows);
 		}
 	};
 
