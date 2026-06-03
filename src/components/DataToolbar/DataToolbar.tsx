@@ -3,6 +3,7 @@
 // Each section can be turned off, and sensible defaults derive from the column model.
 
 import { CloseButton, Group, type GroupProps, TextInput } from "@mantine/core";
+import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import { SearchIcon } from "../icons";
 import { FilterControls } from "./FilterControls";
@@ -24,6 +25,10 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 	showViewSwitcher?: boolean;
 	/** Disable search, filter, and sort controls while data is loading. Default: true. */
 	disableWhileLoading?: boolean;
+	/** Content injected at the start of the left control group (before search). */
+	leftSection?: ReactNode;
+	/** Content injected at the end of the right control group (after view switcher). */
+	rightSection?: ReactNode;
 }
 
 export function DataToolbar<TData>({
@@ -37,6 +42,8 @@ export function DataToolbar<TData>({
 	showVisibility,
 	showViewSwitcher,
 	disableWhileLoading = true,
+	leftSection,
+	rightSection,
 	...groupProps
 }: DataToolbarProps<TData>) {
 	const { table, state } = view;
@@ -50,6 +57,7 @@ export function DataToolbar<TData>({
 	return (
 		<Group justify="space-between" wrap="wrap" gap="sm" {...groupProps}>
 			<Group wrap="wrap" gap="sm">
+				{leftSection}
 				{searchOn && (
 					<TextInput
 						aria-label="Search"
@@ -93,6 +101,7 @@ export function DataToolbar<TData>({
 							lockSwitcherOnMobile={lockSwitcherOnMobile}
 						/>
 					)}
+					{rightSection}
 				</Group>
 			</fieldset>
 		</Group>

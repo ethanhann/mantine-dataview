@@ -25,6 +25,9 @@ Built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack
 - Cross-page row selection + a shared bulk-action bar.
 - Column-meta card composition (`title`/`subtitle`/`media`/`badge`/`meta`) + a `renderCard` escape hatch.
 - Responsive: force-to-cards below a breakpoint, filters collapse to a bottom drawer on mobile.
+- Faceted search — server-provided counts on filter options, range buckets with dynamic totals.
+- External parameters (`params`) for scope selectors, toggles, and other non-column filters.
+- Controls automatically disabled while data is loading (opt-out with `disableWhileLoading`).
 - Loading / empty / filtered-empty / error states, consistent across both views.
 - Dark mode support via Mantine's color scheme system.
 - Strongly typed end to end; ships its own `.d.ts`. No icon dependency.
@@ -168,6 +171,28 @@ Or use the standalone components directly for full control:
 <DataTable view={view} striped highlightOnHover/>
 <DataPagination view={view}/>
 ```
+
+### Toolbar sections
+
+Inject controls into the toolbar without rebuilding it from scratch using `leftSection`
+and `rightSection`:
+
+```tsx
+<DataView.Toolbar
+  leftSection={<Text fw={600}>Users</Text>}
+  rightSection={
+    <Group gap="xs">
+      <Button size="xs" onClick={() => view.exportCsv()}>Export</Button>
+      <Button size="xs" onClick={() => view.refetch()}>Refresh</Button>
+    </Group>
+  }
+/>
+```
+
+- `leftSection` — renders before the search input (start of the left group)
+- `rightSection` — renders after the view switcher (end of the right group)
+
+Both sections are disabled during loading along with the other toolbar controls.
 
 ### View switcher
 
@@ -545,6 +570,73 @@ Reset all filters or clear a specific column from anywhere — no need to be ins
 - **Mobile** (below `sm` breakpoint): always collapsed into a bottom drawer.
 - A "Reset filters" button appears automatically when any filter is active.
 
+## Faceted search
+
+When the server returns `facets` in the response, filter controls automatically adapt to show
+dynamic counts, disable zero-result options, and render clickable range buckets.
+
+### Server response with facets
+
+```tsx
+fetcher: async (request) => {
+  const res = await api.list(request);
+  return {
+    rows: res.items,
+    rowCount: res.total,
+    facets: {
+      size: {
+        type: "values",
+        values: [
+          { value: "S", label: "Small", count: 12 },
+          { value: "M", label: "Medium", count: 34 },
+          { value: "L", label: "Large", count: 0 },
+        ],
+      },
+      price: {
+        type: "ranges",
+        ranges: [
+          { label: "Under $25", from: 0, to: 25, count: 15 },
+          { label: "$25-$50", from: 25, to: 50, count: 28 },
+          { label: "$50+", from: 50, to: 999, count: 7 },
+        ],
+        min: 5,
+        max: 249,
+      },
+    },
+  };
+};
+```
+
+### How controls adapt
+
+| Filter type | Without facets | With value facets | With range facets |
+|------------|---------------|-------------------|-------------------|
+| Select | Static options | Options with counts, zero-count dimmed | - |
+| Boolean | All / Yes / No | All / Yes (12) / No (3) | - |
+| Number range | Slider or inputs | Slider (bounds from facet) | Clickable range buckets + slider |
+| Date range | Date picker | Date picker | Clickable range buckets + picker |
+
+Facets are optional and backward compatible. Facet data updates on every fetch, creating the
+classic faceted search loop where filtering one dimension updates counts on all others.
+
+### Facet types
+
+```ts
+// Discrete values - for select, multiselect, boolean filters
+type ValueFacet = {
+  type: "values";
+  values: { value: string; label?: string; count: number }[];
+};
+
+// Bucketed ranges - for numberRange, dateRange filters
+type RangeFacet = {
+  type: "ranges";
+  ranges: { label: string; from: number | string; to: number | string; count: number }[];
+  min?: number | string;
+  max?: number | string;
+};
+```
+
 ## Card composition
 
 In card view, each visible column is placed by its `meta.card.role`:
@@ -751,6 +843,20 @@ When `forceCardsBelow` is set and the viewport is below that breakpoint:
 - The view switcher is disabled (or hidden entirely with `lockSwitcherOnMobile`).
 - Filters always open in a bottom drawer on mobile.
 
+## Loading behavior
+
+By default, filter controls, sort controls, and column visibility/pinning menus are disabled
+while data is loading. Sort headers in the table also become non-interactive, with a dimmed
+appearance showing the current sort state. The search input stays enabled so users can keep
+typing during debounced search.
+
+Opt out per component:
+
+```tsx
+<DataTable view={view} disableWhileLoading={false} />
+<DataToolbar view={view} disableWhileLoading={false} />
+```
+
 ## API overview
 
 | Export                                                               | Purpose                                       |
@@ -763,6 +869,7 @@ When `forceCardsBelow` is set and the viewport is below that breakpoint:
 | `FilterControl`                                                      | Individual filter control (place anywhere)    |
 | `ViewSwitcher`                                                       | Table/Cards toggle (customizable labels)      |
 | `exportCsv`                                                          | Standalone CSV export utility                 |
+| `col`                                                                | Fluent column builder factory                 |
 | `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`      | Column helpers                                |
 | `@ethanhann/mantine-dataview/url`                                    | `windowHistoryAdapter` + serializer utilities |
 

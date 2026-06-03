@@ -698,6 +698,48 @@ export const ExternalParams: Story = {
 	},
 };
 
+/** Toolbar sections: inject an export button and refresh button without rebuilding the toolbar. */
+export const ToolbarSections: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const view = useDataViewFetcher<Person>({
+				columns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataView view={view}>
+					<DataView.Toolbar
+						leftSection={
+							<Text fw={600} size="lg">
+								Users
+							</Text>
+						}
+						rightSection={
+							<Group gap="xs">
+								<Button
+									variant="default"
+									size="xs"
+									onClick={() => view.exportCsv({ filename: "users.csv" })}
+								>
+									Export
+								</Button>
+								<Button size="xs" onClick={() => view.refetch()}>
+									Refresh
+								</Button>
+							</Group>
+						}
+					/>
+					<DataView.Body />
+					<DataView.Pagination />
+				</DataView>
+			);
+		}
+		return <Example />;
+	},
+};
+
 /** Standalone ViewSwitcher with custom labels, placed outside the toolbar. */
 export const CustomViewSwitcher: Story = {
 	render: () => {
