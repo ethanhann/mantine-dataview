@@ -61,7 +61,7 @@ The easiest path is `useDataViewFetcher`, which owns the fetch lifecycle for you
 
 ```tsx
 import {
-    DataView,
+    DataViewer,
     useDataViewFetcher,
     createColumnHelper,
     type DataColumnDef,
@@ -104,11 +104,11 @@ function Users() {
         },
     });
 
-    return <DataView view={view}/>;
+    return <DataViewer view={view}/>;
 }
 ```
 
-`<DataView view={view} />` renders the toolbar, the active presentation, and pagination.
+`<DataViewer view={view} />` renders the toolbar, the active presentation, and pagination.
 
 ## Column builder
 
@@ -156,12 +156,12 @@ or object to merge), `format`, `align`, `cell`, `enableSorting`.
 Compose your own layout by passing children:
 
 ```tsx
-<DataView view={view}>
-    <DataView.Toolbar/>
-    <DataView.BulkActions/>
-    <DataView.Body/>
-    <DataView.Pagination/>
-</DataView>
+<DataViewer view={view}>
+    <DataViewer.Toolbar/>
+    <DataViewer.BulkActions/>
+    <DataViewer.Body/>
+    <DataViewer.Pagination/>
+</DataViewer>
 ```
 
 Or use the standalone components directly for full control:
@@ -178,7 +178,7 @@ Inject controls into the toolbar without rebuilding it from scratch using `leftS
 and `rightSection`:
 
 ```tsx
-<DataView.Toolbar
+<DataViewer.Toolbar
   leftSection={<Text fw={600}>Users</Text>}
   rightSection={
     <Group gap="xs">
@@ -541,14 +541,14 @@ col.accessor("location", {
 ```tsx
 import {FilterControl} from "@ethanhann/mantine-dataview";
 
-<DataView view={view}>
+<DataViewer view={view}>
     {view.table.getColumn("inStock") && (
         <FilterControl column={view.table.getColumn("inStock")!}/>
     )}
-    <DataView.Toolbar/>
-    <DataView.Body/>
-    <DataView.Pagination/>
-</DataView>
+    <DataViewer.Toolbar/>
+    <DataViewer.Body/>
+    <DataViewer.Pagination/>
+</DataViewer>
 ```
 
 ### Programmatic filter control
@@ -658,7 +658,7 @@ role group, columns are ordered by `meta.card.order`.
 For full control over card content, use `renderCard`:
 
 ```tsx
-<DataView
+<DataViewer
     view={view}
     renderCard={({data, selected, toggleSelected}) => (
         <Card withBorder padding="md" onClick={toggleSelected}>
@@ -673,7 +673,7 @@ For full control over card content, use `renderCard`:
 To keep the default composition but wrap it in a custom card shell, use the `Card` slot:
 
 ```tsx
-<DataView
+<DataViewer
     view={view}
     slots={{
         Card: ({data, selected, children}) => (
@@ -694,7 +694,7 @@ To keep the default composition but wrap it in a custom card shell, use the `Car
 Provide a `BulkActions` slot to add actions when rows are selected:
 
 ```tsx
-<DataView
+<DataViewer
     view={view}
     slots={{
         BulkActions: (selection) => (
@@ -721,7 +721,7 @@ The `selection` object provides `count`, `ids` (all selected row IDs across page
 Override loading, empty, and error states:
 
 ```tsx
-<DataView
+<DataViewer
     view={view}
     slots={{
         Empty: () => <Text>No users found.</Text>,
@@ -833,7 +833,7 @@ const view = useDataViewFetcher<User>({
     responsive: {forceCardsBelow: "sm", lockSwitcherOnMobile: true},
 });
 
-<DataView view={view} lockSwitcherOnMobile/>;
+<DataViewer view={view} lockSwitcherOnMobile/>;
 ```
 
 When `forceCardsBelow` is set and the viewport is below that breakpoint:
@@ -863,7 +863,7 @@ Instead of skeleton loading, rows can animate in and out with CSS transitions. N
 fade and slide in, removed rows fade out, and unchanged rows stay in place:
 
 ```tsx
-<DataView view={view} animateRows />
+<DataViewer view={view} animateRows />
 ```
 
 When `animateRows` is enabled:
@@ -880,7 +880,7 @@ This is opt-in. The default behavior (skeleton loading) is unchanged.
 |----------------------------------------------------------------------|-----------------------------------------------|
 | `useDataView`                                                        | Headless core, owns all feature state         |
 | `useDataViewFetcher`                                                 | Convenience wrapper that manages the fetch    |
-| `DataView` (+ `.Toolbar` / `.BulkActions` / `.Body` / `.Pagination`) | Orchestrator + compound parts                 |
+| `DataViewer` (+ `.Toolbar` / `.BulkActions` / `.Body` / `.Pagination`) | Orchestrator + compound parts                 |
 | `DataTable`, `DataCards`                                             | The two presentations (usable standalone)     |
 | `DataToolbar`, `DataPagination`, `DataBulkActions`                   | Standalone affordances                        |
 | `FilterControl`                                                      | Individual filter control (place anywhere)    |
@@ -892,7 +892,7 @@ This is opt-in. The default behavior (skeleton loading) is unchanged.
 
 ### Customization slots
 
-Passed via the `slots` prop on `DataView` or the presentation components:
+Passed via the `slots` prop on `DataViewer` or the presentation components:
 
 | Slot           | Receives                            | Purpose                    |
 |----------------|-------------------------------------|----------------------------|
@@ -906,20 +906,20 @@ Passed via the `slots` prop on `DataView` or the presentation components:
 
 ## Known issues
 
-### `DataView` name shadows the JS global
+### `DataViewer` name shadows the JS global
 
-The `DataView` component shares its name with the JavaScript `DataView` global (typed arrays).
+The `DataViewer` component shares its name with the JavaScript `DataViewer` global (typed arrays).
 Linters like Biome's `noShadowRestrictedNames` will flag the import. Suppress it with:
 
 ```tsx
 // biome-ignore lint/suspicious/noShadowRestrictedNames: component name
-import {DataView} from "@ethanhann/mantine-dataview";
+import {DataViewer} from "@ethanhann/mantine-dataview";
 ```
 
 Or import with an alias:
 
 ```tsx
-import {DataView as MantineDataView} from "@ethanhann/mantine-dataview";
+import {DataViewer as MantineDataView} from "@ethanhann/mantine-dataview";
 ```
 
 ## Development

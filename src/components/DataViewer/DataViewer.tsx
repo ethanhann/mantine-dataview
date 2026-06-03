@@ -1,5 +1,5 @@
-// Orchestrator. `<DataView view={dv}>` provides context and a default vertical layout. The
-// compound parts, `DataView.Toolbar`, `.BulkActions`, `.Body`, and `.Pagination`, project the
+// Orchestrator. `<DataViewer view={dv}>` provides context and a default vertical layout. The
+// compound parts, `DataViewer.Toolbar`, `.BulkActions`, `.Body`, and `.Pagination`, project the
 // shared state. With no children it renders the full default layout. Pass children to compose
 // your own.
 
@@ -18,7 +18,7 @@ import {
 	useDataViewContext,
 } from "./context";
 
-export interface DataViewProps<TData> extends Omit<StackProps, "children"> {
+export interface DataViewerProps<TData> extends Omit<StackProps, "children"> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
 	slots?: DataViewSlots<TData>;
@@ -31,7 +31,7 @@ export interface DataViewProps<TData> extends Omit<StackProps, "children"> {
 	children?: ReactNode;
 }
 
-export function DataView<TData>({
+export function DataViewer<TData>({
 	view,
 	slots,
 	renderCard,
@@ -40,7 +40,7 @@ export function DataView<TData>({
 	animateRows,
 	children,
 	...stackProps
-}: DataViewProps<TData>) {
+}: DataViewerProps<TData>) {
 	const ctx = useMemo<DataViewContextValue<TData>>(
 		() => ({
 			view,
@@ -69,9 +69,9 @@ export function DataView<TData>({
 	);
 }
 
-export type DataViewToolbarProps<TData> = Omit<DataToolbarProps<TData>, "view">;
+export type DataViewerToolbarProps<TData> = Omit<DataToolbarProps<TData>, "view">;
 
-function DataViewToolbar<TData>(props: DataViewToolbarProps<TData>) {
+function DataViewToolbar<TData>(props: DataViewerToolbarProps<TData>) {
 	const { view, lockSwitcherOnMobile } = useDataViewContext<TData>();
 	return (
 		<DataToolbar
@@ -82,7 +82,7 @@ function DataViewToolbar<TData>(props: DataViewToolbarProps<TData>) {
 	);
 }
 
-export interface DataViewBodyProps<TData> {
+export interface DataViewerBodyProps<TData> {
 	tableProps?: Omit<DataTableProps<TData>, "view" | "slots">;
 	cardsProps?: Omit<
 		DataCardsProps<TData>,
@@ -93,7 +93,7 @@ export interface DataViewBodyProps<TData> {
 function DataViewBody<TData>({
 	tableProps,
 	cardsProps,
-}: DataViewBodyProps<TData>) {
+}: DataViewerBodyProps<TData>) {
 	const { view, slots, renderCard, fallbackRole, animateRows } =
 		useDataViewContext<TData>();
 	return view.view === "cards" ? (
@@ -129,7 +129,7 @@ function DataViewBulkActions<TData>(
 	return <DataBulkActions view={view} slots={slots} {...props} />;
 }
 
-DataView.Toolbar = DataViewToolbar;
-DataView.BulkActions = DataViewBulkActions;
-DataView.Body = DataViewBody;
-DataView.Pagination = DataViewPagination;
+DataViewer.Toolbar = DataViewToolbar;
+DataViewer.BulkActions = DataViewBulkActions;
+DataViewer.Body = DataViewBody;
+DataViewer.Pagination = DataViewPagination;

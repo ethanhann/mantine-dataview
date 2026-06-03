@@ -2,7 +2,7 @@ import { Button, Group, Select, Stack, Switch, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useMemo, useState } from "react";
 import { ViewSwitcher } from "../components/DataToolbar/ViewSwitcher";
-import { DataView } from "../components/DataView";
+import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
 import { col, createColumnHelper, type DataColumnDef } from "../index";
 import type { FacetData } from "../types/facets";
@@ -11,7 +11,7 @@ import { windowHistoryAdapter } from "../url";
 import { columns, createMockFetcher, type Person } from "./data";
 
 const meta: Meta = {
-	title: "DataView",
+	title: "DataViewer",
 	parameters: { layout: "padded" },
 };
 export default meta;
@@ -28,7 +28,7 @@ function Showcase(props: { defaultView?: "table" | "cards" }) {
 		fetcher,
 		defaultView: props.defaultView,
 	});
-	return <DataView view={view} />;
+	return <DataViewer view={view} />;
 }
 
 export const Default: Story = {
@@ -50,7 +50,7 @@ export const ResponsiveForceCards: Story = {
 				fetcher,
 				responsive: { forceCardsBelow: "sm", lockSwitcherOnMobile: true },
 			});
-			return <DataView view={view} lockSwitcherOnMobile />;
+			return <DataViewer view={view} lockSwitcherOnMobile />;
 		}
 		return <Example />;
 	},
@@ -69,7 +69,7 @@ export const CustomRenderCard: Story = {
 				defaultView: "cards",
 			});
 			return (
-				<DataView
+				<DataViewer
 					view={view}
 					renderCard={({ data, selected, toggleSelected }) => (
 						<Stack
@@ -111,7 +111,7 @@ export const WithUrlSync: Story = {
 			});
 			return (
 				<Stack gap="xs">
-					<DataView view={view} />
+					<DataViewer view={view} />
 					<UrlReadout />
 				</Stack>
 			);
@@ -141,7 +141,7 @@ export const BulkActions: Story = {
 			const fetcher = useMemo(() => createMockFetcher(), []);
 			const view = useDataViewFetcher<Person>({ columns, getRowId, fetcher });
 			return (
-				<DataView
+				<DataViewer
 					view={view}
 					slots={{
 						BulkActions: (selection) => (
@@ -186,7 +186,7 @@ export const MultiSort: Story = {
 					<Text size="sm" c="dimmed">
 						Sorted by Role then Name. Shift+click headers to adjust multi-sort.
 					</Text>
-					<DataView view={view} />
+					<DataViewer view={view} />
 				</Stack>
 			);
 		}
@@ -211,7 +211,7 @@ export const CsvExport: Story = {
 							Export CSV
 						</Button>
 					</Group>
-					<DataView view={view} />
+					<DataViewer view={view} />
 				</Stack>
 			);
 		}
@@ -240,7 +240,7 @@ export const ColumnPinning: Story = {
 						behavior.
 					</Text>
 					<div style={{ maxWidth: 600 }}>
-						<DataView view={view} />
+						<DataViewer view={view} />
 					</div>
 				</Stack>
 			);
@@ -391,7 +391,7 @@ export const DataTypes: Story = {
 					date: { dateStyle: "medium" },
 				},
 			});
-			return <DataView view={view} />;
+			return <DataViewer view={view} />;
 		}
 		return <Example />;
 	},
@@ -415,7 +415,7 @@ export const CustomStates: Story = {
 				},
 			});
 			return (
-				<DataView
+				<DataViewer
 					view={view}
 					slots={{
 						ErrorState: ({ retry }) => (
@@ -646,7 +646,7 @@ export const FacetedSearch: Story = {
 						Filter by size, price range, or stock status. Watch the counts
 						update on other filters as you narrow your selection.
 					</Text>
-					<DataView view={view} />
+					<DataViewer view={view} />
 				</Stack>
 			);
 		}
@@ -654,7 +654,7 @@ export const FacetedSearch: Story = {
 	},
 };
 
-/** External parameters: tenant selector and archive toggle outside the DataView. */
+/** External parameters: tenant selector and archive toggle outside the DataViewer. */
 export const ExternalParams: Story = {
 	render: () => {
 		function Example() {
@@ -690,7 +690,7 @@ export const ExternalParams: Story = {
 							mt={24}
 						/>
 					</Group>
-					<DataView view={view} />
+					<DataViewer view={view} />
 				</Stack>
 			);
 		}
@@ -709,8 +709,8 @@ export const ToolbarSections: Story = {
 				fetcher,
 			});
 			return (
-				<DataView view={view}>
-					<DataView.Toolbar
+				<DataViewer view={view}>
+					<DataViewer.Toolbar
 						leftSection={
 							<Text fw={600} size="lg">
 								Users
@@ -731,9 +731,9 @@ export const ToolbarSections: Story = {
 							</Group>
 						}
 					/>
-					<DataView.Body />
-					<DataView.Pagination />
-				</DataView>
+					<DataViewer.Body />
+					<DataViewer.Pagination />
+				</DataViewer>
 			);
 		}
 		return <Example />;
@@ -755,7 +755,7 @@ export const AnimatedRows: Story = {
 					<Text size="sm" c="dimmed">
 						Sort or filter to see rows animate in and out. No skeleton flash.
 					</Text>
-					<DataView view={view} animateRows />
+					<DataViewer view={view} animateRows />
 				</Stack>
 			);
 		}
@@ -785,11 +785,11 @@ export const CustomViewSwitcher: Story = {
 							cardsLabel="Grid View"
 						/>
 					</Group>
-					<DataView view={view}>
-						<DataView.Toolbar showViewSwitcher={false} />
-						<DataView.Body />
-						<DataView.Pagination />
-					</DataView>
+					<DataViewer view={view}>
+						<DataViewer.Toolbar showViewSwitcher={false} />
+						<DataViewer.Body />
+						<DataViewer.Pagination />
+					</DataViewer>
 				</Stack>
 			);
 		}

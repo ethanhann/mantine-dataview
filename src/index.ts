@@ -30,13 +30,13 @@ export {
 	type ViewSwitcherProps,
 } from "./components/DataToolbar";
 export {
-	DataView,
-	type DataViewBodyProps,
+	type DataViewerBodyProps,
 	type DataViewContextValue,
-	type DataViewProps,
-	type DataViewToolbarProps,
+	DataViewer,
+	type DataViewerProps,
+	type DataViewerToolbarProps,
 	useDataViewContext,
-} from "./components/DataView";
+} from "./components/DataViewer";
 export type {
 	CardSlotContext,
 	DataViewSlots,

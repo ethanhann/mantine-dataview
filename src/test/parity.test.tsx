@@ -60,7 +60,7 @@ const rows: User[] = [
 
 let current: UseDataViewReturn<User> | null = null;
 function getView(): UseDataViewReturn<User> {
-	if (!current) throw new Error("DataView not rendered");
+	if (!current) throw new Error("DataViewer not rendered");
 	return current;
 }
 

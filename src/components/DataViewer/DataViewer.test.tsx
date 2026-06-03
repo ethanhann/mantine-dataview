@@ -9,7 +9,7 @@ import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
 import type { DataViewState, Status } from "../../types/state";
 import type { DataViewSlots } from "../types";
-import { DataView } from "./DataView";
+import { DataViewer } from "./DataViewer";
 
 interface User {
 	id: string;
@@ -47,9 +47,9 @@ function Harness({ children, ...props }: HarnessProps) {
 		initialState: props.initialState,
 	});
 	return (
-		<DataView view={view} slots={props.slots}>
+		<DataViewer view={view} slots={props.slots}>
 			{children}
-		</DataView>
+		</DataViewer>
 	);
 }
 
@@ -60,7 +60,7 @@ const renderView = (props: HarnessProps = {}) =>
 		</MantineProvider>,
 	);
 
-describe("DataView orchestrator", () => {
+describe("DataViewer orchestrator", () => {
 	it("renders the default layout: toolbar, body, and pagination", () => {
 		renderView();
 		expect(screen.getByLabelText("Search")).toBeVisible(); // toolbar
@@ -81,8 +81,8 @@ describe("DataView orchestrator", () => {
 		renderView({
 			children: (
 				<>
-					<DataView.Pagination />
-					<DataView.Body />
+					<DataViewer.Pagination />
+					<DataViewer.Body />
 				</>
 			),
 		});
@@ -106,10 +106,10 @@ describe("DataView orchestrator", () => {
 		expect(() =>
 			render(
 				<MantineProvider>
-					<DataView.Body />
+					<DataViewer.Body />
 				</MantineProvider>,
 			),
-		).toThrow(/inside <DataView>/);
+		).toThrow(/inside <DataViewer>/);
 		spy.mockRestore();
 	});
 

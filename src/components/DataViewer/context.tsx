@@ -1,6 +1,6 @@
-// Shared context for the compound <DataView> API. The root provides the `useDataView` instance
+// Shared context for the compound <DataViewer> API. The root provides the `useDataView` instance
 // once, along with the config that cuts across parts such as slots and card options. The
-// subcomponents read it, so a consumer writes `<DataView.Body />` instead of threading `view`
+// subcomponents read it, so a consumer writes `<DataViewer.Body />` instead of threading `view`
 // through every child.
 
 import { createContext, useContext } from "react";
@@ -29,7 +29,7 @@ export function useDataViewContext<TData>(): DataViewContextValue<TData> {
 	const ctx = useContext(DataViewContext);
 	if (!ctx) {
 		throw new Error(
-			"DataView.Toolbar / DataView.Body / DataView.Pagination must be rendered inside <DataView>.",
+			"DataViewer.Toolbar / DataViewer.Body / DataViewer.Pagination must be rendered inside <DataViewer>.",
 		);
 	}
 	return ctx as DataViewContextValue<TData>;

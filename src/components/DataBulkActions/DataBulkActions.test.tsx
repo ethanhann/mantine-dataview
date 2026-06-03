@@ -6,7 +6,7 @@ import { useDataView } from "../../core/useDataView";
 import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
 import { DataTable } from "../DataTable";
-import { DataView } from "../DataView";
+import { DataViewer } from "../DataViewer";
 import type { DataViewSlots } from "../types";
 import { DataBulkActions } from "./DataBulkActions";
 
@@ -98,7 +98,7 @@ describe("bulk bar parity across views", () => {
 			status: "success",
 			getRowId: (u) => u.id,
 		});
-		return <DataView view={view} />;
+		return <DataViewer view={view} />;
 	}
 
 	it("shows the same bar regardless of active view", async () => {
