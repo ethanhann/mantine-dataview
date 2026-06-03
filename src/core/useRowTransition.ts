@@ -23,18 +23,28 @@ export function useRowTransition<TData>(
 		const prevIds = prevIdsRef.current;
 		const prevSet = new Set(prevIds);
 
-		for (const id of currentIds) {
-			if (!prevSet.has(id)) {
-				entering.add(id);
-			}
-		}
-
-		const changed =
+		const orderChanged =
 			currentIds.length !== prevIds.length ||
 			currentIds.some((id, i) => id !== prevIds[i]);
 
-		if (changed) {
+		if (orderChanged) {
 			generationRef.current++;
+
+			const sameSet =
+				currentIds.length === prevIds.length &&
+				currentIds.every((id) => prevSet.has(id));
+
+			if (sameSet) {
+				for (const id of currentIds) {
+					entering.add(id);
+				}
+			} else {
+				for (const id of currentIds) {
+					if (!prevSet.has(id)) {
+						entering.add(id);
+					}
+				}
+			}
 		}
 	}
 
