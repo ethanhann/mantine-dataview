@@ -10,7 +10,7 @@ import type {
 	DataColumnDef,
 } from "./column";
 import type { FacetData } from "./facets";
-import type { DataViewRequest } from "./request";
+import type { DataViewRequest, FilterParam } from "./request";
 import type { DataViewState, DataViewStatus, Status, ViewMode } from "./state";
 
 /** Force cards at or below a Mantine breakpoint. Cards are the preferred view on small screens. */
@@ -75,6 +75,8 @@ export interface UseDataViewOptions<TData> {
 	formatDefaults?: Partial<Record<ColumnDataType, ColumnFormatOption>>;
 	/** Facet aggregation data from the server, keyed by column ID. */
 	facets?: Record<string, FacetData>;
+	/** External parameters included in every request. Changes trigger a refetch and reset pagination. */
+	params?: Record<string, FilterParam>;
 }
 
 /** Current selection, derived from `rowSelection` keyed by `getRowId`. */

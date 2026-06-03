@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text } from "@mantine/core";
+import { Button, Group, Select, Stack, Switch, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useMemo, useState } from "react";
 import { DataView } from "../components/DataView";
@@ -645,6 +645,50 @@ export const FacetedSearch: Story = {
 						Filter by size, price range, or stock status. Watch the counts
 						update on other filters as you narrow your selection.
 					</Text>
+					<DataView view={view} />
+				</Stack>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/** External parameters: tenant selector and archive toggle outside the DataView. */
+export const ExternalParams: Story = {
+	render: () => {
+		function Example() {
+			const [tenant, setTenant] = useState("acme");
+			const [showArchived, setShowArchived] = useState(false);
+
+			const fetcher = useMemo(() => createMockFetcher(), []);
+
+			const view = useDataViewFetcher<Person>({
+				columns,
+				getRowId,
+				fetcher,
+				params: { tenant, showArchived },
+			});
+
+			return (
+				<Stack gap="md">
+					<Text size="sm" c="dimmed">
+						These controls are outside the DataView. Changing them triggers a
+						refetch with the new params visible in request.params.
+					</Text>
+					<Group>
+						<Select
+							label="Tenant"
+							data={["acme", "globex", "initech"]}
+							value={tenant}
+							onChange={(v) => setTenant(v ?? "acme")}
+						/>
+						<Switch
+							label="Show archived"
+							checked={showArchived}
+							onChange={(e) => setShowArchived(e.currentTarget.checked)}
+							mt={24}
+						/>
+					</Group>
 					<DataView view={view} />
 				</Stack>
 			);

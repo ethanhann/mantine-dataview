@@ -198,21 +198,50 @@ const view = useDataView<User>({
 
 The request is emitted immediately for pagination/sorting and debounced for search/filters.
 
+### External parameters
+
+Pass arbitrary parameters that aren't tied to a column. They're included in every
+`DataViewRequest`, trigger a refetch when they change, and reset pagination to page 1:
+
+```tsx
+const [tenantId, setTenantId] = useState("acme");
+const [showArchived, setShowArchived] = useState(false);
+
+const view = useDataViewFetcher<User>({
+    columns,
+    getRowId,
+    fetcher: async (request) => {
+        // request.params = { tenantId: "acme", showArchived: false }
+        const res = await api.list(request);
+        return {rows: res.items, rowCount: res.total};
+    },
+    params: {tenantId, showArchived},
+});
+
+// Render your own controls...
+<Select data={tenants} value={tenantId} onChange={setTenantId}/>
+<Switch checked={showArchived} onChange={(e) => setShowArchived(e.currentTarget.checked)}/>
+```
+
+Values are typed as `FilterParam` (`string | number | boolean | null | string[] | number[]`).
+
 ### Refetching on external changes
 
-When state outside the dataview (e.g. a tenant selector, date range from another component)
-should trigger a refetch, pass it in `deps`:
+For cases where external state affects the fetcher but isn't a named parameter (e.g. it's
+baked into the closure), use `deps` to trigger a refetch:
 
 ```tsx
 const view = useDataViewFetcher<User>({
     columns,
     getRowId,
     fetcher,
-    deps: [selectedTenantId, externalDateRange],
+    deps: [selectedTenantId],
 });
 ```
 
 When any value in `deps` changes, the current request is re-emitted to the fetcher.
+Prefer `params` when the server needs to see the values; use `deps` when they're already
+in the fetcher closure.
 
 ### Manual refresh
 

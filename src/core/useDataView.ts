@@ -118,9 +118,12 @@ export function useDataView<TData>(
 		responsive,
 		formatDefaults,
 		facets: facetsInput,
+		params: paramsInput,
 	} = options;
 
 	const facets = facetsInput ?? {};
+	const paramsKey = paramsInput ? JSON.stringify(paramsInput) : "";
+	const params = paramsInput ?? {};
 
 	const columns = useMemo(
 		() =>
@@ -193,6 +196,13 @@ export function useDataView<TData>(
 		}),
 		[],
 	);
+
+	const prevParamsKeyRef = useRef(paramsKey);
+	useEffect(() => {
+		if (prevParamsKeyRef.current === paramsKey) return;
+		prevParamsKeyRef.current = paramsKey;
+		applyPatch({ pagination: resetPagination() });
+	});
 
 	const onPaginationChange = useCallback<OnChangeFn<PaginationState>>(
 		(updater) => {
@@ -314,18 +324,21 @@ export function useDataView<TData>(
 
 	// The normalized request holds only the slices the server cares about. View, selection, and
 	// column visibility deliberately stay out of it, so toggling them never triggers a refetch.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: params is stable when paramsKey is stable
 	const request = useMemo<DataViewRequest>(
 		() => ({
 			pagination: resolvedState.pagination,
 			sorting: resolvedState.sorting,
 			filters: resolvedState.columnFilters,
 			globalFilter: resolvedState.globalFilter,
+			params,
 		}),
 		[
 			resolvedState.pagination,
 			resolvedState.sorting,
 			resolvedState.columnFilters,
 			resolvedState.globalFilter,
+			paramsKey,
 		],
 	);
 

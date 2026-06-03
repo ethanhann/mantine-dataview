@@ -86,6 +86,7 @@ describe("useDataView", () => {
 			sorting: [],
 			filters: [],
 			globalFilter: "",
+			params: {},
 		});
 	});
 

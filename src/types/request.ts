@@ -7,6 +7,15 @@
 import type { FacetData } from "./facets";
 import type { DataViewFilter, DataViewPagination, DataViewSort } from "./state";
 
+/** Allowed value types for external filter parameters. */
+export type FilterParam =
+	| string
+	| number
+	| boolean
+	| null
+	| string[]
+	| number[];
+
 /** Emitted by the core whenever view state changes. The consumer turns it into a fetch. */
 export interface DataViewRequest {
 	pagination: DataViewPagination;
@@ -14,6 +23,8 @@ export interface DataViewRequest {
 	/** Filters keyed by column. The `value` shape depends on the filter variant. */
 	filters: DataViewFilter[];
 	globalFilter: string;
+	/** External parameters passed through from the consumer. */
+	params: Record<string, FilterParam>;
 }
 
 /** What the consumer feeds back in for the current page. */
