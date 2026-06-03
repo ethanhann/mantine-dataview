@@ -1,6 +1,7 @@
 import { Button, Group, Select, Stack, Switch, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useMemo, useState } from "react";
+import { ViewSwitcher } from "../components/DataToolbar/ViewSwitcher";
 import { DataView } from "../components/DataView";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
 import { col, createColumnHelper, type DataColumnDef } from "../index";
@@ -690,6 +691,40 @@ export const ExternalParams: Story = {
 						/>
 					</Group>
 					<DataView view={view} />
+				</Stack>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/** Standalone ViewSwitcher with custom labels, placed outside the toolbar. */
+export const CustomViewSwitcher: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const view = useDataViewFetcher<Person>({
+				columns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<Stack gap="md">
+					<Group justify="space-between">
+						<Text fw={600} size="lg">
+							Users
+						</Text>
+						<ViewSwitcher
+							view={view}
+							tableLabel="List View"
+							cardsLabel="Grid View"
+						/>
+					</Group>
+					<DataView view={view}>
+						<DataView.Toolbar showViewSwitcher={false} />
+						<DataView.Body />
+						<DataView.Pagination />
+					</DataView>
 				</Stack>
 			);
 		}

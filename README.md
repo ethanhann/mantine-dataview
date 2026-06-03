@@ -169,6 +169,28 @@ Or use the standalone components directly for full control:
 <DataPagination view={view}/>
 ```
 
+### View switcher
+
+The `ViewSwitcher` is exported for standalone use with customizable labels:
+
+```tsx
+import { ViewSwitcher } from "@ethanhann/mantine-dataview";
+
+// Default
+<ViewSwitcher view={view} />
+
+// Custom labels (text or icons)
+<ViewSwitcher view={view} tableLabel="List" cardsLabel="Grid" />
+<ViewSwitcher view={view} tableLabel={<IconList />} cardsLabel={<IconGrid />} />
+```
+
+Or drive the view programmatically:
+
+```tsx
+view.setView("cards"); // switch to cards
+view.view;             // current view: "table" | "cards"
+```
+
 ## Controlled (bring your own data layer)
 
 `useDataViewFetcher` is a thin convenience wrapper. The core, `useDataView`, is fully controlled —
@@ -739,6 +761,7 @@ When `forceCardsBelow` is set and the viewport is below that breakpoint:
 | `DataTable`, `DataCards`                                             | The two presentations (usable standalone)     |
 | `DataToolbar`, `DataPagination`, `DataBulkActions`                   | Standalone affordances                        |
 | `FilterControl`                                                      | Individual filter control (place anywhere)    |
+| `ViewSwitcher`                                                       | Table/Cards toggle (customizable labels)      |
 | `exportCsv`                                                          | Standalone CSV export utility                 |
 | `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`      | Column helpers                                |
 | `@ethanhann/mantine-dataview/url`                                    | `windowHistoryAdapter` + serializer utilities |

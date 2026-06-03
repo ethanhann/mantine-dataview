@@ -26,6 +26,8 @@ export {
 	DataToolbar,
 	type DataToolbarProps,
 	FilterControl,
+	ViewSwitcher,
+	type ViewSwitcherProps,
 } from "./components/DataToolbar";
 export {
 	DataView,
