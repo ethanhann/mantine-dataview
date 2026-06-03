@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useMemo, useState } from "react";
 import { DataView } from "../components/DataView";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
-import { createColumnHelper, type DataColumnDef } from "../index";
+import { col, createColumnHelper, type DataColumnDef } from "../index";
 import type { FacetData } from "../types/facets";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
 import { windowHistoryAdapter } from "../url";
@@ -260,56 +260,19 @@ export const DataTypes: Story = {
 			createdAt: string;
 		}
 
-		const productCol = createColumnHelper<Product>();
-		const productColumns = [
-			productCol.accessor("name", {
-				header: "Product",
-				meta: {
-					label: "Product",
-					dataType: "text",
-					card: { role: "title" },
-					filter: { variant: "text" },
-				},
-			}),
-			productCol.accessor("price", {
-				header: "Price",
-				meta: {
-					label: "Price",
-					dataType: "currency",
-					align: "right",
-					card: { role: "meta" },
-					filter: { variant: "numberRange", min: 0, max: 600, step: 10 },
-				},
-			}),
-			productCol.accessor("quantity", {
-				header: "Quantity",
-				meta: {
-					label: "Quantity",
-					dataType: "number",
-					align: "right",
-					card: { role: "meta" },
-					filter: { variant: "numberRange", min: 0, max: 1500, step: 50 },
-				},
-			}),
-			productCol.accessor("inStock", {
-				header: "In Stock",
-				meta: {
-					label: "In Stock",
-					dataType: "boolean",
-					card: { role: "badge" },
-					filter: { variant: "boolean" },
-				},
-			}),
-			productCol.accessor("createdAt", {
-				header: "Created",
-				meta: {
-					label: "Created",
-					dataType: "date",
-					card: { role: "meta" },
-					filter: { variant: "dateRange" },
-				},
-			}),
-		] satisfies DataColumnDef<Product>[];
+		const productColumns = col<Product>()
+			.text("name", { header: "Product", card: "title" })
+			.currency("price", {
+				card: "meta",
+				filter: { min: 0, max: 600, step: 10 },
+			})
+			.number("quantity", {
+				card: "meta",
+				filter: { min: 0, max: 1500, step: 50 },
+			})
+			.boolean("inStock", { card: "badge" })
+			.date("createdAt", { card: "meta" })
+			.build();
 
 		const products: Product[] = [
 			{

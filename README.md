@@ -107,6 +107,47 @@ function Users() {
 
 `<DataView view={view} />` renders the toolbar, the active presentation, and pagination.
 
+## Column builder
+
+The fluent `col<T>()` builder reduces column definition verbosity. Each method sets
+`dataType`, `filter`, `align`, and `meta.label` with sensible defaults for the type:
+
+```tsx
+import {col} from "@ethanhann/mantine-dataview";
+
+const columns = col<User>()
+    .text("name", {card: "title"})
+    .text("email", {card: "subtitle", filter: false})
+    .currency("salary", {card: "meta"})
+    .number("age", {card: "meta", filter: {min: 18, max: 100}})
+    .boolean("active", {card: "badge"})
+    .date("createdAt", {card: "meta"})
+    .select("role", {
+        options: [{value: "admin", label: "Admin"}, {value: "user", label: "User"}],
+        card: "badge",
+    })
+    .build();
+```
+
+### Available presets
+
+| Method                             | `dataType` | `filter`      | `align` |
+|------------------------------------|------------|---------------|---------|
+| `.text(field)`                     | `text`     | `text`        | left    |
+| `.number(field)`                   | `number`   | `numberRange` | right   |
+| `.currency(field)`                 | `currency` | `numberRange` | right   |
+| `.date(field)`                     | `date`     | `dateRange`   | left    |
+| `.boolean(field)`                  | `boolean`  | `boolean`     | left    |
+| `.select(field, { options })`      | —          | `select`      | left    |
+| `.multiselect(field, { options })` | —          | `multiselect` | left    |
+| `.custom(colDef)`                  | —          | —             | —       |
+
+Headers are auto-humanized from field names (`createdAt` → `"Created At"`,
+`first_name` → `"First Name"`). Override with `{ header: "Custom Label" }`.
+
+Options: `header`, `card` (role shorthand), `cardOrder`, `filter` (`false` to disable,
+or object to merge), `format`, `align`, `cell`, `enableSorting`.
+
 ## Custom layout
 
 Compose your own layout by passing children:
@@ -164,10 +205,10 @@ should trigger a refetch, pass it in `deps`:
 
 ```tsx
 const view = useDataViewFetcher<User>({
-  columns,
-  getRowId,
-  fetcher,
-  deps: [selectedTenantId, externalDateRange],
+    columns,
+    getRowId,
+    fetcher,
+    deps: [selectedTenantId, externalDateRange],
 });
 ```
 
@@ -696,13 +737,13 @@ Linters like Biome's `noShadowRestrictedNames` will flag the import. Suppress it
 
 ```tsx
 // biome-ignore lint/suspicious/noShadowRestrictedNames: component name
-import { DataView } from "@ethanhann/mantine-dataview";
+import {DataView} from "@ethanhann/mantine-dataview";
 ```
 
 Or import with an alias:
 
 ```tsx
-import { DataView as MantineDataView } from "@ethanhann/mantine-dataview";
+import {DataView as MantineDataView} from "@ethanhann/mantine-dataview";
 ```
 
 ## Development

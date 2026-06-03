@@ -52,6 +52,8 @@ export {
 	composeCardLayout,
 	resolveColumnLabel,
 } from "./core/cardComposition";
+// Fluent column builder.
+export { type ColOptions, ColumnBuilder, col } from "./core/colBuilder";
 // CSV export utility.
 export { type ExportCsvOptions, exportCsv } from "./core/exportCsv";
 // Core hook.
