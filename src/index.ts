@@ -30,9 +30,9 @@ export {
 	type ViewSwitcherProps,
 } from "./components/DataToolbar";
 export {
-	type DataViewerBodyProps,
 	type DataViewContextValue,
 	DataViewer,
+	type DataViewerBodyProps,
 	type DataViewerProps,
 	type DataViewerToolbarProps,
 	useDataViewContext,

@@ -1,10 +1,10 @@
 export {
-	DataViewer,
-	type DataViewerProps,
-	type DataViewerBodyProps,
-	type DataViewerToolbarProps,
-} from "./DataViewer";
-export {
 	type DataViewContextValue,
 	useDataViewContext,
 } from "./context";
+export {
+	DataViewer,
+	type DataViewerBodyProps,
+	type DataViewerProps,
+	type DataViewerToolbarProps,
+} from "./DataViewer";

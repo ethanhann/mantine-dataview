@@ -69,7 +69,10 @@ export function DataViewer<TData>({
 	);
 }
 
-export type DataViewerToolbarProps<TData> = Omit<DataToolbarProps<TData>, "view">;
+export type DataViewerToolbarProps<TData> = Omit<
+	DataToolbarProps<TData>,
+	"view"
+>;
 
 function DataViewToolbar<TData>(props: DataViewerToolbarProps<TData>) {
 	const { view, lockSwitcherOnMobile } = useDataViewContext<TData>();
