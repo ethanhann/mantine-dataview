@@ -24,8 +24,8 @@ export function useRowTransition<TData>(
 			typeof document !== "undefined" &&
 			process.env.NODE_ENV !== "production"
 		) {
-			const sheet = Array.from(document.styleSheets);
-			const hasKeyframes = sheet.some((s) => {
+			const sheets = Array.from(document.styleSheets);
+			const hasKeyframes = sheets.some((s) => {
 				try {
 					return Array.from(s.cssRules).some(
 						(r) =>
@@ -47,6 +47,7 @@ export function useRowTransition<TData>(
 
 	const currentIds = currentRows.map((r) => r.id);
 	const entering = new Set<string>();
+	let generationSnapshot = generationRef.current;
 
 	if (enabled && hasMountedRef.current) {
 		const prevIds = prevIdsRef.current;
@@ -57,7 +58,7 @@ export function useRowTransition<TData>(
 			currentIds.some((id, i) => id !== prevIds[i]);
 
 		if (orderChanged) {
-			generationRef.current++;
+			generationSnapshot = generationRef.current + 1;
 
 			const sameSet =
 				currentIds.length === prevIds.length &&
@@ -77,8 +78,11 @@ export function useRowTransition<TData>(
 		}
 	}
 
-	prevIdsRef.current = currentIds;
-	hasMountedRef.current = true;
+	useEffect(() => {
+		prevIdsRef.current = currentIds;
+		hasMountedRef.current = true;
+		generationRef.current = generationSnapshot;
+	});
 
-	return { rows: currentRows, entering, generation: generationRef.current };
+	return { rows: currentRows, entering, generation: generationSnapshot };
 }
