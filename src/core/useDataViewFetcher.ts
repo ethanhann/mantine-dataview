@@ -7,7 +7,7 @@
 // It is named `useDataViewFetcher` because it calls hooks internally. That means the name must
 // begin with `use`.
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseDataViewOptions, UseDataViewReturn } from "../types/options";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
 import type { Status } from "../types/state";
@@ -22,10 +22,13 @@ export interface UseDataViewFetcherOptions<TData>
 	fetcher: (
 		request: DataViewRequest,
 	) => Promise<DataViewResponse<NoInfer<TData>>>;
+	/** External dependencies that should trigger a refetch when they change. */
+	deps?: unknown[];
 }
 
 export function useDataViewFetcher<TData>({
 	fetcher,
+	deps,
 	...options
 }: UseDataViewFetcherOptions<TData>): UseDataViewReturn<TData> {
 	const [response, setResponse] = useState<DataViewResponse<TData>>({
@@ -40,7 +43,10 @@ export function useDataViewFetcher<TData>({
 	// An id that only ever increases. It keeps a slow earlier request from overwriting a newer one.
 	const requestIdRef = useRef(0);
 
+	const lastRequestRef = useRef<DataViewRequest | null>(null);
+
 	const onRequestChange = useCallback(async (request: DataViewRequest) => {
+		lastRequestRef.current = request;
 		const id = ++requestIdRef.current;
 		setStatus("loading");
 		try {
@@ -57,6 +63,16 @@ export function useDataViewFetcher<TData>({
 			}
 		}
 	}, []);
+
+	const depsKey = deps ? JSON.stringify(deps) : "";
+	const prevDepsKeyRef = useRef(depsKey);
+	useEffect(() => {
+		if (prevDepsKeyRef.current === depsKey) return;
+		prevDepsKeyRef.current = depsKey;
+		if (lastRequestRef.current) {
+			onRequestChange(lastRequestRef.current);
+		}
+	});
 
 	return useDataView<TData>({
 		...options,

@@ -157,6 +157,33 @@ const view = useDataView<User>({
 
 The request is emitted immediately for pagination/sorting and debounced for search/filters.
 
+### Refetching on external changes
+
+When state outside the dataview (e.g. a tenant selector, date range from another component)
+should trigger a refetch, pass it in `deps`:
+
+```tsx
+const view = useDataViewFetcher<User>({
+  columns,
+  getRowId,
+  fetcher,
+  deps: [selectedTenantId, externalDateRange],
+});
+```
+
+When any value in `deps` changes, the current request is re-emitted to the fetcher.
+
+### Manual refresh
+
+Re-fetch the current data without changing any state:
+
+```tsx
+<Button onClick={() => view.refetch()}>Refresh</Button>
+```
+
+This re-emits the current request to the fetcher. It's the same mechanism the built-in
+error retry button uses.
+
 ## Column data types and formatting
 
 Set `dataType` on a column's meta to enable automatic value formatting. When no explicit
@@ -407,6 +434,18 @@ import {FilterControl} from "@ethanhann/mantine-dataview";
 </DataView>
 ```
 
+### Programmatic filter control
+
+Reset all filters or clear a specific column from anywhere — no need to be inside the toolbar:
+
+```tsx
+// Reset all filters
+<Button onClick={() => view.resetAllFilters()}>Reset all filters</Button>
+
+// Clear a single column's filter
+<Button onClick={() => view.resetFilter("status")}>Clear status filter</Button>
+```
+
 ### Filter display behavior
 
 - **Desktop, few filters** (at or below `filterInlineThreshold`, default 3): rendered inline in the toolbar.
@@ -647,6 +686,24 @@ Passed via the `slots` prop on `DataView` or the presentation components:
 | `Row`          | `{ row, children }`                 | Wrap each table row        |
 | `Card`         | `{ row, data, selected, children }` | Wrap each card             |
 | `BulkActions`  | `{ count, ids, rows, clear }`       | Bulk action bar content    |
+
+## Known issues
+
+### `DataView` name shadows the JS global
+
+The `DataView` component shares its name with the JavaScript `DataView` global (typed arrays).
+Linters like Biome's `noShadowRestrictedNames` will flag the import. Suppress it with:
+
+```tsx
+// biome-ignore lint/suspicious/noShadowRestrictedNames: component name
+import { DataView } from "@ethanhann/mantine-dataview";
+```
+
+Or import with an alias:
+
+```tsx
+import { DataView as MantineDataView } from "@ethanhann/mantine-dataview";
+```
 
 ## Development
 

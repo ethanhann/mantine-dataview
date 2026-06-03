@@ -114,4 +114,8 @@ export interface UseDataViewReturn<TData> {
 	exportCsv: (options?: ExportCsvOptions) => void;
 	/** Latest facet data from the server response, keyed by column ID. */
 	facets: Record<string, FacetData>;
+	/** Clear the filter on a single column by ID. */
+	resetFilter: (columnId: string) => void;
+	/** Clear all column filters. */
+	resetAllFilters: () => void;
 }

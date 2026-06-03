@@ -430,6 +430,16 @@ export function useDataView<TData>(
 		[table],
 	);
 
+	const resetFilter = useCallback(
+		(columnId: string) => table.getColumn(columnId)?.setFilterValue(undefined),
+		[table],
+	);
+
+	const resetAllFilters = useCallback(
+		() => table.resetColumnFilters(),
+		[table],
+	);
+
 	return {
 		table,
 		request,
@@ -447,5 +457,7 @@ export function useDataView<TData>(
 		selection,
 		exportCsv,
 		facets,
+		resetFilter,
+		resetAllFilters,
 	};
 }
