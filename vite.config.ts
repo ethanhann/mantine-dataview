@@ -14,10 +14,8 @@ export default defineConfig({
 			// unplugin-dts mirrors the `src/` tree under dist; flatten it so the
 			// emitted `.d.ts` paths line up with package.json `exports`.
 			beforeWriteFile(filePath, content) {
-				return {
-					filePath: filePath.replace(/([\\/]dist[\\/])src[\\/]/, "$1"),
-					content,
-				};
+				const flattened = filePath.replace(/([\\/]dist[\\/])src[\\/]/, "$1");
+				return { filePath: flattened, content };
 			},
 		}),
 	],
@@ -27,9 +25,8 @@ export default defineConfig({
 				index: resolve(__dirname, "src/index.ts"),
 				"url/index": resolve(__dirname, "src/url/index.ts"),
 			},
-			formats: ["es", "cjs"],
-			fileName: (format, entryName) =>
-				format === "es" ? `${entryName}.js` : `${entryName}.cjs`,
+			formats: ["es"],
+			fileName: (_format, entryName) => `${entryName}.js`,
 		},
 		rollupOptions: {
 			external: [

@@ -1,22 +1,19 @@
 {
 	"name": "@ethanhann/mantine-dataview",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"description": "A React library that renders server-driven, paginated datasets as a table or card grid, switchable at runtime, built on Mantine v9 and TanStack Table v8",
 	"type": "module",
-	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./styles.css": "./dist/mantine-dataview.css",
 		"./url": {
 			"types": "./dist/url/index.d.ts",
-			"import": "./dist/url/index.js",
-			"require": "./dist/url/index.cjs"
+			"default": "./dist/url/index.js"
 		}
 	},
 	"files": [
@@ -83,6 +80,9 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ethanhann/mantine-dataview.git"
+	},
+	"engines": {
+		"node": ">=18"
 	},
 	"publishConfig": {
 		"registry": "https://registry.npmjs.org"
