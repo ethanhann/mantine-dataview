@@ -1,6 +1,16 @@
-import { Button, Group, Select, Stack, Switch, Text } from "@mantine/core";
+import {
+	Badge,
+	Button,
+	Group,
+	Loader,
+	Select,
+	Stack,
+	Switch,
+	Text,
+	TextInput,
+} from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ViewSwitcher } from "../components/DataToolbar/ViewSwitcher";
 import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
@@ -8,7 +18,7 @@ import { col, createColumnHelper, type DataColumnDef } from "../index";
 import type { FacetData } from "../types/facets";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
 import { windowHistoryAdapter } from "../url";
-import { columns, createMockFetcher, type Person } from "./data";
+import { columns, createMockFetcher, people, type Person } from "./data";
 
 const meta: Meta = {
 	title: "DataViewer",
@@ -792,6 +802,169 @@ export const CustomViewSwitcher: Story = {
 						<DataViewer.Body />
 						<DataViewer.Pagination />
 					</DataViewer>
+				</Stack>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/** Optimistic reconciliation: patch, insert, and remove rows without a full reload. */
+export const OptimisticReconciliation: Story = {
+	render: () => {
+		function Example() {
+			const nextIdRef = useRef(100);
+			const serverDataRef = useRef([...people]);
+
+			const fetcher = useCallback(
+				async (
+					request: DataViewRequest,
+				): Promise<DataViewResponse<Person>> => {
+					await new Promise((r) => setTimeout(r, 800));
+					let result = serverDataRef.current.slice();
+
+					if (request.globalFilter) {
+						const q = request.globalFilter.toLowerCase();
+						result = result.filter(
+							(p) =>
+								p.name.toLowerCase().includes(q) ||
+								p.email.toLowerCase().includes(q),
+						);
+					}
+					for (const f of request.filters) {
+						result = result.filter((p) => {
+							const cell = p[f.id as keyof Person];
+							if (f.value == null || f.value === "") return true;
+							if (Array.isArray(f.value))
+								return f.value.length === 0 || f.value.includes(cell);
+							return String(cell)
+								.toLowerCase()
+								.includes(String(f.value).toLowerCase());
+						});
+					}
+					if (request.sorting.length > 0) {
+						result.sort((a, b) => {
+							for (const sort of request.sorting) {
+								const av = a[sort.id as keyof Person];
+								const bv = b[sort.id as keyof Person];
+								if (av === bv) continue;
+								const cmp = (av ?? "") < (bv ?? "") ? -1 : 1;
+								return sort.desc ? -cmp : cmp;
+							}
+							return 0;
+						});
+					}
+
+					const total = result.length;
+					const { pageIndex, pageSize } = request.pagination;
+					const start = pageIndex * pageSize;
+					return {
+						rows: result.slice(start, start + pageSize),
+						rowCount: total,
+					};
+				},
+				[],
+			);
+
+			const view = useDataViewFetcher<Person>({
+				columns,
+				getRowId,
+				fetcher,
+				revalidateDelay: 1500,
+			});
+
+			const [newName, setNewName] = useState("");
+
+			const handlePatchFirst = () => {
+				const rows = view.table.getRowModel().rows;
+				if (rows.length === 0) return;
+				const first = rows[0]!.original;
+				const patched = {
+					...first,
+					name: `${first.name} (edited)`,
+					status: "invited" as const,
+				};
+				serverDataRef.current = serverDataRef.current.map((p) =>
+					p.id === patched.id ? patched : p,
+				);
+				view.patchRow(patched);
+			};
+
+			const handleInsert = () => {
+				const id = String(nextIdRef.current++);
+				const name = newName.trim() || `New Person ${id}`;
+				const record: Person = {
+					id,
+					name,
+					email: `${name.toLowerCase().replace(/\s/g, ".")}@example.com`,
+					role: "Engineer",
+					status: "active",
+					age: 30,
+					location: "Austin",
+				};
+				serverDataRef.current = [record, ...serverDataRef.current];
+				view.insertRow(record);
+				setNewName("");
+			};
+
+			const handleDeleteFirst = () => {
+				const rows = view.table.getRowModel().rows;
+				if (rows.length === 0) return;
+				const id = rows[0]!.id;
+				serverDataRef.current = serverDataRef.current.filter(
+					(p) => p.id !== id,
+				);
+				view.removeRow(id);
+			};
+
+			return (
+				<Stack gap="md">
+					<Text size="sm" c="dimmed">
+						These buttons simulate a detail panel saving, creating, and deleting
+						records. Changes appear instantly (optimistic), then a background
+						revalidation fetch fires after 1.5s to reconcile with server truth.
+						Watch the sync indicator.
+					</Text>
+
+					<Group>
+						<Button size="xs" variant="light" onClick={handlePatchFirst}>
+							Edit first row
+						</Button>
+						<Button
+							size="xs"
+							variant="light"
+							color="red"
+							onClick={handleDeleteFirst}
+						>
+							Delete first row
+						</Button>
+						<TextInput
+							size="xs"
+							placeholder="Name for new person"
+							value={newName}
+							onChange={(e) => setNewName(e.currentTarget.value)}
+							onKeyDown={(e) => e.key === "Enter" && handleInsert()}
+						/>
+						<Button
+							size="xs"
+							variant="light"
+							color="green"
+							onClick={handleInsert}
+						>
+							Create
+						</Button>
+						{view.isRevalidating && (
+							<Badge
+								variant="light"
+								color="yellow"
+								leftSection={<Loader size={10} color="yellow" />}
+							>
+								Syncing...
+							</Badge>
+						)}
+					</Group>
+
+					<DataViewer view={view} />
 				</Stack>
 			);
 		}

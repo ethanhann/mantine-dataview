@@ -13,6 +13,8 @@ import type { DataViewRequest, DataViewResponse } from "../types/request";
 import type { Status } from "../types/state";
 import { useDataView } from "./useDataView";
 
+const DEFAULT_REVALIDATE_DELAY_MS = 1000;
+
 export interface UseDataViewFetcherOptions<TData>
 	extends Omit<
 		UseDataViewOptions<TData>,
@@ -24,11 +26,17 @@ export interface UseDataViewFetcherOptions<TData>
 	) => Promise<DataViewResponse<NoInfer<TData>>>;
 	/** External dependencies that should trigger a refetch when they change. */
 	deps?: unknown[];
+	/**
+	 * Delay in milliseconds before the background revalidation fetch fires after an optimistic
+	 * mutation. Multiple rapid mutations coalesce into one fetch. Default `1000`.
+	 */
+	revalidateDelay?: number;
 }
 
 export function useDataViewFetcher<TData>({
 	fetcher,
 	deps,
+	revalidateDelay = DEFAULT_REVALIDATE_DELAY_MS,
 	...options
 }: UseDataViewFetcherOptions<TData>): UseDataViewReturn<TData> {
 	const [response, setResponse] = useState<DataViewResponse<TData>>({
@@ -37,6 +45,7 @@ export function useDataViewFetcher<TData>({
 	});
 	const [status, setStatus] = useState<Status>("idle");
 	const [error, setError] = useState<unknown>(undefined);
+	const [isRevalidating, setIsRevalidating] = useState(false);
 
 	const fetcherRef = useRef(fetcher);
 	fetcherRef.current = fetcher;
@@ -44,6 +53,9 @@ export function useDataViewFetcher<TData>({
 	const requestIdRef = useRef(0);
 
 	const lastRequestRef = useRef<DataViewRequest | null>(null);
+	const revalidateTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+		undefined,
+	);
 
 	const onRequestChange = useCallback(async (request: DataViewRequest) => {
 		lastRequestRef.current = request;
@@ -55,11 +67,13 @@ export function useDataViewFetcher<TData>({
 				setResponse(data);
 				setError(undefined);
 				setStatus("success");
+				setIsRevalidating(false);
 			}
 		} catch (err) {
 			if (id === requestIdRef.current) {
 				setError(err);
 				setStatus("error");
+				setIsRevalidating(false);
 			}
 		}
 	}, []);
@@ -74,7 +88,83 @@ export function useDataViewFetcher<TData>({
 		}
 	});
 
-	return useDataView<TData>({
+	const getRowIdRef = useRef(options.getRowId);
+	getRowIdRef.current = options.getRowId;
+
+	const scheduleRevalidate = useCallback(() => {
+		clearTimeout(revalidateTimerRef.current);
+		setIsRevalidating(true);
+		revalidateTimerRef.current = setTimeout(async () => {
+			if (lastRequestRef.current) {
+				const id = ++requestIdRef.current;
+				try {
+					const data = await fetcherRef.current(lastRequestRef.current);
+					if (id === requestIdRef.current) {
+						setResponse(data);
+						setError(undefined);
+						setIsRevalidating(false);
+					}
+				} catch (err) {
+					if (id === requestIdRef.current) {
+						setError(err);
+						setIsRevalidating(false);
+					}
+				}
+			} else {
+				setIsRevalidating(false);
+			}
+		}, revalidateDelay);
+	}, [revalidateDelay]);
+
+	const patchRow = useCallback(
+		(record: TData) => {
+			const id = getRowIdRef.current(record);
+			setResponse((prev) => {
+				const idx = prev.rows.findIndex(
+					(row) => getRowIdRef.current(row) === id,
+				);
+				if (idx === -1) return prev;
+				const nextRows = [...prev.rows];
+				nextRows[idx] = record;
+				return { ...prev, rows: nextRows };
+			});
+			scheduleRevalidate();
+		},
+		[scheduleRevalidate],
+	);
+
+	const insertRow = useCallback(
+		(record: TData) => {
+			setResponse((prev) => ({
+				...prev,
+				rows: [record, ...prev.rows],
+				rowCount: prev.rowCount + 1,
+			}));
+			scheduleRevalidate();
+		},
+		[scheduleRevalidate],
+	);
+
+	const removeRow = useCallback(
+		(id: string) => {
+			setResponse((prev) => {
+				const nextRows = prev.rows.filter(
+					(row) => getRowIdRef.current(row) !== id,
+				);
+				if (nextRows.length === prev.rows.length) return prev;
+				return { ...prev, rows: nextRows, rowCount: prev.rowCount - 1 };
+			});
+			scheduleRevalidate();
+		},
+		[scheduleRevalidate],
+	);
+
+	// Clean up revalidation timer on unmount.
+	useEffect(() => {
+		return () => clearTimeout(revalidateTimerRef.current);
+	}, []);
+
+	const result = useDataView<TData>({
 		...options,
 		rows: response.rows,
 		rowCount: response.rowCount,
@@ -83,4 +173,12 @@ export function useDataViewFetcher<TData>({
 		error,
 		onRequestChange,
 	});
+
+	return {
+		...result,
+		patchRow,
+		insertRow,
+		removeRow,
+		isRevalidating,
+	};
 }

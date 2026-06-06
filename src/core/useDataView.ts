@@ -452,6 +452,25 @@ export function useDataView<TData>(
 		[table],
 	);
 
+	const patchRow = useCallback(
+		(_record: TData) => {
+			refetch();
+		},
+		[refetch],
+	);
+	const insertRow = useCallback(
+		(_record: TData) => {
+			refetch();
+		},
+		[refetch],
+	);
+	const removeRow = useCallback(
+		(_id: string) => {
+			refetch();
+		},
+		[refetch],
+	);
+
 	return {
 		table,
 		request,
@@ -471,5 +490,9 @@ export function useDataView<TData>(
 		facets,
 		resetFilter,
 		resetAllFilters,
+		patchRow,
+		insertRow,
+		removeRow,
+		isRevalidating: false,
 	};
 }

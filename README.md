@@ -321,6 +321,55 @@ Re-fetch the current data without changing any state:
 This re-emits the current request to the fetcher. It's the same mechanism the built-in
 error retry button uses.
 
+### Optimistic reconciliation
+
+When a sibling library (e.g. a detail panel) saves, creates, or deletes a record, the list
+can reflect the change instantly without a full reload. Three primitives on the return value
+apply in-place mutations, then schedule a background revalidation fetch that reconciles with
+server truth.
+
+```tsx
+const view = useDataViewFetcher({ ... });
+
+// A record was updated, replace it in place.
+view.patchRow(updatedRecord);
+
+// A new record was created, prepend it to the current page.
+view.insertRow(newRecord);
+
+// A record was deleted, remove it from the current page.
+view.removeRow(recordId);
+```
+
+Each call immediately updates the rendered rows and then kicks off a debounced background
+refetch (default 1 second, configurable via `revalidateDelay`). Rapid mutations coalesce
+into a single fetch. When the server responds, its data fully replaces the optimistic state,
+correcting sort position, filter membership, pagination counts, and facet buckets.
+
+`view.isRevalidating` is `true` while the background fetch is in flight. Use it to show a
+subtle sync indicator without replacing content with loading skeletons.
+
+```tsx
+const view = useDataViewFetcher({
+  fetcher,
+  columns,
+  getRowId: (row) => row.id,
+  revalidateDelay: 500, // default 1000ms
+});
+
+{view.isRevalidating && <Loader size="xs" />}
+```
+
+**Semantics.** The client cannot reproduce server-side filter membership, sort order, or facet
+counts. The optimistic patch is a best-effort visual preview. The background revalidation is
+the source of truth. An edited row that no longer matches the active filter will disappear
+when the server responds. A created row that doesn't belong on the current page will be
+repositioned. This is the stale-while-revalidate pattern: instant perceived speed with
+eventual correctness.
+
+When using the raw `useDataView` hook (without the fetcher wrapper), the three methods fall
+back to calling `refetch()`, since you control the row data externally.
+
 ## Column data types and formatting
 
 Set `dataType` on a column's meta to enable automatic value formatting. When no explicit
@@ -932,8 +981,20 @@ This is opt-in. The default behavior (skeleton loading) is unchanged.
 | `ViewSwitcher`                                                         | Table/Cards toggle (customizable labels)      |
 | `exportCsv`                                                            | Standalone CSV export utility                 |
 | `col`                                                                  | Fluent column builder factory                 |
+| `getViewMode`                                                          | Detect table vs cards from cell context       |
 | `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`        | Column helpers                                |
 | `@ethanhann/mantine-dataview/url`                                      | `windowHistoryAdapter` + serializer utilities |
+
+### Reconciliation primitives
+
+Returned by `useDataViewFetcher` (fall back to `refetch()` on raw `useDataView`):
+
+| Method / Property  | Purpose                                                        |
+|--------------------|----------------------------------------------------------------|
+| `patchRow(record)` | Replace an existing row by identity, then background revalidate |
+| `insertRow(record)`| Prepend a new row, increment `rowCount`, then revalidate       |
+| `removeRow(id)`    | Remove a row, decrement `rowCount`, then revalidate            |
+| `isRevalidating`   | `true` while the background revalidation fetch is in flight    |
 
 ### Customization slots
 

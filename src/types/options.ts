@@ -120,4 +120,29 @@ export interface UseDataViewReturn<TData> {
 	resetFilter: (columnId: string) => void;
 	/** Clear all column filters. */
 	resetAllFilters: () => void;
+
+	// Optimistic reconciliation primitives. These allow a sibling library (e.g. a detail panel)
+	// to apply in-place mutations for instant UX, with a background revalidate for correctness.
+
+	/**
+	 * Replace an existing row in the current page by identity (`getRowId`). If the row is not on
+	 * the current page, this is a no-op. A background revalidate follows to reconcile sort
+	 * position, filter membership, and facet counts with server truth.
+	 */
+	patchRow: (record: TData) => void;
+	/**
+	 * Optimistically insert a newly-created row at the top of the current page. `rowCount` is
+	 * incremented. A background revalidate follows to reconcile membership and position.
+	 */
+	insertRow: (record: TData) => void;
+	/**
+	 * Optimistically remove a row by ID from the current page. `rowCount` is decremented and
+	 * selection for that ID is cleared. A background revalidate follows.
+	 */
+	removeRow: (id: string) => void;
+	/**
+	 * True while a background revalidation fetch is in flight after an optimistic mutation.
+	 * The UI can show a subtle sync indicator without replacing content with skeletons.
+	 */
+	isRevalidating: boolean;
 }
