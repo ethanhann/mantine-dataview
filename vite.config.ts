@@ -60,6 +60,7 @@ export default defineConfig({
 				"src/**/*.stories.tsx",
 				"src/**/*.test.{ts,tsx}",
 				"src/**/index.ts",
+				"src/types/**",
 			],
 			// Gate regressions; set with headroom below current (lines ~93%, branches ~77%).
 			thresholds: {

@@ -309,5 +309,31 @@ describe("optimistic reconciliation", () => {
 
 			expect(fetcher.mock.calls.length - callsAfterMount).toBe(1);
 		});
+
+		it("handles revalidation fetch errors gracefully", async () => {
+			let fetchCount = 0;
+			const fetcher = vi.fn(async () => {
+				fetchCount++;
+				if (fetchCount === 1) {
+					return { rows: initialRows, rowCount: 2 };
+				}
+				throw new Error("revalidation failed");
+			});
+
+			render(<Harness fetcher={fetcher} revalidateDelay={50} />, { wrapper });
+			await waitFor(() => expect(captured?.status).toBe("success"));
+
+			await act(async () => {
+				captured?.patchRow({ id: "1", name: "Ada (optimistic)" });
+			});
+
+			expect(captured?.isRevalidating).toBe(true);
+
+			await waitFor(() => expect(captured?.isRevalidating).toBe(false), {
+				timeout: 3000,
+			});
+
+			expect(captured?.error).toBeInstanceOf(Error);
+		});
 	});
 });

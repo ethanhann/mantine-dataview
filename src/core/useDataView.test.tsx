@@ -213,6 +213,39 @@ describe("useDataView", () => {
 		]);
 	});
 
+	it("fallback patchRow calls refetch", () => {
+		const onRequestChange = requestSpy();
+		const { result } = setup({ onRequestChange });
+		const callsBefore = onRequestChange.mock.calls.length;
+		act(() =>
+			result.current.patchRow({ id: "1", name: "Updated", status: "active" }),
+		);
+		expect(onRequestChange.mock.calls.length).toBe(callsBefore + 1);
+	});
+
+	it("fallback insertRow calls refetch", () => {
+		const onRequestChange = requestSpy();
+		const { result } = setup({ onRequestChange });
+		const callsBefore = onRequestChange.mock.calls.length;
+		act(() =>
+			result.current.insertRow({ id: "99", name: "New", status: "active" }),
+		);
+		expect(onRequestChange.mock.calls.length).toBe(callsBefore + 1);
+	});
+
+	it("fallback removeRow calls refetch", () => {
+		const onRequestChange = requestSpy();
+		const { result } = setup({ onRequestChange });
+		const callsBefore = onRequestChange.mock.calls.length;
+		act(() => result.current.removeRow("1"));
+		expect(onRequestChange.mock.calls.length).toBe(callsBefore + 1);
+	});
+
+	it("isRevalidating is always false on the base hook", () => {
+		const { result } = setup();
+		expect(result.current.isRevalidating).toBe(false);
+	});
+
 	it("honors initialState and controlled state", () => {
 		const onStateChange = vi.fn<StateFn>();
 		const { result } = renderHook(
