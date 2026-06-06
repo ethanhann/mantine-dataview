@@ -3,7 +3,7 @@
 import type { MantineBreakpoint } from "@mantine/core";
 import type { Column, Table } from "@tanstack/react-table";
 import type { ExportCsvOptions } from "../core/exportCsv";
-import type { UrlSerializer, UrlStateAdapter } from "../url/types";
+import type { UrlSerializer, UrlStateAdapter } from "../url";
 import type {
 	ColumnDataType,
 	ColumnFormatOption,

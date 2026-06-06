@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ViewSwitcher } from "../components/DataToolbar/ViewSwitcher";
+import { ViewSwitcher } from "../components/DataToolbar";
 import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
 import { col, createColumnHelper, type DataColumnDef } from "../index";
