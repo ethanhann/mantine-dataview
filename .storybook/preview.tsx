@@ -1,9 +1,10 @@
 import { MantineProvider } from "@mantine/core";
-import type { Preview } from "@storybook/react";
+import type { Preview } from "@storybook/react-vite";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 
 const preview: Preview = {
+	tags: ["autodocs"],
 	globalTypes: {
 		colorScheme: {
 			name: "Color Scheme",

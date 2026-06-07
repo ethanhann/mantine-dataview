@@ -1,91 +1,91 @@
 {
-	"name": "@ethanhann/mantine-dataview",
-	"version": "0.8.0",
-	"description": "A React library that renders server-driven, paginated datasets as a table or card grid, switchable at runtime, built on Mantine v9 and TanStack Table v8",
-	"type": "module",
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"default": "./dist/index.js"
-		},
-		"./styles.css": "./dist/mantine-dataview.css",
-		"./url": {
-			"types": "./dist/url/index.d.ts",
-			"default": "./dist/url/index.js"
-		}
-	},
-	"files": [
-		"dist"
-	],
-	"sideEffects": [
-		"**/*.css"
-	],
-	"scripts": {
-		"dev": "storybook dev -p 6006",
-		"build": "vite build",
-		"test": "vitest",
-		"test:run": "vitest run",
-		"test:coverage": "vitest run --coverage",
-		"typecheck": "tsc --noEmit",
-		"storybook:build": "storybook build",
-		"prepublishOnly": "npm run build"
-	},
-	"peerDependencies": {
-		"@mantine/core": "^9.0.0",
-		"@mantine/dates": "^9.0.0",
-		"@mantine/hooks": "^9.0.0",
-		"@tanstack/react-table": "^8.0.0",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0"
-	},
-	"devDependencies": {
-		"@axe-core/react": "^4.11.1",
-		"@biomejs/biome": "2.4.16",
-		"@mantine/code-highlight": "^9.3.0",
-		"@mantine/core": "^9.3.0",
-		"@mantine/dates": "^9.3.0",
-		"@mantine/hooks": "^9.3.0",
-		"@storybook/addon-a11y": "^10.3.4",
-		"@storybook/react": "^10.3.4",
-		"@storybook/react-vite": "^10.3.4",
-		"@tabler/icons-react": "^3.41.1",
-		"@tanstack/react-table": "^8.21.3",
-		"@testing-library/dom": "^10.4.1",
-		"@testing-library/jest-dom": "^6.9.1",
-		"@testing-library/react": "^16.3.2",
-		"@testing-library/user-event": "^14.6.1",
-		"@types/bun": "^1.3.11",
-		"@types/react": "^19.2.14",
-		"@types/react-dom": "^19.2.3",
-		"@vitejs/plugin-react": "^6.0.1",
-		"@vitest/coverage-v8": "^4.1.2",
-		"dayjs": "^1.11.21",
-		"highlight.js": "^11.11.1",
-		"jsdom": "^29.0.1",
-		"postcss": "^8.5.8",
-		"postcss-preset-mantine": "^1.18.0",
-		"postcss-simple-vars": "^7.0.1",
-		"react": "^19.2.4",
-		"react-dom": "^19.2.4",
-		"storybook": "^10.3.4",
-		"typescript": "^6.0.2",
-		"unplugin-dts": "^1.0.2",
-		"vite": "^8.0.3",
-		"vitest": "^4.1.2",
-		"vitest-axe": "^0.1.0",
-		"vitest-canvas-mock": "^1.1.4"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/ethanhann/mantine-dataview.git"
-	},
-	"engines": {
-		"node": ">=18"
-	},
-	"publishConfig": {
-		"registry": "https://registry.npmjs.org"
-	},
-	"license": "MIT"
+  "name": "@ethanhann/mantine-dataview",
+  "version": "0.8.0",
+  "description": "A React library that renders server-driven, paginated datasets as a table or card grid, switchable at runtime, built on Mantine v9 and TanStack Table v8",
+  "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/mantine-dataview.css",
+    "./url": {
+      "types": "./dist/url/index.d.ts",
+      "default": "./dist/url/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "storybook dev -p 6006",
+    "build": "vite build",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "storybook:build": "storybook build",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@mantine/core": "^9.0.0",
+    "@mantine/dates": "^9.0.0",
+    "@mantine/hooks": "^9.0.0",
+    "@tanstack/react-table": "^8.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@axe-core/react": "^4.11.1",
+    "@biomejs/biome": "2.4.16",
+    "@mantine/code-highlight": "^9.3.0",
+    "@mantine/core": "^9.3.0",
+    "@mantine/dates": "^9.3.0",
+    "@mantine/hooks": "^9.3.0",
+    "@storybook/addon-a11y": "^10.4.2",
+    "@storybook/addon-docs": "^10.4.2",
+    "@storybook/react-vite": "^10.4.2",
+    "@tabler/icons-react": "^3.41.1",
+    "@tanstack/react-table": "^8.21.3",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/bun": "^1.3.11",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.2",
+    "dayjs": "^1.11.21",
+    "highlight.js": "^11.11.1",
+    "jsdom": "^29.0.1",
+    "postcss": "^8.5.8",
+    "postcss-preset-mantine": "^1.18.0",
+    "postcss-simple-vars": "^7.0.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "storybook": "^10.4.2",
+    "typescript": "^6.0.2",
+    "unplugin-dts": "^1.0.2",
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2",
+    "vitest-axe": "^0.1.0",
+    "vitest-canvas-mock": "^1.1.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ethanhann/mantine-dataview.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT"
 }

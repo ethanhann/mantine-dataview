@@ -1,14 +1,16 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DataCards } from "../components/DataCards";
 import { useDataView } from "../core/useDataView";
 import { columns, type Person, people } from "./data";
 
-const meta: Meta = {
+/** Card grid presentation. Renders each row as a Mantine Card using column meta roles (title, subtitle, badge, meta). */
+const meta: Meta<typeof DataCards> = {
 	title: "Components/DataCards",
+	component: DataCards,
 	parameters: { layout: "padded" },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof DataCards>;
 
 function Example({ status }: { status?: "success" | "loading" }) {
 	const view = useDataView<Person>({

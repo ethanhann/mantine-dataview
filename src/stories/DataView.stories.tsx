@@ -9,7 +9,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ViewSwitcher } from "../components/DataToolbar";
 import { DataViewer } from "../components/DataViewer";
@@ -20,12 +20,19 @@ import type { DataViewRequest, DataViewResponse } from "../types/request";
 import { windowHistoryAdapter } from "../url";
 import { columns, createMockFetcher, people, type Person } from "./data";
 
-const meta: Meta = {
+/**
+ * `DataViewer` renders server-driven, paginated datasets as either a table or a card grid,
+ * switchable at runtime. It composes a toolbar, bulk actions bar, the active presentation,
+ * and pagination into a single orchestrator. All features are driven by the `useDataViewFetcher`
+ * hook, which manages the fetch lifecycle and emits a `UseDataViewReturn` object.
+ */
+const meta: Meta<typeof DataViewer> = {
 	title: "DataViewer",
+	component: DataViewer,
 	parameters: { layout: "padded" },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof DataViewer>;
 
 const getRowId = (p: Person) => p.id;
 

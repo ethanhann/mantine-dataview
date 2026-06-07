@@ -1,14 +1,16 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DataPagination } from "../components/DataPagination";
 import { useDataView } from "../core/useDataView";
 import { columns, type Person, people } from "./data";
 
-const meta: Meta = {
+/** Pagination controls showing page navigation and a page size selector. Reads `rowCount` and `pageSizeOptions` from the view. */
+const meta: Meta<typeof DataPagination> = {
 	title: "Components/DataPagination",
+	component: DataPagination,
 	parameters: { layout: "padded" },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof DataPagination>;
 
 function Example() {
 	const view = useDataView<Person>({

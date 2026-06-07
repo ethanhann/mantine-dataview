@@ -1,14 +1,16 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DataTable } from "../components/DataTable";
 import { useDataView } from "../core/useDataView";
 import { columns, type Person, people } from "./data";
 
-const meta: Meta = {
+/** Table presentation. Renders rows in a Mantine Table with sortable headers, column pinning, and selection checkboxes. */
+const meta: Meta<typeof DataTable> = {
 	title: "Components/DataTable",
+	component: DataTable,
 	parameters: { layout: "padded" },
 };
 export default meta;
-type Story = StoryObj;
+type Story = StoryObj<typeof DataTable>;
 
 function Example({ status }: { status?: "success" | "loading" | "error" }) {
 	const view = useDataView<Person>({
