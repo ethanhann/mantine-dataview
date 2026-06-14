@@ -1,0 +1,106 @@
+# Changelog
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.8.1] - 2026-06-14
+
+### Added
+
+- `urlSync.historyMode` option (`"replace" | "push"`, default `"replace"`). With `"push"`, each
+  filter, sort, or page change creates a new browser history entry so back and forward navigation
+  steps through them.
+- `ExportCsvOptions.sanitizeFormulas` option (default `true`). Controls spreadsheet formula
+  injection sanitization on CSV export.
+- `DataViewSelection.pageRows`, the selected rows materialized on the current page. Replaces the
+  deprecated `rows` field under a clearer name.
+- `RangeFacet.kind` optional discriminator (`"number" | "date"`) so consumers can interpret range
+  bounds without inference.
+- `isViewMode` type guard and `VIEW_MODES` constant exported from the package root.
+- Additional serializer exports from `@ethanhann/mantine-dataview/url`: `stripManagedParams`,
+  `SerializeContext`, `DeserializeContext`, and `SYNCABLE_KEYS`.
+
+### Changed
+
+- CSV export now terminates rows with `\r\n` per RFC 4180. Previous output used `\n`.
+- CSV export now serializes object and array cell values as JSON instead of `String(value)`.
+- CSV export appends a `.csv` extension to a `filename` that does not already end in `.csv`.
+- CSV export returns without downloading a file when there are no exportable columns.
+- CSV escaping now quotes values containing the active `separator` or a carriage return, in addition
+  to comma, quote, and newline.
+- URL serialization omits the page size parameter while it equals the default page size, and omits a
+  trailing `?` when no managed parameters are present. The encoded state still decodes to the same
+  value.
+- The pagination control is hidden when the derived page count is one or zero. Previously a single
+  inert page control was rendered.
+- The number range filter slider now stores the full `[min, max]` range when dragged to the extent.
+  Previously a full range cleared the filter, which made an explicit full range impossible to
+  express. The filter is cleared through the dedicated clear action.
+- Date only strings (`YYYY-MM-DD`) are parsed in local time by the date formatter and by the date
+  and date range filter controls. Previous UTC parsing could render or reserialize a date as the
+  previous day for users in negative UTC offsets.
+- The number and currency formatters return the raw value for input that is not a valid number
+  instead of `"NaN"`, and treat an empty string as empty instead of `0`.
+- The boolean formatter resolves the strings `"true"`, `"false"`, `"1"`, `"0"`, `"yes"`, and `"no"`
+  explicitly before falling back to truthiness.
+- `isFiltered` ignores empty filter values such as a cleared multiselect (`[]`) or an empty range, so
+  an empty result with no active value reports the unfiltered empty state.
+- A failed background revalidation after an optimistic mutation now keeps the optimistic data,
+  leaves `status` as `"success"`, and does not set `error`. A development warning is logged. A
+  revalidation failure means the write could not be confirmed again, not that it failed.
+- The filtered empty "clear filters" action now also resets the page index to the first page.
+- `humanize` splits acronym runs and boundaries between letters and digits, so `HTTPStatus` becomes
+  `HTTP Status` and `address1` becomes `Address 1`.
+- `resolveColumnLabel` humanizes the column id fallback, so a column authored without a label shows
+  `Created At` for the id `created_at`.
+- The `col` builder `select` and `multiselect` presets set `dataType: "text"`, so a `format`
+  override and the CSV `formatted` export apply to these columns.
+- `DataToolbar` disables the search input while data is loading and propagates an explicit `disabled`
+  prop to each control. The previous `fieldset` approach did not disable Mantine controls that are
+  not native form elements and did not include the search input.
+- The pagination request for a page or sort change is emitted immediately even while a search or
+  filter debounce is pending. Previously the pending debounce could delay it.
+- Customization slots (`Row`, `Card`, `Empty`, `ErrorState`, `LoadingTable`, `LoadingCards`,
+  `BulkActions`) and the `renderCard` escape hatch are rendered as components rather than invoked as
+  functions. Slots may now use hooks and appear in the React tree.
+- The default error state renders the error message in development builds.
+- `FilterParam` is widened to include `undefined`, `Date`, and mixed `Array<string | number>`. A
+  value of `undefined` means the parameter is omitted.
+- `windowHistoryAdapter` now lives in its own module. It is still exported from
+  `@ethanhann/mantine-dataview/url`.
+
+### Deprecated
+
+- `DataViewSelection.rows`. Use `pageRows`. The alias holds the same value and will be removed in a
+  future major release.
+
+### Fixed
+
+- CSV export quotes values for the configured `separator`, preventing corrupted output when a
+  separator other than a comma is used and a value contains that separator.
+- Optimistic mutations (`patchRow`, `insertRow`, `removeRow`) invalidate any primary fetch that is
+  already running, so a slower response can no longer overwrite the optimistic state before
+  revalidation.
+- `onStateChange` receives a progressively correct snapshot when several state patches are batched in
+  one tick. Previously a later patch in the same tick could emit a snapshot missing an earlier patch.
+- The URL back and forward listener is subscribed once instead of being torn down and added again on
+  every render, closing a window where a navigation event could be dropped.
+- A URL write triggered by applying a back or forward navigation is skipped when the URL already
+  encodes the state, preventing the current history entry from being rewritten.
+- Untrusted URL parsing is hardened. Numeric range bounds that are not valid numbers decode to `null`
+  instead of `NaN`, filter parameters for unknown column ids are ignored, and a page size that is
+  zero, negative, or fractional falls back to the current page size.
+- `useRowTransition` caches the computed entering set and generation by row id signature, so a render
+  unrelated to the data no longer drops the row enter animation.
+- The pagination range summary clamps the start index, so a page index beyond the available range can
+  no longer read an inverted range such as `41 to 30 of 30`.
+- The page size `Select` includes the active page size in its options, so it no longer shows an empty
+  value when the current size is not one of the configured options.
+- `process.env.NODE_ENV` access is guarded with a `typeof process` check for browser bundles that do
+  not provide a `process` shim.
+
+### Security
+
+- CSV export sanitizes spreadsheet formula injection by default. Values beginning with `=`, `+`, `-`,
+  or `@` are prefixed with a single quote so they are treated as text rather than evaluated as
+  formulas in Excel, Google Sheets, and LibreOffice. Set `sanitizeFormulas: false` to opt out.
