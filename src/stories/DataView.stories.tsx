@@ -151,6 +151,52 @@ function UrlReadout() {
 	);
 }
 
+/**
+ * `historyMode: "push"` creates a new history entry for each filter/sort/page change, so browser
+ * back/forward steps through them (the default `"replace"` keeps one entry). The buttons drive the
+ * iframe's own history since the Storybook address bar isn't the iframe's.
+ */
+export const UrlSyncPushHistory: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const adapter = useMemo(() => windowHistoryAdapter(), []);
+			const view = useDataViewFetcher<Person>({
+				columns,
+				getRowId,
+				fetcher,
+				urlSync: { adapter, historyMode: "push" },
+			});
+			return (
+				<Stack gap="xs">
+					<Group gap="xs">
+						<Button
+							size="xs"
+							variant="default"
+							onClick={() => window.history.back()}
+						>
+							← Back
+						</Button>
+						<Button
+							size="xs"
+							variant="default"
+							onClick={() => window.history.forward()}
+						>
+							Forward →
+						</Button>
+						<Text size="xs" c="dimmed">
+							Change a filter, sort, or page, then step through the entries.
+						</Text>
+					</Group>
+					<DataViewer view={view} />
+					<UrlReadout />
+				</Stack>
+			);
+		}
+		return <Example />;
+	},
+};
+
 /** Bulk actions supplied by the consumer. Select rows to reveal the bar. */
 export const BulkActions: Story = {
 	render: () => {
