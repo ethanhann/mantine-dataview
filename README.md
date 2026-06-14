@@ -290,7 +290,8 @@ const view = useDataViewFetcher<User>({
 <Switch checked={showArchived} onChange={(e) => setShowArchived(e.currentTarget.checked)}/>
 ```
 
-Values are typed as `FilterParam` (`string | number | boolean | null | string[] | number[]`).
+Values are typed as `FilterParam` (`string | number | boolean | null | undefined | Date |
+string[] | number[] | Array<string | number>`). A value of `undefined` means "omit this param".
 
 ### Refetching on external changes
 
@@ -344,7 +345,9 @@ view.removeRow(recordId);
 Each call immediately updates the rendered rows and then kicks off a debounced background
 refetch (default 1 second, configurable via `revalidateDelay`). Rapid mutations coalesce
 into a single fetch. When the server responds, its data fully replaces the optimistic state,
-correcting sort position, filter membership, pagination counts, and facet buckets.
+correcting sort position, filter membership, pagination counts, and facet buckets. If that
+background revalidation fails, the optimistic data is kept (the failure means it couldn't be
+re-confirmed, not that your write failed) — `status` stays `success` and no error is surfaced.
 
 `view.isRevalidating` is `true` while the background fetch is in flight. Use it to show a
 subtle sync indicator without replacing content with loading skeletons.
@@ -506,6 +509,11 @@ view.exportCsv({filename: "users.csv", separator: ";"});
 // Export formatted values instead of raw data
 view.exportCsv({formatted: true});
 ```
+
+Cell values are sanitized against spreadsheet **formula injection** by default — values that begin
+with `=`, `+`, `-`, or `@` are prefixed with a single quote so they aren't evaluated as formulas
+when the file is opened. Disable it with `view.exportCsv({sanitizeFormulas: false})` only when the
+output is consumed by a non-spreadsheet parser. Object and array cell values are serialized as JSON.
 
 The `exportCsv` function is also available as a standalone utility:
 
@@ -718,6 +726,8 @@ type ValueFacet = {
 // Bucketed ranges - for numberRange, dateRange filters
 type RangeFacet = {
     type: "ranges";
+    /** Optional: whether bounds are numbers or ISO date strings, so consumers needn't guess. */
+    kind?: "number" | "date";
     ranges: { label: string; from: number | string; to: number | string; count: number }[];
     min?: number | string;
     max?: number | string;
@@ -906,6 +916,11 @@ function useTanStackRouterAdapter(): UrlStateAdapter {
 
 - Restrict which slices sync with `urlSync.include` (e.g. only pagination and sorting).
 - Override param names or codecs with `urlSync.serialize`.
+- Choose how writes affect history with `urlSync.historyMode`: `"replace"` (default) keeps a clean
+  history so the back button doesn't replay each filter/sort/page change; `"push"` creates a new
+  entry per change so back/forward steps through them.
+- URLs are kept clean: the page param is omitted on page 1, and the size param is omitted while it
+  equals the default page size.
 - Selection, column visibility, and column pinning are not URL-synced by design.
 
 ## Responsive behavior
@@ -1008,7 +1023,7 @@ Passed via the `slots` prop on `DataViewer` or the presentation components:
 | `LoadingCards` | —                                   | Card skeleton replacement  |
 | `Row`          | `{ row, children }`                 | Wrap each table row        |
 | `Card`         | `{ row, data, selected, children }` | Wrap each card             |
-| `BulkActions`  | `{ count, ids, rows, clear }`       | Bulk action bar content    |
+| `BulkActions`  | `{ count, ids, pageRows, clear }`   | Bulk action bar content    |
 
 ## Development
 
