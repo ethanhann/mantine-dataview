@@ -8,6 +8,10 @@ describe("resolveFormatter", () => {
 		it("formats null as empty", () => expect(fmt(null)).toBe(""));
 		it("formats undefined as empty", () => expect(fmt(undefined)).toBe(""));
 		it("formats numbers as strings", () => expect(fmt(42)).toBe("42"));
+		it("serializes objects as JSON", () =>
+			expect(fmt({ a: 1 })).toBe('{"a":1}'));
+		it("serializes arrays as JSON", () =>
+			expect(fmt(["a", "b"])).toBe('["a","b"]'));
 	});
 
 	describe("number", () => {
@@ -17,6 +21,10 @@ describe("resolveFormatter", () => {
 		});
 		it("handles null", () => expect(fmt(null)).toBe(""));
 		it("handles undefined", () => expect(fmt(undefined)).toBe(""));
+		it("returns the raw value for non-numeric strings instead of NaN", () =>
+			expect(fmt("N/A")).toBe("N/A"));
+		it("returns empty string for empty input rather than 0", () =>
+			expect(fmt("")).toBe(""));
 	});
 
 	describe("currency", () => {
@@ -44,6 +52,15 @@ describe("resolveFormatter", () => {
 			expect(fmt("not-a-date")).toBe("not-a-date");
 		});
 		it("handles null", () => expect(fmt(null)).toBe(""));
+		it("parses date-only strings in local time (no off-by-one day)", () => {
+			// Parsing "2026-06-02" as local midnight must keep the day as the 2nd,
+			// regardless of the runner's timezone. A UTC parse would shift it west.
+			const result = fmt("2026-06-02");
+			expect(result).toContain("2");
+			// The formatted year/day should reflect June 2, not June 1.
+			const local = new Date(2026, 5, 2);
+			expect(result).toBe(new Intl.DateTimeFormat().format(local));
+		});
 	});
 
 	describe("boolean", () => {
@@ -51,6 +68,14 @@ describe("resolveFormatter", () => {
 		it("formats true as Yes", () => expect(fmt(true)).toBe("Yes"));
 		it("formats false as No", () => expect(fmt(false)).toBe("No"));
 		it("handles null", () => expect(fmt(null)).toBe(""));
+		it('treats the string "false" as No', () =>
+			expect(fmt("false")).toBe("No"));
+		it('treats the string "true" as Yes', () =>
+			expect(fmt("true")).toBe("Yes"));
+		it("treats numeric 0/1 as No/Yes", () => {
+			expect(fmt(0)).toBe("No");
+			expect(fmt(1)).toBe("Yes");
+		});
 	});
 
 	describe("format resolution priority", () => {

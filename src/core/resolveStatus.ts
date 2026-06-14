@@ -5,8 +5,22 @@
 
 import type { DataViewState, DataViewStatus, Status } from "../types/state";
 
+/** True when a filter value actually narrows results (ignores empty strings/arrays/null). */
+function hasActiveValue(value: unknown): boolean {
+	if (value == null) return false;
+	if (typeof value === "string") return value.trim() !== "";
+	if (Array.isArray(value)) {
+		// Covers both multiselect (`[]`) and range (`[null, null]`) cleared states.
+		return value.some((v) => v != null && v !== "");
+	}
+	return true;
+}
+
 export function isFiltered(state: DataViewState): boolean {
-	return state.columnFilters.length > 0 || state.globalFilter.trim() !== "";
+	return (
+		state.columnFilters.some((f) => hasActiveValue(f.value)) ||
+		state.globalFilter.trim() !== ""
+	);
 }
 
 interface ResolveArgs {

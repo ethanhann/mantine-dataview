@@ -59,9 +59,11 @@ function FilterStack<TData>({
 export function FilterControls<TData>({
 	view,
 	inlineThreshold,
+	disabled,
 }: {
 	view: UseDataViewReturn<TData>;
 	inlineThreshold: number;
+	disabled?: boolean;
 }) {
 	const columns = view.filterableColumns;
 	const theme = useMantineTheme();
@@ -78,6 +80,7 @@ export function FilterControls<TData>({
 			key={column.id}
 			column={column}
 			facet={view.facets[column.id]}
+			disabled={disabled}
 		/>
 	));
 	const activeCount = view.state.columnFilters.length;
@@ -85,7 +88,14 @@ export function FilterControls<TData>({
 	if (isMobile) {
 		return (
 			<>
-				<Button variant="default" leftSection={<FilterIcon />} onClick={open}>
+				<Button
+					variant="default"
+					leftSection={<FilterIcon />}
+					onClick={open}
+					disabled={disabled}
+					aria-haspopup="dialog"
+					aria-expanded={modalOpen}
+				>
 					{filterButtonLabel(activeCount)}
 				</Button>
 				<Drawer
@@ -110,10 +120,25 @@ export function FilterControls<TData>({
 		);
 	}
 
+	// Controlled so the trigger toggles predictably and Escape/outside-click dismiss it (the prior
+	// uncontrolled popover with `closeOnClickOutside={false}` could only be closed via the target).
 	return (
-		<Popover position="bottom-start" closeOnClickOutside={false}>
+		<Popover
+			position="bottom-start"
+			opened={modalOpen}
+			onChange={(o) => (o ? open() : close())}
+			trapFocus
+			withinPortal
+		>
 			<Popover.Target>
-				<Button variant="default" leftSection={<FilterIcon />}>
+				<Button
+					variant="default"
+					leftSection={<FilterIcon />}
+					onClick={() => (modalOpen ? close() : open())}
+					disabled={disabled}
+					aria-haspopup="dialog"
+					aria-expanded={modalOpen}
+				>
 					{filterButtonLabel(activeCount)}
 				</Button>
 			</Popover.Target>

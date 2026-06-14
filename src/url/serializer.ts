@@ -10,7 +10,7 @@
 // representation for them, and selection is ephemeral. Only the slices below participate.
 
 import type { ColumnFilterMeta } from "../types/column";
-import type { DataViewState, ViewMode } from "../types/state";
+import { type DataViewState, isViewMode } from "../types/state";
 import type { UrlSerializer } from "./types";
 
 export type SyncableKey =
@@ -30,7 +30,13 @@ export const SYNCABLE_KEYS: readonly SyncableKey[] = [
 
 type FilterMetaLookup = (id: string) => ColumnFilterMeta | undefined;
 
-/** Default param names and a filter codec for each variant. Every field can be overridden. */
+/**
+ * Default param names and a filter codec for each variant. Every field can be overridden.
+ *
+ * The empty string `""` is the universal "no value" sentinel: an encoded value of `""` is omitted
+ * from the URL, so an intentionally-empty text/select filter is indistinguishable from "no filter"
+ * and cannot be persisted. Treat empty as cleared.
+ */
 export const defaultUrlSerializer: UrlSerializer = {
 	page: "page",
 	size: "size",
@@ -41,6 +47,9 @@ export const defaultUrlSerializer: UrlSerializer = {
 
 	encodeFilter(_id, value, meta) {
 		switch (meta?.variant) {
+			// NOTE: `multiselect` joins on "," and the range variants split on ".."; neither escapes
+			// those delimiters, so option values containing "," (or range bounds containing "..") will
+			// not round-trip. Keep filter option values free of these delimiters.
 			case "multiselect":
 				return Array.isArray(value) ? value.map(String).join(",") : "";
 			case "numberRange":
@@ -66,7 +75,7 @@ export const defaultUrlSerializer: UrlSerializer = {
 				return raw === "" ? [] : raw.split(",");
 			case "numberRange": {
 				const [a, b] = raw.split("..");
-				return [a ? Number(a) : null, b ? Number(b) : null];
+				return [toFiniteOrNull(a), toFiniteOrNull(b)];
 			}
 			case "dateRange": {
 				const [a, b] = raw.split("..");
@@ -83,6 +92,13 @@ export const defaultUrlSerializer: UrlSerializer = {
 
 function encodeScalar(value: unknown): string {
 	return value instanceof Date ? value.toISOString() : String(value);
+}
+
+/** Parses a range bound, returning `null` for empty/garbage input rather than `NaN`. */
+function toFiniteOrNull(raw: string | undefined): number | null {
+	if (!raw) return null;
+	const n = Number(raw);
+	return Number.isFinite(n) ? n : null;
 }
 
 /** Resolves the `include` option to the supported, syncable subset. The default is all of them. */
@@ -107,14 +123,12 @@ function decodeSort(raw: string): DataViewState["sorting"] {
 	return result;
 }
 
-function isViewMode(value: string): value is ViewMode {
-	return value === "table" || value === "cards";
-}
-
 export interface SerializeContext {
 	serializer: UrlSerializer;
 	include: SyncableKey[];
 	getFilterMeta?: FilterMetaLookup;
+	/** When set, the page size param is omitted while it equals this default, keeping URLs clean. */
+	defaultPageSize?: number;
 }
 
 /**
@@ -124,7 +138,7 @@ export interface SerializeContext {
  */
 export function serializeState(
 	state: DataViewState,
-	{ serializer, include, getFilterMeta }: SerializeContext,
+	{ serializer, include, getFilterMeta, defaultPageSize }: SerializeContext,
 ): Record<string, string> {
 	const params: Record<string, string> = {};
 
@@ -132,7 +146,11 @@ export function serializeState(
 		if (state.pagination.pageIndex > 0) {
 			params[serializer.page] = String(state.pagination.pageIndex + 1);
 		}
-		params[serializer.size] = String(state.pagination.pageSize);
+		// Omit the size param while it matches the default, so an untouched page size doesn't pollute
+		// every URL. When no default is supplied, fall back to always writing it.
+		if (state.pagination.pageSize !== defaultPageSize) {
+			params[serializer.size] = String(state.pagination.pageSize);
+		}
 	}
 	if (include.includes("sorting")) {
 		const sort = encodeSort(state.sorting);
@@ -175,9 +193,12 @@ export function deserializeParams(
 		const pageIndex = Number.isFinite(pageNumber)
 			? Math.max(0, Math.trunc(pageNumber) - 1)
 			: 0;
+		// Clamp to a positive integer; a `0`, negative, or fractional size from a tampered URL would
+		// break pagination math downstream.
+		const parsedSize = rawSize ? Math.trunc(Number(rawSize)) : Number.NaN;
 		const pageSize =
-			rawSize && Number.isFinite(Number(rawSize))
-				? Number(rawSize)
+			Number.isFinite(parsedSize) && parsedSize > 0
+				? parsedSize
 				: current.pagination.pageSize;
 		patch.pagination = { pageIndex, pageSize };
 	}
@@ -196,6 +217,9 @@ export function deserializeParams(
 		for (const [key, raw] of Object.entries(params)) {
 			if (!key.startsWith(serializer.filterPrefix)) continue;
 			const id = key.slice(serializer.filterPrefix.length);
+			// When a filter-meta lookup is available, ignore params for ids that aren't real filterable
+			// columns. This drops phantom filters injected via a crafted URL (e.g. `?f.__proto__=x`).
+			if (getFilterMeta && !getFilterMeta(id)) continue;
 			filters.push({
 				id,
 				value: serializer.decodeFilter(id, raw, getFilterMeta?.(id)),

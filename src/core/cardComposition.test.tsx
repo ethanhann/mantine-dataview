@@ -128,6 +128,6 @@ describe("composeCardLayout", () => {
 		};
 		expect(resolveColumnLabel(column("email"))).toBe("Email"); // meta.label
 		expect(resolveColumnLabel(column("name"))).toBe("Name"); // string header
-		expect(resolveColumnLabel(column("avatar"))).toBe("avatar"); // id fallback
+		expect(resolveColumnLabel(column("avatar"))).toBe("Avatar"); // humanized id fallback
 	});
 });

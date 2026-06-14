@@ -82,7 +82,15 @@ describe("useDataView + URL sync", () => {
 		act(() => result.current.table.setPageIndex(2));
 		const params = new URLSearchParams(window.location.search);
 		expect(params.get("page")).toBe("3"); // 1-based
-		expect(params.get("size")).toBe("10");
+		// The default page size is omitted to keep the URL clean.
+		expect(params.get("size")).toBeNull();
+	});
+
+	it("writes the page size only when it differs from the default", () => {
+		const { result } = render();
+		act(() => result.current.table.setPageSize(25));
+		const params = new URLSearchParams(window.location.search);
+		expect(params.get("size")).toBe("25");
 	});
 
 	it("removes a cleared filter from the URL", () => {

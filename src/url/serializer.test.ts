@@ -9,14 +9,17 @@ import {
 	serializeState,
 } from "./serializer";
 
-const metaMap: Record<string, ColumnFilterMeta> = {
-	status: { variant: "select" },
-	tags: { variant: "multiselect" },
-	age: { variant: "numberRange" },
-	active: { variant: "boolean" },
-	created: { variant: "dateRange" },
-};
-const getFilterMeta = (id: string): ColumnFilterMeta | undefined => metaMap[id];
+// Backed by a Map, mirroring the production `buildFilterMetaLookup` (which is immune to prototype
+// keys like `__proto__`, unlike a plain-object lookup).
+const metaMap = new Map<string, ColumnFilterMeta>([
+	["status", { variant: "select" }],
+	["tags", { variant: "multiselect" }],
+	["age", { variant: "numberRange" }],
+	["active", { variant: "boolean" }],
+	["created", { variant: "dateRange" }],
+]);
+const getFilterMeta = (id: string): ColumnFilterMeta | undefined =>
+	metaMap.get(id);
 
 const base: DataViewState = {
 	pagination: { pageIndex: 0, pageSize: 10 },
@@ -140,5 +143,39 @@ describe("deserializeParams", () => {
 		const current = { ...base, pagination: { pageIndex: 0, pageSize: 100 } };
 		const back = deserializeParams({ page: "2" }, dctx(current));
 		expect(back.pagination).toEqual({ pageIndex: 1, pageSize: 100 });
+	});
+
+	it("ignores phantom filters for unknown column ids", () => {
+		const back = deserializeParams(
+			{ "f.status": "active", "f.__proto__": "x", "f.bogus": "y" },
+			dctx(),
+		);
+		expect(back.columnFilters).toEqual([{ id: "status", value: "active" }]);
+	});
+
+	it("decodes garbage numeric range bounds to null instead of NaN", () => {
+		const back = deserializeParams({ "f.age": "abc..def" }, dctx());
+		expect(back.columnFilters).toEqual([{ id: "age", value: [null, null] }]);
+	});
+
+	it("clamps a non-positive or fractional page size to the current size", () => {
+		const current = { ...base, pagination: { pageIndex: 0, pageSize: 20 } };
+		expect(
+			deserializeParams({ size: "0" }, dctx(current)).pagination,
+		).toEqual({ pageIndex: 0, pageSize: 20 });
+		expect(
+			deserializeParams({ size: "-5" }, dctx(current)).pagination,
+		).toEqual({ pageIndex: 0, pageSize: 20 });
+		expect(
+			deserializeParams({ size: "30" }, dctx(current)).pagination,
+		).toEqual({ pageIndex: 0, pageSize: 30 });
+	});
+
+	it("omits the page size from the URL when it equals the supplied default", () => {
+		const state = { ...base, pagination: { pageIndex: 0, pageSize: 25 } };
+		const params = serializeState(state, { ...ctx(), defaultPageSize: 25 });
+		expect(params.size).toBeUndefined();
+		const written = serializeState(state, { ...ctx(), defaultPageSize: 10 });
+		expect(written.size).toBe("25");
 	});
 });

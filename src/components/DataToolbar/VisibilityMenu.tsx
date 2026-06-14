@@ -43,8 +43,10 @@ function PinControls<TData>({ column }: { column: Column<TData> }) {
 
 export function VisibilityMenu<TData>({
 	view,
+	disabled,
 }: {
 	view: UseDataViewReturn<TData>;
+	disabled?: boolean;
 }) {
 	const columns = view.table.getAllLeafColumns().filter((c) => c.getCanHide());
 	if (columns.length === 0) return null;
@@ -52,7 +54,11 @@ export function VisibilityMenu<TData>({
 	return (
 		<Menu closeOnItemClick={false} withinPortal position="bottom-end">
 			<Menu.Target>
-				<Button variant="default" rightSection={<ChevronDownIcon />}>
+				<Button
+					variant="default"
+					rightSection={<ChevronDownIcon />}
+					disabled={disabled}
+				>
 					Columns
 				</Button>
 			</Menu.Target>

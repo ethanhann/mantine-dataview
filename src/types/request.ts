@@ -13,8 +13,11 @@ export type FilterParam =
 	| number
 	| boolean
 	| null
+	| undefined
+	| Date
 	| string[]
-	| number[];
+	| number[]
+	| Array<string | number>;
 
 /** Emitted by the core whenever view state changes. The consumer turns it into a fetch. */
 export interface DataViewRequest {
@@ -23,7 +26,7 @@ export interface DataViewRequest {
 	/** Filters keyed by column. The `value` shape depends on the filter variant. */
 	filters: DataViewFilter[];
 	globalFilter: string;
-	/** External parameters passed through from the consumer. */
+	/** External parameters passed through from the consumer. A value of `undefined` means "omit". */
 	params: Record<string, FilterParam>;
 }
 

@@ -4,7 +4,7 @@
 // your own.
 
 import { Stack, type StackProps } from "@mantine/core";
-import { type ReactNode, useMemo } from "react";
+import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import { DataBulkActions, type DataBulkActionsProps } from "../DataBulkActions";
 import { DataCards, type DataCardsProps } from "../DataCards";
@@ -27,7 +27,12 @@ export interface DataViewerProps<TData> extends Omit<StackProps, "children"> {
 	lockSwitcherOnMobile?: boolean;
 	/** Animate row enter/exit instead of showing skeletons. Default: false. */
 	animateRows?: boolean;
-	/** Custom composition. It defaults to Toolbar, BulkActions, Body, and Pagination. */
+	/**
+	 * Custom composition. It defaults to Toolbar, BulkActions, Body, and Pagination. To pass
+	 * `tableProps`/`cardsProps` to the body or props to the pagination, compose manually with the
+	 * compound parts, e.g. `<DataViewer.Body tableProps={...} />` — these aren't exposed on the
+	 * default layout.
+	 */
 	children?: ReactNode;
 }
 
@@ -41,17 +46,17 @@ export function DataViewer<TData>({
 	children,
 	...stackProps
 }: DataViewerProps<TData>) {
-	const ctx = useMemo<DataViewContextValue<TData>>(
-		() => ({
-			view,
-			slots,
-			renderCard,
-			fallbackRole,
-			lockSwitcherOnMobile,
-			animateRows,
-		}),
-		[view, slots, renderCard, fallbackRole, lockSwitcherOnMobile, animateRows],
-	);
+	// Not memoized on purpose: `view` is a fresh object on every render of the hook owner (it carries
+	// per-render derived state), so the context value necessarily changes each render regardless of
+	// the other props. A `useMemo` here would only add overhead and a false sense of stability.
+	const ctx: DataViewContextValue<TData> = {
+		view,
+		slots,
+		renderCard,
+		fallbackRole,
+		lockSwitcherOnMobile,
+		animateRows,
+	};
 
 	return (
 		<DataViewProvider value={ctx as DataViewContextValue<unknown>}>

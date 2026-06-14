@@ -20,6 +20,12 @@ describe("humanize", () => {
 	it("converts simple words", () => expect(humanize("name")).toBe("Name"));
 	it("handles multiple uppercase", () =>
 		expect(humanize("inStock")).toBe("In Stock"));
+	it("splits acronym runs before a word", () =>
+		expect(humanize("HTTPStatus")).toBe("HTTP Status"));
+	it("splits a trailing initialism", () =>
+		expect(humanize("userID")).toBe("User ID"));
+	it("separates letters from digits", () =>
+		expect(humanize("address1")).toBe("Address 1"));
 });
 
 describe("col builder", () => {

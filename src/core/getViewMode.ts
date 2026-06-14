@@ -1,5 +1,5 @@
 import type { CellContext, HeaderContext, Table } from "@tanstack/react-table";
-import type { ViewMode } from "../types/state";
+import { isViewMode, type ViewMode } from "../types/state";
 
 /** Get the current view mode from a cell context. */
 export function getViewMode<TData>(
@@ -9,5 +9,6 @@ export function getViewMode<TData>(
 		| Table<TData>,
 ): ViewMode {
 	const table = "table" in ctx ? ctx.table : ctx;
-	return (table.options.meta?.viewMode as ViewMode) ?? "table";
+	const mode = table.options.meta?.viewMode;
+	return isViewMode(mode) ? mode : "table";
 }

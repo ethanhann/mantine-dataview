@@ -47,6 +47,12 @@ export type ColumnDataType =
 export type NumberFormatOptions = Intl.NumberFormatOptions;
 export type DateFormatOptions = Intl.DateTimeFormatOptions;
 
+/**
+ * Column format override. The options object must match the column's `dataType`: pass
+ * {@link NumberFormatOptions} for `number`/`currency` columns and {@link DateFormatOptions} for
+ * `date` columns. A mismatched options object is silently ignored by `Intl`; use a `(value) =>
+ * string` function for full control.
+ */
 export type ColumnFormatOption =
 	| NumberFormatOptions
 	| DateFormatOptions
@@ -75,6 +81,11 @@ export interface CustomFilterComponentProps {
 	column: Column<any>;
 }
 
+/**
+ * Filter UI metadata. Two forms: a built-in `variant` (where `variant` is required and `component`
+ * absent), or a custom `component` (where `variant` is optional). When a custom `component` is used,
+ * consumers must not assume `meta.filter.variant` is defined.
+ */
 export type ColumnFilterMeta =
 	| {
 			variant: FilterVariant;

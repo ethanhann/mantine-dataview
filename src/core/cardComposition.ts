@@ -5,6 +5,7 @@
 
 import type { Column, Table } from "@tanstack/react-table";
 import type { CardRole } from "../types/column";
+import { humanize } from "./colBuilder";
 
 /** Roles that produce a rendered slot; `hidden` columns are dropped from the layout. */
 export type CardLayoutRole = Exclude<CardRole, "hidden">;
@@ -40,7 +41,9 @@ export function resolveColumnLabel<TData>(column: Column<TData>): string {
 	const { meta, header } = column.columnDef;
 	if (meta?.label) return meta.label;
 	if (typeof header === "string") return header;
-	return column.id;
+	// Humanize the raw id (e.g. "created_at" → "Created At") so hand-authored columns without a
+	// label still read well, matching the builder's auto-generated labels.
+	return humanize(column.id);
 }
 
 function resolveRole<TData>(
@@ -56,7 +59,8 @@ function resolveRole<TData>(
 
 interface Ranked<TData> {
 	field: CardField<TData>;
-	order: number;
+	/** Explicit `meta.card.order`, or `undefined` when the field relies on natural position. */
+	order: number | undefined;
 	index: number;
 }
 
@@ -82,7 +86,7 @@ export function composeCardLayout<TData>(
 		const role = resolveRole(column, card?.role, fallback);
 		if (!role) return;
 		buckets[role].push({
-			order: card?.order ?? index,
+			order: card?.order,
 			index,
 			field: {
 				id: column.id,
@@ -93,10 +97,18 @@ export function composeCardLayout<TData>(
 		});
 	});
 
-	const extract = (ranked: Ranked<TData>[]): CardField<TData>[] =>
-		ranked
-			.sort((a, b) => a.order - b.order || a.index - b.index)
-			.map((r) => r.field);
+	// Fields with an explicit `order` lead, sorted by that order; the rest follow in natural column
+	// position. This avoids interleaving a small explicit order with large index fallbacks (and
+	// vice versa) in one shared numeric space.
+	const extract = (ranked: Ranked<TData>[]): CardField<TData>[] => {
+		const explicit = ranked
+			.filter((r) => r.order != null)
+			.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.index - b.index);
+		const natural = ranked
+			.filter((r) => r.order == null)
+			.sort((a, b) => a.index - b.index);
+		return [...explicit, ...natural].map((r) => r.field);
+	};
 
 	return {
 		title: extract(buckets.title),

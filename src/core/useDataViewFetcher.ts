@@ -80,16 +80,23 @@ export function useDataViewFetcher<TData>({
 
 	const depsKey = deps ? JSON.stringify(deps) : "";
 	const prevDepsKeyRef = useRef(depsKey);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: onRequestChange is stable; the ref guard skips the mount run
 	useEffect(() => {
 		if (prevDepsKeyRef.current === depsKey) return;
 		prevDepsKeyRef.current = depsKey;
 		if (lastRequestRef.current) {
 			onRequestChange(lastRequestRef.current);
 		}
-	});
+	}, [depsKey]);
 
 	const getRowIdRef = useRef(options.getRowId);
 	getRowIdRef.current = options.getRowId;
+
+	// Invalidate any in-flight primary fetch so its (stale) response cannot
+	// overwrite an optimistic mutation that the user just applied.
+	const invalidateInFlight = useCallback(() => {
+		requestIdRef.current++;
+	}, []);
 
 	const scheduleRevalidate = useCallback(() => {
 		clearTimeout(revalidateTimerRef.current);
@@ -106,7 +113,19 @@ export function useDataViewFetcher<TData>({
 					}
 				} catch (err) {
 					if (id === requestIdRef.current) {
-						setError(err);
+						// Revalidation failure does not mean the user's write failed —
+						// it means we could not re-confirm it. Keep the optimistic data
+						// (stale-while-revalidate) rather than setting an `error` that
+						// would contradict the displayed `status: "success"`.
+						if (
+							typeof process !== "undefined" &&
+							process.env.NODE_ENV !== "production"
+						) {
+							console.warn(
+								"[mantine-dataview] background revalidation failed; keeping optimistic data",
+								err,
+							);
+						}
 						setIsRevalidating(false);
 					}
 				}
@@ -118,6 +137,7 @@ export function useDataViewFetcher<TData>({
 
 	const patchRow = useCallback(
 		(record: TData) => {
+			invalidateInFlight();
 			const id = getRowIdRef.current(record);
 			setResponse((prev) => {
 				const idx = prev.rows.findIndex(
@@ -130,11 +150,12 @@ export function useDataViewFetcher<TData>({
 			});
 			scheduleRevalidate();
 		},
-		[scheduleRevalidate],
+		[scheduleRevalidate, invalidateInFlight],
 	);
 
 	const insertRow = useCallback(
 		(record: TData) => {
+			invalidateInFlight();
 			setResponse((prev) => ({
 				...prev,
 				rows: [record, ...prev.rows],
@@ -142,11 +163,12 @@ export function useDataViewFetcher<TData>({
 			}));
 			scheduleRevalidate();
 		},
-		[scheduleRevalidate],
+		[scheduleRevalidate, invalidateInFlight],
 	);
 
 	const removeRow = useCallback(
 		(id: string) => {
+			invalidateInFlight();
 			setResponse((prev) => {
 				const nextRows = prev.rows.filter(
 					(row) => getRowIdRef.current(row) !== id,
@@ -156,7 +178,7 @@ export function useDataViewFetcher<TData>({
 			});
 			scheduleRevalidate();
 		},
-		[scheduleRevalidate],
+		[scheduleRevalidate, invalidateInFlight],
 	);
 
 	// Clean up revalidation timer on unmount.

@@ -3,7 +3,9 @@
 import type { MantineBreakpoint } from "@mantine/core";
 import type { Column, Table } from "@tanstack/react-table";
 import type { ExportCsvOptions } from "../core/exportCsv";
-import type { UrlSerializer, UrlStateAdapter } from "../url";
+// Import URL *types* from the types module (not the `../url` barrel) so a type-only consumer of
+// these options never drags the runtime adapter code into its module graph.
+import type { UrlSerializer, UrlStateAdapter } from "../url/types";
 import type {
 	ColumnDataType,
 	ColumnFormatOption,
@@ -26,6 +28,12 @@ export interface UrlSyncOptions {
 	serialize?: Partial<UrlSerializer>;
 	/** Which slices of state to sync. The default is all of them. */
 	include?: Array<keyof DataViewState>;
+	/**
+	 * How managed writes affect browser history. `"replace"` (default) keeps a clean history so the
+	 * back button never replays individual filter/sort/page changes; `"push"` creates a new entry
+	 * per change so back/forward steps through them.
+	 */
+	historyMode?: "replace" | "push";
 }
 
 /**
@@ -84,7 +92,16 @@ export interface DataViewSelection<TData> {
 	count: number;
 	/** Ids of every selected row across all pages. This is the stable basis for bulk actions. */
 	ids: string[];
-	/** Selected rows present on the current page. The core holds no data for other pages. */
+	/**
+	 * Selected rows that are materialized on the current page. The core holds no data for other
+	 * pages, so this can be a strict subset of `ids`/`count` — iterate `ids` (not `pageRows`) for a
+	 * bulk action that must cover every selected row.
+	 */
+	pageRows: TData[];
+	/**
+	 * @deprecated Renamed to `pageRows` to make the page-only scope explicit. This alias holds the
+	 * same value and will be removed in a future major release.
+	 */
 	rows: TData[];
 	clear: () => void;
 }

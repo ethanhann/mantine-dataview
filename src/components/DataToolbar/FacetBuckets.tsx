@@ -21,13 +21,20 @@ export function FacetBuckets({
 					current[1] === bucket.to;
 				return (
 					<UnstyledButton
-						key={bucket.label}
+						// Labels aren't guaranteed unique; the bounds identify the bucket.
+						key={`${bucket.from}-${bucket.to}`}
+						aria-pressed={isActive}
 						onClick={() =>
 							onChange(isActive ? undefined : [bucket.from, bucket.to])
 						}
 						style={{
 							padding: "4px 8px",
-							borderRadius: 4,
+							borderRadius: "var(--mantine-radius-sm)",
+							// A border (not just background color) marks the active state for color-blind
+							// and high-contrast users.
+							border: isActive
+								? "1px solid var(--mantine-color-blue-filled)"
+								: "1px solid transparent",
 							background: isActive
 								? "var(--mantine-color-blue-light)"
 								: undefined,

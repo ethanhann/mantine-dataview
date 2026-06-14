@@ -18,7 +18,6 @@ export function SortIcon({ direction }: { direction: SortDirection | false }) {
 			focusable="false"
 			style={{ flexShrink: 0 }}
 		>
-			<title>sort</title>
 			<path
 				d="M8 10l4-4 4 4"
 				stroke="currentColor"
@@ -39,7 +38,9 @@ export function SortIcon({ direction }: { direction: SortDirection | false }) {
 	);
 }
 
-function Glyph({ d, title }: { d: string; title: string }) {
+// All glyphs are decorative (`aria-hidden`), so they carry no `<title>` — a title would be dead
+// weight in the a11y tree and can surface an unwanted native tooltip.
+function Glyph({ d }: { d: string }) {
 	return (
 		<svg
 			width="16"
@@ -54,37 +55,31 @@ function Glyph({ d, title }: { d: string; title: string }) {
 			focusable="false"
 			style={{ flexShrink: 0 }}
 		>
-			<title>{title}</title>
 			<path d={d} />
 		</svg>
 	);
 }
 
 export function SearchIcon() {
-	return (
-		<Glyph
-			title="search"
-			d="M21 21l-4.3-4.3M11 19a8 8 0 110-16 8 8 0 010 16z"
-		/>
-	);
+	return <Glyph d="M21 21l-4.3-4.3M11 19a8 8 0 110-16 8 8 0 010 16z" />;
 }
 
 export function FilterIcon() {
-	return <Glyph title="filter" d="M3 5h18M7 12h10M10 19h4" />;
+	return <Glyph d="M3 5h18M7 12h10M10 19h4" />;
 }
 
 export function ChevronDownIcon() {
-	return <Glyph title="open" d="M6 9l6 6 6-6" />;
+	return <Glyph d="M6 9l6 6 6-6" />;
 }
 
 export function CloseIcon() {
-	return <Glyph title="close" d="M18 6L6 18M6 6l12 12" />;
+	return <Glyph d="M18 6L6 18M6 6l12 12" />;
 }
 
 export function PinLeftIcon() {
-	return <Glyph title="pin left" d="M4 4v16M9 8h8M9 12h6M9 16h8" />;
+	return <Glyph d="M4 4v16M9 8h8M9 12h6M9 16h8" />;
 }
 
 export function PinRightIcon() {
-	return <Glyph title="pin right" d="M20 4v16M7 8h8M9 12h6M7 16h8" />;
+	return <Glyph d="M20 4v16M7 8h8M9 12h6M7 16h8" />;
 }

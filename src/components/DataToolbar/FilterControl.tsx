@@ -31,6 +31,9 @@ import "@mantine/dates/styles.css";
 
 type NumOrNull = number | null;
 
+const BOOLEAN_TRUE_KEYS = new Set(["true", "1", "yes"]);
+const BOOLEAN_FALSE_KEYS = new Set(["false", "0", "no"]);
+
 function LabelWithClear({
 	label,
 	onClear,
@@ -56,10 +59,26 @@ function LabelWithClear({
 	);
 }
 
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function pad2(n: number): string {
+	return String(n).padStart(2, "0");
+}
+
+/** Serializes a Date to `YYYY-MM-DD` using local components so the day doesn't shift via UTC. */
 function toIsoDate(v: Date | string | null | undefined): string | null {
 	if (!v) return null;
 	if (typeof v === "string") return v;
-	return v.toISOString().split("T")[0] ?? null;
+	return `${v.getFullYear()}-${pad2(v.getMonth() + 1)}-${pad2(v.getDate())}`;
+}
+
+/** Parses a stored filter value into a Date, treating date-only strings as local (not UTC) midnight. */
+function parseLocalDate(value: string): Date {
+	if (DATE_ONLY_RE.test(value)) {
+		const [y, mo, d] = value.split("-");
+		return new Date(Number(y), Number(mo) - 1, Number(d));
+	}
+	return new Date(value);
 }
 
 function asArray(value: unknown): [unknown, unknown] {
@@ -83,9 +102,11 @@ function facetSelectData(
 export function FilterControl<TData>({
 	column,
 	facet,
+	disabled,
 }: {
 	column: Column<TData>;
 	facet?: FacetData;
+	disabled?: boolean;
 }) {
 	const meta = column.columnDef.meta?.filter;
 	if (!meta) return null;
@@ -114,6 +135,7 @@ export function FilterControl<TData>({
 					label={label}
 					placeholder={placeholder}
 					clearable
+					disabled={disabled}
 					data={
 						valueFacet
 							? facetSelectData(valueFacet, meta.options)
@@ -128,6 +150,7 @@ export function FilterControl<TData>({
 				<MultiSelect
 					label={label}
 					placeholder={placeholder}
+					disabled={disabled}
 					data={
 						valueFacet
 							? facetSelectData(valueFacet, meta.options)
@@ -139,8 +162,13 @@ export function FilterControl<TData>({
 			);
 		case "boolean": {
 			const current = value == null ? "all" : value ? "yes" : "no";
-			const yesEntry = valueFacet?.values.find((v) => v.value === "true");
-			const noEntry = valueFacet?.values.find((v) => v.value === "false");
+			// Accept the common truthy/falsy facet keys, not just the literal "true"/"false".
+			const yesEntry = valueFacet?.values.find((v) =>
+				BOOLEAN_TRUE_KEYS.has(v.value.toLowerCase()),
+			);
+			const noEntry = valueFacet?.values.find((v) =>
+				BOOLEAN_FALSE_KEYS.has(v.value.toLowerCase()),
+			);
 			const yesLabel = yesEntry ? `Yes (${yesEntry.count})` : "Yes";
 			const noLabel = noEntry ? `No (${noEntry.count})` : "No";
 			return (
@@ -148,6 +176,7 @@ export function FilterControl<TData>({
 					<SegmentedControl
 						fullWidth
 						size="xs"
+						disabled={disabled}
 						data={[
 							{ value: "all", label: "All" },
 							{ value: "yes", label: yesLabel },
@@ -193,13 +222,16 @@ export function FilterControl<TData>({
 						<Stack gap="xs">
 							{buckets}
 							<RangeSlider
+								disabled={disabled}
 								min={sliderMin}
 								max={sliderMax}
 								step={meta.step ?? 1}
 								value={sliderValue}
 								onChange={([lo, hi]) => {
-									const isDefault = lo === sliderMin && hi === sliderMax;
-									set(isDefault ? undefined : [lo, hi]);
+									// Always store the selected range, including the full extent — a user
+									// who deliberately wants [min, max] must be able to express it. "No
+									// filter" is reached only via the explicit clear affordance.
+									set([lo, hi]);
 								}}
 								label={(v) => formatFn(v)}
 								minRange={meta.step ?? 1}
@@ -224,6 +256,7 @@ export function FilterControl<TData>({
 						<NumberInput
 							aria-label={`${label} minimum`}
 							placeholder="Min"
+							disabled={disabled}
 							value={min ?? ""}
 							onChange={(v) => update([toNum(v), max])}
 							w={90}
@@ -231,6 +264,7 @@ export function FilterControl<TData>({
 						<NumberInput
 							aria-label={`${label} maximum`}
 							placeholder="Max"
+							disabled={disabled}
 							value={max ?? ""}
 							onChange={(v) => update([min, toNum(v)])}
 							w={90}
@@ -240,12 +274,13 @@ export function FilterControl<TData>({
 			);
 		}
 		case "date": {
-			const dateValue = value ? new Date(value as string) : null;
+			const dateValue = value ? parseLocalDate(value as string) : null;
 			return (
 				<DatePickerInput
 					label={label}
 					placeholder={placeholder}
 					clearable
+					disabled={disabled}
 					popoverProps={{ withinPortal: false }}
 					value={dateValue}
 					onChange={(d) => set(toIsoDate(d) ?? undefined)}
@@ -255,8 +290,8 @@ export function FilterControl<TData>({
 		case "dateRange": {
 			const [start, end] = asArray(value) as [string | null, string | null];
 			const rangeValue: [Date | null, Date | null] = [
-				start ? new Date(start) : null,
-				end ? new Date(end) : null,
+				start ? parseLocalDate(start) : null,
+				end ? parseLocalDate(end) : null,
 			];
 			const dateRangeLabel =
 				value != null ? (
@@ -272,6 +307,7 @@ export function FilterControl<TData>({
 						)}
 						<DatePickerInput
 							type="range"
+							disabled={disabled}
 							popoverProps={{ withinPortal: false }}
 							placeholder={placeholder}
 							clearable
@@ -292,6 +328,7 @@ export function FilterControl<TData>({
 				<TextInput
 					label={label}
 					placeholder={placeholder}
+					disabled={disabled}
 					value={(value as string | undefined) ?? ""}
 					onChange={(e) => set(e.currentTarget.value || undefined)}
 				/>

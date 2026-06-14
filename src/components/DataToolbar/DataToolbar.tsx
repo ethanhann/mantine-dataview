@@ -15,7 +15,10 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 	/** The `useDataView` instance to drive. */
 	view: UseDataViewReturn<TData>;
 	searchPlaceholder?: string;
-	/** Filterable columns up to this count render inline. More than that collapse into a popover. */
+	/**
+	 * Filterable columns up to this count render inline on desktop; beyond it they collapse into a
+	 * popover. On small screens filters always open in a bottom drawer regardless of this threshold.
+	 */
 	filterInlineThreshold?: number;
 	lockSwitcherOnMobile?: boolean;
 	showSearch?: boolean;
@@ -63,47 +66,41 @@ export function DataToolbar<TData>({
 						aria-label="Search"
 						placeholder={searchPlaceholder}
 						leftSection={<SearchIcon />}
-						value={state.globalFilter}
+						disabled={loading}
+						value={state.globalFilter ?? ""}
 						onChange={(e) => table.setGlobalFilter(e.currentTarget.value)}
 						rightSection={
 							state.globalFilter ? (
 								<CloseButton
 									size="sm"
 									aria-label="Clear search"
+									disabled={loading}
 									onClick={() => table.setGlobalFilter("")}
 								/>
 							) : undefined
 						}
 					/>
 				)}
-				<fieldset
-					disabled={loading}
-					style={{ display: "contents", border: "none", padding: 0, margin: 0 }}
-				>
-					{filtersOn && (
-						<FilterControls
-							view={view}
-							inlineThreshold={filterInlineThreshold}
-						/>
-					)}
-					{sortOn && <SortControl view={view} />}
-				</fieldset>
+				{filtersOn && (
+					<FilterControls
+						view={view}
+						inlineThreshold={filterInlineThreshold}
+						disabled={loading}
+					/>
+				)}
+				{sortOn && <SortControl view={view} disabled={loading} />}
 			</Group>
-			<fieldset
-				disabled={loading}
-				style={{ display: "contents", border: "none", padding: 0, margin: 0 }}
-			>
-				<Group wrap="wrap" gap="sm">
-					{visibilityOn && <VisibilityMenu view={view} />}
-					{switcherOn && (
-						<ViewSwitcher
-							view={view}
-							lockSwitcherOnMobile={lockSwitcherOnMobile}
-						/>
-					)}
-					{rightSection}
-				</Group>
-			</fieldset>
+			<Group wrap="wrap" gap="sm">
+				{visibilityOn && <VisibilityMenu view={view} disabled={loading} />}
+				{switcherOn && (
+					<ViewSwitcher
+						view={view}
+						lockSwitcherOnMobile={lockSwitcherOnMobile}
+						disabled={loading}
+					/>
+				)}
+				{rightSection}
+			</Group>
 		</Group>
 	);
 }

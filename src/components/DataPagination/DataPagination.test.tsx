@@ -85,6 +85,8 @@ describe("DataPagination", () => {
 	it("handles an empty result without breaking", () => {
 		renderPager({ rowCount: 0 });
 		expect(screen.getByText("0–0 of 0")).toBeVisible();
-		expect(screen.getByRole("button", { name: "1" })).toBeVisible();
+		// With no full page of results there is nothing to navigate, so the pager
+		// is hidden rather than rendering a dead "1" control.
+		expect(screen.queryByRole("button", { name: "1" })).toBeNull();
 	});
 });

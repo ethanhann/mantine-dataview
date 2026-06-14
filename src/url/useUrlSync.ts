@@ -22,6 +22,7 @@ export interface ResolvedUrlConfig {
 	adapter: UrlStateAdapter;
 	serializer: UrlSerializer;
 	include: SyncableKey[];
+	replace: boolean;
 }
 
 /** Merges the consumer's `urlSync` options with defaults, or returns `null` when sync is off. */
@@ -29,11 +30,35 @@ export function resolveUrlConfig(
 	urlSync: UrlSyncOptions | undefined,
 ): ResolvedUrlConfig | null {
 	if (!urlSync) return null;
+	const serializer = { ...defaultUrlSerializer, ...urlSync.serialize };
+	validateSerializer(serializer);
 	return {
 		adapter: urlSync.adapter,
-		serializer: { ...defaultUrlSerializer, ...urlSync.serialize },
+		serializer,
 		include: resolveInclude(urlSync.include),
+		replace: urlSync.historyMode !== "push",
 	};
+}
+
+/** Guards against a serializer whose param names collide or whose filter prefix is empty. */
+function validateSerializer(serializer: UrlSerializer): void {
+	if (!serializer.filterPrefix) {
+		throw new Error(
+			"[mantine-dataview] urlSync.serialize.filterPrefix must be a non-empty string.",
+		);
+	}
+	const names = [
+		serializer.page,
+		serializer.size,
+		serializer.sort,
+		serializer.search,
+		serializer.view,
+	];
+	if (new Set(names).size !== names.length) {
+		throw new Error(
+			`[mantine-dataview] urlSync param names must be distinct, got: ${names.join(", ")}.`,
+		);
+	}
 }
 
 /** Reads the URL once and produces the initial state patch. It is safe to call during render. */
@@ -49,9 +74,19 @@ export function hydrateFromUrl(
 			include: config.include,
 			getFilterMeta,
 			current,
+			defaultPageSize: current.pagination.pageSize,
 		});
-	} catch {
-		// An adapter that touches `window` on the server or first render must not crash this.
+	} catch (err) {
+		// An adapter that touches `window` on the server or first render must not crash this. SSR
+		// (no `window`) is expected and silent; surface anything else in development so real codec or
+		// adapter bugs aren't swallowed.
+		if (
+			!(err instanceof ReferenceError) &&
+			typeof process !== "undefined" &&
+			process.env.NODE_ENV !== "production"
+		) {
+			console.warn("[mantine-dataview] failed to hydrate state from URL", err);
+		}
 		return {};
 	}
 }
@@ -61,6 +96,8 @@ interface UseUrlSyncArgs {
 	state: DataViewState;
 	applyPatch: (patch: Partial<DataViewState>) => void;
 	getFilterMeta: FilterMetaLookup;
+	/** The default page size, so an untouched size is omitted from the URL. */
+	defaultPageSize: number;
 }
 
 export function useUrlSync({
@@ -68,6 +105,7 @@ export function useUrlSync({
 	state,
 	applyPatch,
 	getFilterMeta,
+	defaultPageSize,
 }: UseUrlSyncArgs): void {
 	// Keep the latest closures in refs so the effects do not bind again on every render. This
 	// matters because a consumer may pass a freshly built adapter or urlSync object each render.
@@ -88,11 +126,13 @@ export function useUrlSync({
 				serializer: config.serializer,
 				include: config.include,
 				getFilterMeta,
+				defaultPageSize,
 			})
 		: null;
 	// `paramsKey` is the only trigger. Writes happen only when the managed params actually change,
-	// no matter how often `config` or `params` are created again.
-	const paramsKey = params ? JSON.stringify(params) : "";
+	// no matter how often `config` or `params` are created again. Sort the entries so a different
+	// insertion order (e.g. reordered column filters) with the same logical params doesn't churn.
+	const paramsKey = params ? stableParamsKey(params) : "";
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: paramsKey is the intended trigger; params/config are read via closure/ref
 	useEffect(() => {
@@ -100,21 +140,54 @@ export function useUrlSync({
 		if (!cfg || !params) return;
 		const current = cfg.adapter.read();
 		const preserved = stripManagedParams(current, cfg.serializer, cfg.include);
-		cfg.adapter.write({ ...preserved, ...params }, { replace: true });
+		const next = { ...preserved, ...params };
+		// Skip the write when the URL already encodes this state. Without this, a back/forward
+		// navigation that applies a patch would trigger a write that rewrites the current history
+		// entry — corrupting it whenever serialization isn't a perfect inverse of the read.
+		if (sameParams(current, next)) return;
+		cfg.adapter.write(next, { replace: cfg.replace });
 	}, [paramsKey]);
 
-	// On back, forward, or any external navigation, read the URL again and apply it.
+	// On back, forward, or any external navigation, read the URL again and apply it. Subscribe only
+	// when sync toggles on/off and read the adapter through `configRef`, so a consumer passing a
+	// freshly built adapter/urlSync object each render does not tear down and re-add the listener
+	// every render (which would drop any navigation firing in the gap).
+	const enabled = config != null;
 	useEffect(() => {
-		if (!config) return;
-		const { adapter, serializer, include } = config;
-		return adapter.subscribe?.(() => {
-			const patch = deserializeParams(adapter.read(), {
-				serializer,
-				include,
+		if (!enabled) return;
+		const cfg = configRef.current;
+		if (!cfg) return;
+		return cfg.adapter.subscribe?.(() => {
+			const live = configRef.current;
+			if (!live) return;
+			const patch = deserializeParams(live.adapter.read(), {
+				serializer: live.serializer,
+				include: live.include,
 				getFilterMeta: getFilterMetaRef.current,
 				current: stateRef.current,
 			});
 			applyPatchRef.current(patch);
 		});
-	}, [config]);
+	}, [enabled]);
+}
+
+/** Order-independent key for a flat param map, so logically-equal params produce one key. */
+function stableParamsKey(params: Record<string, string>): string {
+	return JSON.stringify(
+		Object.entries(params).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+	);
+}
+
+/** Shallow equality for the flat param maps produced by the serializer. */
+function sameParams(
+	a: Record<string, string>,
+	b: Record<string, string>,
+): boolean {
+	const aKeys = Object.keys(a);
+	const bKeys = Object.keys(b);
+	if (aKeys.length !== bKeys.length) return false;
+	for (const key of aKeys) {
+		if (a[key] !== b[key]) return false;
+	}
+	return true;
 }

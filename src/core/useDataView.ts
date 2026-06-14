@@ -77,15 +77,35 @@ function buildFilterMetaLookup<TData>(
 	for (const col of columns) {
 		const id = resolveColumnId(col);
 		const filter = col.meta?.filter;
-		if (id && filter) map.set(id, filter);
+		if (id && filter) {
+			if (
+				map.has(id) &&
+				typeof process !== "undefined" &&
+				process.env.NODE_ENV !== "production"
+			) {
+				console.warn(
+					`[mantine-dataview] duplicate column id "${id}"; its filter meta will shadow the earlier one.`,
+				);
+			}
+			map.set(id, filter);
+		}
 	}
 	return (id) => map.get(id);
+}
+
+/** The configured page-size choices, falling back to defaults when none (or an empty list) is given. */
+function resolvePageSizeOptions<TData>(
+	options: UseDataViewOptions<TData>,
+): number[] {
+	return options.pageSizeOptions?.length
+		? options.pageSizeOptions
+		: DEFAULT_PAGE_SIZES;
 }
 
 function buildDefaultState<TData>(
 	options: UseDataViewOptions<TData>,
 ): DataViewState {
-	const pageSize = options.pageSizeOptions?.[0] ?? DEFAULT_PAGE_SIZE;
+	const pageSize = resolvePageSizeOptions(options)[0] ?? DEFAULT_PAGE_SIZE;
 	return {
 		pagination: { pageIndex: 0, pageSize },
 		sorting: [],
@@ -171,10 +191,22 @@ export function useDataView<TData>(
 	const resolvedStateRef = useRef(resolvedState);
 	resolvedStateRef.current = resolvedState;
 
+	// Track the internal and controlled slices separately in refs that update synchronously, so
+	// several `applyPatch` calls batched in one tick each notify with a progressively-correct
+	// snapshot instead of all reading the same pre-batch value.
+	const internalStateRef = useRef(internalState);
+	internalStateRef.current = internalState;
+	const controlledStateRef = useRef(controlledState);
+	controlledStateRef.current = controlledState;
+
 	const applyPatch = useCallback(
 		(patch: Partial<DataViewState>) => {
-			setInternalState((prev) => ({ ...prev, ...patch }));
-			onStateChange?.({ ...resolvedStateRef.current, ...patch });
+			const nextInternal = { ...internalStateRef.current, ...patch };
+			internalStateRef.current = nextInternal;
+			setInternalState(nextInternal);
+			// Controlled slices always win over internal ones, so the emitted snapshot mirrors how
+			// `resolvedState` is composed.
+			onStateChange?.({ ...nextInternal, ...controlledStateRef.current });
 		},
 		[onStateChange],
 	);
@@ -185,6 +217,7 @@ export function useDataView<TData>(
 		state: resolvedState,
 		applyPatch,
 		getFilterMeta,
+		defaultPageSize: resolvePageSizeOptions(options)[0] ?? DEFAULT_PAGE_SIZE,
 	});
 
 	// Changing what the server sees (sort, filter, or search) resets to the first page. This
@@ -198,11 +231,12 @@ export function useDataView<TData>(
 	);
 
 	const prevParamsKeyRef = useRef(paramsKey);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: applyPatch/resetPagination are stable; the ref guard skips the mount run
 	useEffect(() => {
 		if (prevParamsKeyRef.current === paramsKey) return;
 		prevParamsKeyRef.current = paramsKey;
 		applyPatch({ pagination: resetPagination() });
-	});
+	}, [paramsKey]);
 
 	const onPaginationChange = useCallback<OnChangeFn<PaginationState>>(
 		(updater) => {
@@ -353,17 +387,20 @@ export function useDataView<TData>(
 	onRequestChangeRef.current = onRequestChange;
 	const debounceRef = useRef<ResolvedDebounce>(resolveDebounce(debounce));
 	debounceRef.current = resolveDebounce(debounce);
-	const lastEmittedRef = useRef<DataViewRequest | null>(null);
+	// The request from the previous render that changed it. Comparing against this (rather than the
+	// last *emitted* request) is what lets a pagination/sort change emit immediately even while a
+	// search/filter debounce is still pending.
+	const prevRequestRef = useRef<DataViewRequest | null>(null);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	useEffect(() => {
-		const prev = lastEmittedRef.current;
+		const prev = prevRequestRef.current;
 		const isFirst = prev === null;
-		const searchChanged = !prev || prev.globalFilter !== request.globalFilter;
-		const filtersChanged = !prev || prev.filters !== request.filters;
+		const searchChanged = !!prev && prev.globalFilter !== request.globalFilter;
+		const filtersChanged = !!prev && prev.filters !== request.filters;
+		prevRequestRef.current = request;
 
 		const emit = () => {
-			lastEmittedRef.current = request;
 			onRequestChangeRef.current?.(request);
 		};
 
@@ -372,6 +409,9 @@ export function useDataView<TData>(
 			delay = Math.max(delay, debounceRef.current.globalFilter);
 		if (filtersChanged)
 			delay = Math.max(delay, debounceRef.current.columnFilters);
+		// Only debounce when the *sole* change is search/filter. If anything else changed (e.g. the
+		// user paginated or sorted), emit immediately — clearing any pending search timer also flushes
+		// the in-progress search value along with the new pagination, so nothing is lost.
 		const shouldDebounce =
 			!isFirst && (searchChanged || filtersChanged) && delay > 0;
 
@@ -408,7 +448,7 @@ export function useDataView<TData>(
 		[applyPatch],
 	);
 
-	const pageSizeOptions = options.pageSizeOptions ?? DEFAULT_PAGE_SIZES;
+	const pageSizeOptions = resolvePageSizeOptions(options);
 
 	// Derived helpers for the toolbar and presentations. The TanStack `table` is a stable
 	// reference that mutates internally. These are computed every render (cheap over a small
@@ -432,6 +472,8 @@ export function useDataView<TData>(
 		return {
 			count: selectedIds.length,
 			ids: selectedIds,
+			pageRows: selectedRows,
+			// Deprecated alias of `pageRows`; kept for back-compat.
 			rows: selectedRows,
 			clear: clearSelection,
 		};
@@ -452,6 +494,10 @@ export function useDataView<TData>(
 		[table],
 	);
 
+	// In the bare (fully controlled) hook there is no owned cache to mutate, so the optimistic
+	// methods degrade to a plain refetch and ignore their argument. `useDataViewFetcher` overrides
+	// them with real optimistic reconciliation. Consumers wanting optimistic updates should use the
+	// fetcher (or drive `rows` themselves).
 	const patchRow = useCallback(
 		(_record: TData) => {
 			refetch();

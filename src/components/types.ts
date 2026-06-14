@@ -1,6 +1,8 @@
 // Shared presentation contracts. These cover the customization slots and the common props every
 // presentation accepts. Slots are render functions, so consumers can fully replace a piece while
-// the library still owns layout and state wiring.
+// the library still owns layout and state wiring. Each slot is rendered through the internal `Slot`
+// component (not called inline), so a slot may safely use hooks and appears as a real node in the
+// React tree (visible to error boundaries and DevTools).
 
 import type { Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";

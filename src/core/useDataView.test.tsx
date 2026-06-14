@@ -122,6 +122,28 @@ describe("useDataView", () => {
 		expect(last.pagination.pageIndex).toBe(0);
 	});
 
+	it("emits a pagination change immediately even while a search debounce is pending", () => {
+		vi.useFakeTimers();
+		const { result, onRequestChange } = setup();
+		expect(onRequestChange).toHaveBeenCalledTimes(1); // initial
+
+		// Start typing: this change is debounced and not emitted yet.
+		act(() => result.current.table.setGlobalFilter("ada"));
+		expect(onRequestChange).toHaveBeenCalledTimes(1);
+
+		// Paginate before the debounce fires: this must emit immediately and carry the
+		// in-progress search value, rather than being delayed by the pending search timer.
+		act(() => result.current.table.setPageIndex(2));
+		expect(onRequestChange).toHaveBeenCalledTimes(2);
+		const immediate = lastRequest(onRequestChange);
+		expect(immediate.pagination.pageIndex).toBe(2);
+		expect(immediate.globalFilter).toBe("ada");
+
+		// The pending search timer was cleared by the immediate emit, so nothing fires later.
+		act(() => vi.advanceTimersByTime(300));
+		expect(onRequestChange).toHaveBeenCalledTimes(2);
+	});
+
 	it("debounces column filter changes", () => {
 		vi.useFakeTimers();
 		const { result, onRequestChange } = setup();

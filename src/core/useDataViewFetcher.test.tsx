@@ -310,7 +310,8 @@ describe("optimistic reconciliation", () => {
 			expect(fetcher.mock.calls.length - callsAfterMount).toBe(1);
 		});
 
-		it("handles revalidation fetch errors gracefully", async () => {
+		it("keeps optimistic data when revalidation fails (stale-while-revalidate)", async () => {
+			const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 			let fetchCount = 0;
 			const fetcher = vi.fn(async () => {
 				fetchCount++;
@@ -333,7 +334,12 @@ describe("optimistic reconciliation", () => {
 				timeout: 3000,
 			});
 
-			expect(captured?.error).toBeInstanceOf(Error);
+			// A failed revalidation must not contradict the displayed data: status
+			// stays "success", no error is surfaced, and the optimistic row remains.
+			expect(captured?.status).toBe("success");
+			expect(captured?.error).toBeUndefined();
+			expect(screen.getByText("Ada (optimistic)")).toBeVisible();
+			warn.mockRestore();
 		});
 	});
 });

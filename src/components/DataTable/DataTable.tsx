@@ -15,10 +15,14 @@ import type { CSSProperties, ReactNode } from "react";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { UseDataViewReturn } from "../../types/options";
 import { SortIcon } from "../icons";
+import { Slot } from "../Slot";
 import { EmptyContent, ErrorContent } from "../StateMessage";
 import type { DataViewSlots } from "../types";
 // @ts-expect-error CSS import has no type declarations
 import "./transitions.css";
+
+/** Width of the leading selection checkbox column, shared by header and body cells. */
+const SELECTION_COLUMN_WIDTH = 40;
 
 function pinningStyle<TData>(column: Column<TData>): CSSProperties | undefined {
 	const pinned = column.getIsPinned();
@@ -43,7 +47,11 @@ export interface DataTableProps<TData>
 	loadingRowCount?: number;
 	/** Disable sorting interactions while data is loading. Default: true. */
 	disableWhileLoading?: boolean;
-	/** Animate row enter/exit instead of showing skeletons. Default: false. */
+	/**
+	 * Animate row enter/exit instead of showing skeletons. Default: false. Note: enabling this
+	 * remounts the table body on every data/order change to restart the CSS animation, which resets
+	 * per-cell focus and any cell-local component state on each sort/page/filter.
+	 */
 	animateRows?: boolean;
 }
 
@@ -76,12 +84,16 @@ export function DataTable<TData>({
 				const cells = (
 					<>
 						{selectionEnabled && (
-							<Table.Td>
+							<Table.Td style={{ width: SELECTION_COLUMN_WIDTH }}>
 								<Checkbox
 									aria-label="Select row"
 									checked={row.getIsSelected()}
 									disabled={!row.getCanSelect()}
-									indeterminate={row.getIsSomeSelected()}
+									// Only sub-row-bearing rows can be partially selected; a leaf row that
+									// is both checked and indeterminate is contradictory.
+									indeterminate={
+										row.subRows.length > 0 && row.getIsSomeSelected()
+									}
 									onChange={row.getToggleSelectedHandler()}
 								/>
 							</Table.Td>
@@ -103,7 +115,7 @@ export function DataTable<TData>({
 					</>
 				);
 				return slots?.Row ? (
-					<RowKey key={row.id}>{slots.Row({ row, cells })}</RowKey>
+					<Slot key={row.id} render={slots.Row} ctx={{ row, cells }} />
 				) : (
 					<Table.Tr
 						key={row.id}
@@ -129,7 +141,7 @@ export function DataTable<TData>({
 		switch (renderStatus.phase) {
 			case "loading":
 				return slots?.LoadingTable ? (
-					slots.LoadingTable()
+					<Slot render={slots.LoadingTable} ctx={undefined} />
 				) : (
 					<Table.Tbody>
 						{Array.from({ length: skeletonRows }, (_, i) => (
@@ -176,7 +188,7 @@ export function DataTable<TData>({
 					{table.getHeaderGroups().map((group) => (
 						<Table.Tr key={group.id}>
 							{selectionEnabled && (
-								<Table.Th style={{ width: 40 }}>
+								<Table.Th style={{ width: SELECTION_COLUMN_WIDTH }}>
 									<Checkbox
 										aria-label="Select all rows on this page"
 										checked={table.getIsAllPageRowsSelected()}
@@ -204,11 +216,6 @@ export function DataTable<TData>({
 	);
 }
 
-/** Wrapper that carries the React key for a Row slot element the consumer supplies. */
-function RowKey({ children }: { children: ReactNode }) {
-	return <>{children}</>;
-}
-
 function MessageBody({
 	colSpan,
 	children,
@@ -227,6 +234,9 @@ function MessageBody({
 	);
 }
 
+// NOTE: deliberately NOT wrapped in `memo`. TanStack reuses header objects across sorting-state
+// changes (headers only rebuild on column visibility/pinning/order changes), so memoizing on the
+// `header` prop would drop reactivity to derived sort state (`aria-sort` would go stale).
 function HeaderCell<TData>({
 	header,
 	disabled,
@@ -243,6 +253,10 @@ function HeaderCell<TData>({
 		? null
 		: flexRender(column.columnDef.header, header.getContext());
 	const sortable = column.getCanSort() && !disabled;
+	const headerText =
+		typeof column.columnDef.header === "string"
+			? column.columnDef.header
+			: column.id;
 
 	const colSize = column.columnDef.size;
 
@@ -263,6 +277,8 @@ function HeaderCell<TData>({
 		>
 			{sortable ? (
 				<UnstyledButton
+					type="button"
+					aria-label={`Sort by ${headerText}`}
 					onClick={column.getToggleSortingHandler()}
 					style={{
 						display: "inline-flex",
@@ -275,9 +291,8 @@ function HeaderCell<TData>({
 					<SortIcon direction={sorted} />
 					{multiSorted && (
 						<span
-							role="note"
 							style={{ fontSize: "0.7em", opacity: 0.6 }}
-							aria-label={`Sort priority ${sortIndex + 1}`}
+							aria-label={`sort priority ${sortIndex + 1}`}
 						>
 							{sortIndex + 1}
 						</span>

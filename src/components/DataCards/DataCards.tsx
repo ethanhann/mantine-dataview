@@ -16,7 +16,7 @@ import {
 	Text,
 } from "@mantine/core";
 import { flexRender, type Row } from "@tanstack/react-table";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useMemo } from "react";
 import {
 	type CardField,
 	type ComposeCardOptions,
@@ -24,6 +24,7 @@ import {
 } from "../../core/cardComposition";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { UseDataViewReturn } from "../../types/options";
+import { Slot } from "../Slot";
 import { EmptyContent, ErrorContent } from "../StateMessage";
 // @ts-expect-error CSS import has no type declarations
 import "../DataTable/transitions.css";
@@ -36,7 +37,11 @@ export interface DataCardsProps<TData>
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
 	slots?: DataViewSlots<TData>;
-	/** Full per card escape hatch. It replaces the default composition. */
+	/**
+	 * Full per-card escape hatch. It replaces the default composition entirely, so it is also
+	 * responsible for rendering its own selection UI — the default selection checkbox is not added.
+	 * Use the provided `selected`/`toggleSelected` to wire it.
+	 */
 	renderCard?: (ctx: {
 		row: Row<TData>;
 		data: TData;
@@ -88,7 +93,7 @@ export function DataCards<TData>({
 					if (renderCard) {
 						return (
 							<div key={row.id} data-entering={entering}>
-								{renderCard(ctx)}
+								<Slot render={renderCard} ctx={ctx} />
 							</div>
 						);
 					}
@@ -103,7 +108,7 @@ export function DataCards<TData>({
 					if (slots?.Card) {
 						return (
 							<div key={row.id} data-entering={entering}>
-								{slots.Card({ ...ctx, children: body })}
+								<Slot render={slots.Card} ctx={{ ...ctx, children: body }} />
 							</div>
 						);
 					}
@@ -135,7 +140,7 @@ export function DataCards<TData>({
 	switch (renderStatus.phase) {
 		case "loading":
 			return slots?.LoadingCards ? (
-				slots.LoadingCards()
+				<Slot render={slots.LoadingCards} ctx={undefined} />
 			) : (
 				<SimpleGrid {...grid}>
 					{Array.from({ length: skeletonCards }, (_, i) => (
@@ -168,6 +173,10 @@ export function DataCards<TData>({
 	}
 }
 
+// NOTE: deliberately NOT wrapped in `memo`. It reads `row.getIsSelected()`, but TanStack can reuse
+// row objects across selection-state changes, so memoizing on the `row` prop would drop reactivity
+// to the selection checkbox. The per-row cell map below is memoized instead (cells don't change
+// with selection).
 function DefaultCardBody<TData>({
 	row,
 	layout,
@@ -177,7 +186,10 @@ function DefaultCardBody<TData>({
 	layout: ReturnType<typeof composeCardLayout<TData>>;
 	selectionEnabled: boolean;
 }) {
-	const cellById = new Map(row.getAllCells().map((c) => [c.column.id, c]));
+	const cellById = useMemo(
+		() => new Map(row.getAllCells().map((c) => [c.column.id, c])),
+		[row],
+	);
 	const renderField = (field: CardField<TData>): ReactNode => {
 		const cell = cellById.get(field.id);
 		return cell

@@ -37,7 +37,15 @@ export function DataPagination<TData>({
 	const pageCount = table.getPageCount();
 	const sizes = pageSizeOptions ?? view.pageSizeOptions;
 
-	const start = total === 0 ? 0 : pageIndex * pageSize + 1;
+	// Always include the active page size so the Select never shows an empty value when the current
+	// size isn't one of the configured options.
+	const sizeData = Array.from(new Set([...sizes, pageSize]))
+		.sort((a, b) => a - b)
+		.map(String);
+
+	// Clamp the range so a stale, over-range page (e.g. after the row count shrank) can never read
+	// "41–30 of 30".
+	const start = total === 0 ? 0 : Math.min(pageIndex * pageSize + 1, total);
 	const end = Math.min((pageIndex + 1) * pageSize, total);
 
 	return (
@@ -46,9 +54,12 @@ export function DataPagination<TData>({
 				{showPageSize && (
 					<Select
 						aria-label={pageSizeLabel}
-						data={sizes.map(String)}
+						data={sizeData}
 						value={String(pageSize)}
-						onChange={(v) => v && table.setPageSize(Number(v))}
+						onChange={(v) => {
+							const next = Number(v);
+							if (Number.isFinite(next)) table.setPageSize(next);
+						}}
 						w={80}
 						comboboxProps={{ withinPortal: true }}
 					/>
@@ -59,12 +70,15 @@ export function DataPagination<TData>({
 					</Text>
 				)}
 			</Group>
-			<Pagination
-				value={pageIndex + 1}
-				total={Math.max(pageCount, 1)}
-				onChange={(page) => table.setPageIndex(page - 1)}
-				getControlProps={(control) => ({ "aria-label": `${control} page` })}
-			/>
+			{/* A single page (or none) needs no navigation control. */}
+			{pageCount > 1 && (
+				<Pagination
+					value={pageIndex + 1}
+					total={pageCount}
+					onChange={(page) => table.setPageIndex(page - 1)}
+					getControlProps={(control) => ({ "aria-label": `${control} page` })}
+				/>
+			)}
 		</Group>
 	);
 }

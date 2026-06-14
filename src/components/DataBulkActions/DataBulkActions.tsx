@@ -8,6 +8,7 @@
 
 import { Button, Group, Paper, type PaperProps, Text } from "@mantine/core";
 import type { UseDataViewReturn } from "../../types/options";
+import { Slot } from "../Slot";
 import type { DataViewSlots } from "../types";
 
 export interface DataBulkActionsProps<TData>
@@ -36,7 +37,7 @@ export function DataBulkActions<TData>({
 		>
 			<Group justify="space-between" wrap="wrap" gap="sm">
 				<Group gap="sm">
-					<Text size="sm" fw={500}>
+					<Text size="sm" fw={500} aria-live="polite">
 						{selection.count} selected
 					</Text>
 					<Button variant="subtle" size="xs" onClick={selection.clear}>
@@ -44,7 +45,9 @@ export function DataBulkActions<TData>({
 					</Button>
 				</Group>
 				{slots?.BulkActions && (
-					<Group gap="xs">{slots.BulkActions(selection)}</Group>
+					<Group gap="xs">
+						<Slot render={slots.BulkActions} ctx={selection} />
+					</Group>
 				)}
 			</Group>
 		</Paper>

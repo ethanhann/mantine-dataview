@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { windowHistoryAdapter } from "./index";
+import { windowHistoryAdapter } from "./windowHistoryAdapter";
 
 describe("windowHistoryAdapter", () => {
 	beforeEach(() => {

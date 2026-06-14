@@ -22,6 +22,11 @@ export interface RangeFacetEntry {
 /** Bucketed numeric or date ranges with counts. Used for numberRange and dateRange filters. */
 export interface RangeFacet {
 	type: "ranges";
+	/**
+	 * Whether the bounds are numbers or ISO date strings. Lets consumers interpret `from`/`to`/`min`/
+	 * `max` without guessing. Optional for back-compat; defaults to numeric handling when omitted.
+	 */
+	kind?: "number" | "date";
 	ranges: RangeFacetEntry[];
 	min?: number | string;
 	max?: number | string;

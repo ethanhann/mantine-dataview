@@ -1,5 +1,6 @@
-import { createColumnHelper } from "@tanstack/react-table";
+import { type ColumnMeta, createColumnHelper } from "@tanstack/react-table";
 import type {
+	CardFieldMeta,
 	CardRole,
 	ColumnAlign,
 	ColumnDataType,
@@ -31,7 +32,12 @@ export interface ColOptions<TData> {
 export function humanize(field: string): string {
 	return field
 		.replace(/_/g, " ")
-		.replace(/([a-z])([A-Z])/g, "$1 $2")
+		// camelCase / digit→capital boundary: "createdAt" → "created At", "v2Name" → "v2 Name"
+		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+		// acronym run before a capitalized word: "HTTPStatus" → "HTTP Status"
+		.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+		// letter→digit boundary: "address1" → "address 1"
+		.replace(/([a-zA-Z])(\d)/g, "$1 $2")
 		.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -51,8 +57,10 @@ const PRESETS: Record<string, PresetConfig> = {
 	},
 	date: { dataType: "date", filterVariant: "dateRange" },
 	boolean: { dataType: "boolean", filterVariant: "boolean" },
-	select: { filterVariant: "select" },
-	multiselect: { filterVariant: "multiselect" },
+	// `dataType: "text"` so a `format` override and the CSV `formatted` export apply (formatting is
+	// gated on `dataType`); the default text formatter is a no-op on raw values.
+	select: { dataType: "text", filterVariant: "select" },
+	multiselect: { dataType: "text", filterVariant: "multiselect" },
 };
 
 export class ColumnBuilder<TData> {
@@ -83,27 +91,31 @@ export class ColumnBuilder<TData> {
 				: base;
 		}
 
+		// Build the augmented column meta as a typed value first, so a typo in a key (e.g. `dataTpye`)
+		// is a compile error rather than silently dropped.
+		const card: CardFieldMeta | undefined =
+			opts?.card != null || opts?.cardOrder != null
+				? {
+						...(opts.card != null ? { role: opts.card } : {}),
+						...(opts.cardOrder != null ? { order: opts.cardOrder } : {}),
+					}
+				: undefined;
+		const meta: ColumnMeta<TData, unknown> = {
+			label,
+			...(config.dataType ? { dataType: config.dataType } : {}),
+			...(align ? { align } : {}),
+			...(filter ? { filter } : {}),
+			...(opts?.format ? { format: opts.format } : {}),
+			...(card ? { card } : {}),
+		};
+
 		// biome-ignore lint/suspicious/noExplicitAny: TanStack accessor expects any for heterogeneous columns
 		const colDef = (this.helper as any).accessor(field, {
 			header: label,
 			...(opts?.cell ? { cell: opts.cell } : {}),
 			...(opts?.enableSorting === false ? { enableSorting: false } : {}),
 			...(opts?.width != null ? { size: opts.width } : {}),
-			meta: {
-				label,
-				...(config.dataType ? { dataType: config.dataType } : {}),
-				...(align ? { align } : {}),
-				...(filter ? { filter } : {}),
-				...(opts?.format ? { format: opts.format } : {}),
-				...(opts?.card
-					? {
-							card: {
-								role: opts.card,
-								...(opts.cardOrder != null ? { order: opts.cardOrder } : {}),
-							},
-						}
-					: {}),
-			},
+			meta,
 		});
 
 		this.cols.push(colDef);

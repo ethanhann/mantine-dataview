@@ -1,3 +1,10 @@
+import type {
+	ColumnPinningState,
+	PaginationState,
+	RowSelectionState,
+	SortingState,
+	VisibilityState,
+} from "@tanstack/react-table";
 import { assertType, describe, expect, expectTypeOf, it } from "vitest";
 import type {
 	DataColumnDef,
@@ -7,6 +14,30 @@ import type {
 	UseDataViewOptions,
 } from "../index";
 import { createColumnHelper } from "../index";
+
+// Compile-time conformance: `DataViewState`'s slices must remain assignment-compatible with the
+// TanStack v8 shapes they mirror, so they can flow straight into `useReactTable` without conversion.
+// If TanStack changes one of these shapes, one of these assignments fails to compile — catching the
+// drift at build time rather than at a distance.
+() => {
+	const _pagination: PaginationState = {} as DataViewState["pagination"];
+	const _sorting: SortingState = {} as DataViewState["sorting"];
+	const _selection: RowSelectionState = {} as DataViewState["rowSelection"];
+	const _visibility: VisibilityState = {} as DataViewState["columnVisibility"];
+	const _pinning: ColumnPinningState = {} as DataViewState["columnPinning"];
+	// And the reverse direction, so the shapes stay structurally equal (not just one-way assignable).
+	const _pagination2: DataViewState["pagination"] = {} as PaginationState;
+	const _sorting2: DataViewState["sorting"] = {} as SortingState;
+	void [
+		_pagination,
+		_sorting,
+		_selection,
+		_visibility,
+		_pinning,
+		_pagination2,
+		_sorting2,
+	];
+};
 
 interface User {
 	id: string;

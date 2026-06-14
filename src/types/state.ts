@@ -6,8 +6,16 @@
 // rather than pulled in from the table core. That keeps the public surface easy to read and
 // stable if the table core changes in a future major version.
 
-/** The two presentations that one core state instance can be projected into. */
-export type ViewMode = "table" | "cards";
+/** The presentations that one core state instance can be projected into. */
+export const VIEW_MODES = ["table", "cards"] as const;
+export type ViewMode = (typeof VIEW_MODES)[number];
+
+/** Runtime guard for a `ViewMode`, derived from the single `VIEW_MODES` source of truth. */
+export function isViewMode(value: unknown): value is ViewMode {
+	return (
+		typeof value === "string" && (VIEW_MODES as readonly string[]).includes(value)
+	);
+}
 
 /** Raw fetch lifecycle reported by the consumer. */
 export type Status = "idle" | "loading" | "success" | "error";
