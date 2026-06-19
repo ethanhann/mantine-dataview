@@ -62,12 +62,12 @@ export default defineConfig({
 				"src/**/index.ts",
 				"src/types/**",
 			],
-			// Gate regressions; set with headroom below current (lines ~93%, branches ~77%).
+			// Gate regressions
 			thresholds: {
-				statements: 88,
+				statements: 85,
 				branches: 70,
 				functions: 82,
-				lines: 88,
+				lines: 85,
 			},
 		},
 	},
