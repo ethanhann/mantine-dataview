@@ -29,6 +29,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
     "storybook:build": "storybook build",
     "prepublishOnly": "npm run build"
   },
