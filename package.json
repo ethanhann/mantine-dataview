@@ -31,8 +31,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome format --write .",
+    "lint:package": "publint --strict",
+    "check:exports": "attw --pack . --profile esm-only --exclude-entrypoints styles.css",
+    "check:package": "node scripts/check-package.mjs",
     "storybook:build": "storybook build",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run typecheck && npm run test:run && npm run build && npm run check:package && npm run lint:package && npm run check:exports"
   },
   "peerDependencies": {
     "@mantine/core": "^9.0.0",
