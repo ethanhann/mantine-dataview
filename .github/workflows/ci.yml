@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -22,7 +24,12 @@ jobs:
       - run: npm ci
 
       - name: Audit dependencies
-        run: npm audit --audit-level=critical
+        # Scope to what actually ships: dev-only advisories (e.g. Storybook) must
+        # not gate the published library. Raise the bar to "high" for runtime deps.
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run lint
 
       - name: Type check
         run: npm run typecheck
@@ -30,5 +37,24 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
+      # Hand the coverage summary to the Deploy Storybook workflow (which runs via
+      # workflow_run after this one), so the badge is generated without re-running
+      # the whole test suite there.
+      - name: Upload coverage summary
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: coverage/coverage-summary.json
+          if-no-files-found: error
+
       - name: Build library
         run: npm run build
+
+      - name: Validate package
+        run: |
+          npm run lint:package
+          npm run check:exports
+
+      - name: Build Storybook
+        run: npm run storybook:build
