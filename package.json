@@ -45,6 +45,7 @@
 		"react-dom": "^19.0.0"
 	},
 	"devDependencies": {
+		"@arethetypeswrong/cli": "^0.18.3",
 		"@axe-core/react": "^4.11.1",
 		"@biomejs/biome": "2.4.16",
 		"@mantine/code-highlight": "^9.3.0",
