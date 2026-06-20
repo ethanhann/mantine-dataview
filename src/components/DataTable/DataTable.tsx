@@ -291,6 +291,7 @@ function HeaderCell<TData>({
 					<SortIcon direction={sorted} />
 					{multiSorted && (
 						<span
+							role="img"
 							style={{ fontSize: "0.7em", opacity: 0.6 }}
 							aria-label={`sort priority ${sortIndex + 1}`}
 						>

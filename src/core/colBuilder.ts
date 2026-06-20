@@ -30,15 +30,17 @@ export interface ColOptions<TData> {
 }
 
 export function humanize(field: string): string {
-	return field
-		.replace(/_/g, " ")
-		// camelCase / digit→capital boundary: "createdAt" → "created At", "v2Name" → "v2 Name"
-		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-		// acronym run before a capitalized word: "HTTPStatus" → "HTTP Status"
-		.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-		// letter→digit boundary: "address1" → "address 1"
-		.replace(/([a-zA-Z])(\d)/g, "$1 $2")
-		.replace(/\b\w/g, (c) => c.toUpperCase());
+	return (
+		field
+			.replace(/_/g, " ")
+			// camelCase / digit→capital boundary: "createdAt" → "created At", "v2Name" → "v2 Name"
+			.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+			// acronym run before a capitalized word: "HTTPStatus" → "HTTP Status"
+			.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+			// letter→digit boundary: "address1" → "address 1"
+			.replace(/([a-zA-Z])(\d)/g, "$1 $2")
+			.replace(/\b\w/g, (c) => c.toUpperCase())
+	);
 }
 
 interface PresetConfig {

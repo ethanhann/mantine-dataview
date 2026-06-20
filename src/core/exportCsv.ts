@@ -61,7 +61,9 @@ export function exportCsv<TData>(
 	options?: ExportCsvOptions,
 ): void {
 	if (typeof document === "undefined") {
-		throw new Error("exportCsv requires a browser environment (document is undefined).");
+		throw new Error(
+			"exportCsv requires a browser environment (document is undefined).",
+		);
 	}
 	const {
 		filename = "export.csv",

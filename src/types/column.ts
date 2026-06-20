@@ -110,7 +110,6 @@ export type ColumnFilterMeta =
 	  };
 
 declare module "@tanstack/react-table" {
-	// biome-ignore lint/suspicious/noEmptyInterface: required for TanStack module augmentation
 	interface TableMeta<TData extends RowData> {
 		/** Current view mode, available in cell renderers via `ctx.table.options.meta?.viewMode`. */
 		viewMode?: "table" | "cards";

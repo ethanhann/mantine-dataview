@@ -18,7 +18,7 @@ import { col, createColumnHelper, type DataColumnDef } from "../index";
 import type { FacetData } from "../types/facets";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
 import { windowHistoryAdapter } from "../url";
-import { columns, createMockFetcher, people, type Person } from "./data";
+import { columns, createMockFetcher, type Person, people } from "./data";
 
 /**
  * `DataViewer` renders server-driven, paginated datasets as either a table or a card grid,
@@ -870,9 +870,7 @@ export const OptimisticReconciliation: Story = {
 			const serverDataRef = useRef([...people]);
 
 			const fetcher = useCallback(
-				async (
-					request: DataViewRequest,
-				): Promise<DataViewResponse<Person>> => {
+				async (request: DataViewRequest): Promise<DataViewResponse<Person>> => {
 					await new Promise((r) => setTimeout(r, 800));
 					let result = serverDataRef.current.slice();
 

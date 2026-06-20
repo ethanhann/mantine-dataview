@@ -8,8 +8,8 @@ export {
 	deserializeParams,
 	resolveInclude,
 	type SerializeContext,
-	type SyncableKey,
 	SYNCABLE_KEYS,
+	type SyncableKey,
 	serializeState,
 	stripManagedParams,
 } from "./serializer";

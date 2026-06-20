@@ -160,15 +160,16 @@ describe("deserializeParams", () => {
 
 	it("clamps a non-positive or fractional page size to the current size", () => {
 		const current = { ...base, pagination: { pageIndex: 0, pageSize: 20 } };
-		expect(
-			deserializeParams({ size: "0" }, dctx(current)).pagination,
-		).toEqual({ pageIndex: 0, pageSize: 20 });
-		expect(
-			deserializeParams({ size: "-5" }, dctx(current)).pagination,
-		).toEqual({ pageIndex: 0, pageSize: 20 });
-		expect(
-			deserializeParams({ size: "30" }, dctx(current)).pagination,
-		).toEqual({ pageIndex: 0, pageSize: 30 });
+		expect(deserializeParams({ size: "0" }, dctx(current)).pagination).toEqual({
+			pageIndex: 0,
+			pageSize: 20,
+		});
+		expect(deserializeParams({ size: "-5" }, dctx(current)).pagination).toEqual(
+			{ pageIndex: 0, pageSize: 20 },
+		);
+		expect(deserializeParams({ size: "30" }, dctx(current)).pagination).toEqual(
+			{ pageIndex: 0, pageSize: 30 },
+		);
 	});
 
 	it("omits the page size from the URL when it equals the supplied default", () => {

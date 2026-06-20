@@ -13,7 +13,8 @@ export type ViewMode = (typeof VIEW_MODES)[number];
 /** Runtime guard for a `ViewMode`, derived from the single `VIEW_MODES` source of truth. */
 export function isViewMode(value: unknown): value is ViewMode {
 	return (
-		typeof value === "string" && (VIEW_MODES as readonly string[]).includes(value)
+		typeof value === "string" &&
+		(VIEW_MODES as readonly string[]).includes(value)
 	);
 }
 
