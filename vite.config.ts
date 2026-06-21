@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
-import { resolve } from "node:path";
+import { statSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import dts from "unplugin-dts/vite";
 import { defineConfig } from "vite";
@@ -15,7 +16,21 @@ export default defineConfig({
 			// emitted `.d.ts` paths line up with package.json `exports`.
 			beforeWriteFile(filePath, content) {
 				const flattened = filePath.replace(/([\\/]dist[\\/])src[\\/]/, "$1");
-				return { filePath: flattened, content };
+				const srcDir = dirname(
+					filePath.replace(/([\\/])dist[\\/]src[\\/]/, "$1src/"),
+				);
+				const rewritten = content.replace(
+					/(from\s+['"])(\.[^'"]+)(['"])/g,
+					(_, pre, rel, post) => {
+						try {
+							if (statSync(resolve(srcDir, rel)).isDirectory()) {
+								return `${pre}${rel}/index.js${post}`;
+							}
+						} catch {}
+						return `${pre}${rel}.js${post}`;
+					},
+				);
+				return { filePath: flattened, content: rewritten };
 			},
 		}),
 	],
