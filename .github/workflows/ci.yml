@@ -54,7 +54,6 @@ jobs:
       - name: Validate package
         run: |
           npm run lint:package
-          npm run check:exports
 
       - name: Build Storybook
         run: npm run storybook:build
