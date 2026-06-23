@@ -4,7 +4,8 @@
 import {
 	Button,
 	Drawer,
-	Group, type MantineSize,
+	Group,
+	type MantineSize,
 	Popover,
 	Stack,
 	useMantineTheme,

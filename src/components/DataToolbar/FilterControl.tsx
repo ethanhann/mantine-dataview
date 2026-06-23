@@ -9,7 +9,8 @@
 import {
 	Anchor,
 	Group,
-	Input, type MantineSize,
+	Input,
+	type MantineSize,
 	MultiSelect,
 	NumberInput,
 	RangeSlider,
@@ -105,7 +106,7 @@ export function FilterControl<TData>({
 	column,
 	facet,
 	disabled,
-    size = "xs"
+	size = "xs",
 }: {
 	column: Column<TData>;
 	facet?: FacetData;
@@ -123,7 +124,11 @@ export function FilterControl<TData>({
 	if (meta.component) {
 		const Custom = meta.component;
 		return (
-			<Input.Wrapper label={label} className="meta-component-filter" size={size}>
+			<Input.Wrapper
+				label={label}
+				className="meta-component-filter"
+				size={size}
+			>
 				<Custom value={value} onChange={set} column={column} />
 			</Input.Wrapper>
 		);
@@ -250,7 +255,11 @@ export function FilterControl<TData>({
 			}
 
 			if (buckets) {
-				return <Input.Wrapper label={rangeLabel} size={size}>{buckets}</Input.Wrapper>;
+				return (
+					<Input.Wrapper label={rangeLabel} size={size}>
+						{buckets}
+					</Input.Wrapper>
+				);
 			}
 
 			const update = (next: [NumOrNull, NumOrNull]) =>
