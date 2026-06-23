@@ -4,7 +4,7 @@
 import {
 	Button,
 	Drawer,
-	Group,
+	Group, type MantineSize,
 	Popover,
 	Stack,
 	useMantineTheme,
@@ -25,7 +25,6 @@ function ClearFiltersButton<TData>({
 	return (
 		<Button
 			variant="subtle"
-			size="compact-sm"
 			color="gray"
 			leftSection={<CloseIcon />}
 			onClick={() => view.table.resetColumnFilters()}
@@ -56,20 +55,40 @@ function FilterStack<TData>({
 	);
 }
 
-export function FilterControls<TData>({
-	view,
-	inlineThreshold,
-	disabled,
-}: {
-	view: UseDataViewReturn<TData>;
-	inlineThreshold: number;
-	disabled?: boolean;
-}) {
-	const columns = view.filterableColumns;
+/**
+ * Resolves how the filter surface renders for the current viewport and column count. Shared so the
+ * toolbar can reserve matching label space on its other controls only when filters render inline
+ * (and therefore show a label above each input).
+ */
+export function useFilterLayout<TData>(
+	view: UseDataViewReturn<TData>,
+	inlineThreshold: number,
+) {
 	const theme = useMantineTheme();
 	const isMobile = useMediaQuery(
 		belowBreakpointQuery(theme.breakpoints.sm),
 		false,
+	);
+	const columns = view.filterableColumns;
+	const isInline =
+		!isMobile && columns.length > 0 && columns.length <= inlineThreshold;
+	return { isMobile, columns, isInline };
+}
+
+export function FilterControls<TData>({
+	view,
+	inlineThreshold,
+	disabled,
+	size = "xs",
+}: {
+	view: UseDataViewReturn<TData>;
+	inlineThreshold: number;
+	disabled?: boolean;
+	size?: MantineSize;
+}) {
+	const { isMobile, columns, isInline } = useFilterLayout(
+		view,
+		inlineThreshold,
 	);
 	const [modalOpen, { open, close }] = useDisclosure(false);
 
@@ -81,6 +100,7 @@ export function FilterControls<TData>({
 			column={column}
 			facet={view.facets[column.id]}
 			disabled={disabled}
+			size={size}
 		/>
 	));
 	const activeCount = view.state.columnFilters.length;
@@ -111,7 +131,7 @@ export function FilterControls<TData>({
 		);
 	}
 
-	if (columns.length <= inlineThreshold) {
+	if (isInline) {
 		return (
 			<>
 				{controls}

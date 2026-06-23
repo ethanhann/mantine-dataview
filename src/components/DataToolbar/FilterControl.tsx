@@ -9,7 +9,7 @@
 import {
 	Anchor,
 	Group,
-	Input,
+	Input, type MantineSize,
 	MultiSelect,
 	NumberInput,
 	RangeSlider,
@@ -37,9 +37,11 @@ const BOOLEAN_FALSE_KEYS = new Set(["false", "0", "no"]);
 function LabelWithClear({
 	label,
 	onClear,
+	size = "xs",
 }: {
 	label: string;
 	onClear: () => void;
+	size?: MantineSize;
 }) {
 	return (
 		<Group justify="space-between" wrap="nowrap">
@@ -49,7 +51,7 @@ function LabelWithClear({
 			<Anchor
 				component="button"
 				type="button"
-				size="xs"
+				size={size}
 				c="dimmed"
 				onClick={onClear}
 			>
@@ -103,10 +105,12 @@ export function FilterControl<TData>({
 	column,
 	facet,
 	disabled,
+    size = "xs"
 }: {
 	column: Column<TData>;
 	facet?: FacetData;
 	disabled?: boolean;
+	size?: MantineSize;
 }) {
 	const meta = column.columnDef.meta?.filter;
 	if (!meta) return null;
@@ -119,7 +123,7 @@ export function FilterControl<TData>({
 	if (meta.component) {
 		const Custom = meta.component;
 		return (
-			<Input.Wrapper label={label}>
+			<Input.Wrapper label={label} className="meta-component-filter" size={size}>
 				<Custom value={value} onChange={set} column={column} />
 			</Input.Wrapper>
 		);
@@ -132,6 +136,7 @@ export function FilterControl<TData>({
 		case "select":
 			return (
 				<Select
+					size={size}
 					label={label}
 					placeholder={placeholder}
 					clearable
@@ -149,6 +154,7 @@ export function FilterControl<TData>({
 			return (
 				<MultiSelect
 					label={label}
+					size={size}
 					placeholder={placeholder}
 					disabled={disabled}
 					data={
@@ -172,7 +178,7 @@ export function FilterControl<TData>({
 			const yesLabel = yesEntry ? `Yes (${yesEntry.count})` : "Yes";
 			const noLabel = noEntry ? `No (${noEntry.count})` : "No";
 			return (
-				<Input.Wrapper label={label}>
+				<Input.Wrapper label={label} size={size}>
 					<SegmentedControl
 						fullWidth
 						size="xs"
@@ -218,10 +224,11 @@ export function FilterControl<TData>({
 					? resolveFormatter(dataType, column.columnDef.meta?.format, undefined)
 					: (v: unknown) => String(v);
 				return (
-					<Input.Wrapper label={rangeLabel}>
+					<Input.Wrapper label={rangeLabel} size={size}>
 						<Stack gap="xs">
 							{buckets}
 							<RangeSlider
+								size={size}
 								disabled={disabled}
 								min={sliderMin}
 								max={sliderMax}
@@ -243,7 +250,7 @@ export function FilterControl<TData>({
 			}
 
 			if (buckets) {
-				return <Input.Wrapper label={rangeLabel}>{buckets}</Input.Wrapper>;
+				return <Input.Wrapper label={rangeLabel} size={size}>{buckets}</Input.Wrapper>;
 			}
 
 			const update = (next: [NumOrNull, NumOrNull]) =>
@@ -251,9 +258,10 @@ export function FilterControl<TData>({
 			const toNum = (v: number | string): NumOrNull =>
 				v === "" || v == null ? null : Number(v);
 			return (
-				<Input.Wrapper label={label}>
+				<Input.Wrapper label={label} size={size}>
 					<Group gap={4} wrap="nowrap">
 						<NumberInput
+							size={size}
 							aria-label={`${label} minimum`}
 							placeholder="Min"
 							disabled={disabled}
@@ -262,6 +270,7 @@ export function FilterControl<TData>({
 							w={90}
 						/>
 						<NumberInput
+							size={size}
 							aria-label={`${label} maximum`}
 							placeholder="Max"
 							disabled={disabled}
@@ -278,6 +287,7 @@ export function FilterControl<TData>({
 			return (
 				<DatePickerInput
 					label={label}
+					size={size}
 					placeholder={placeholder}
 					clearable
 					disabled={disabled}
@@ -300,7 +310,7 @@ export function FilterControl<TData>({
 					label
 				);
 			return (
-				<Input.Wrapper label={dateRangeLabel}>
+				<Input.Wrapper label={dateRangeLabel} size={size}>
 					<Stack gap="xs">
 						{rangeFacet && (
 							<FacetBuckets facet={rangeFacet} value={value} onChange={set} />
@@ -327,6 +337,7 @@ export function FilterControl<TData>({
 			return (
 				<TextInput
 					label={label}
+					size={size}
 					placeholder={placeholder}
 					disabled={disabled}
 					value={(value as string | undefined) ?? ""}

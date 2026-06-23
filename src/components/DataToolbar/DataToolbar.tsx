@@ -2,11 +2,17 @@
 // affordances that drive one core state, so they behave the same for the table and the cards.
 // Each section can be turned off, and sensible defaults derive from the column model.
 
-import { CloseButton, Group, type GroupProps, TextInput } from "@mantine/core";
+import {
+	CloseButton,
+	Group,
+	type GroupProps,
+	Stack,
+	TextInput,
+} from "@mantine/core";
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import { SearchIcon } from "../icons";
-import { FilterControls } from "./FilterControls";
+import { FilterControls, useFilterLayout } from "./FilterControls";
 import { SortControl } from "./SortControl";
 import { ViewSwitcher } from "./ViewSwitcher";
 import { VisibilityMenu } from "./VisibilityMenu";
@@ -57,7 +63,15 @@ export function DataToolbar<TData>({
 	const visibilityOn = showVisibility ?? true;
 	const switcherOn = showViewSwitcher ?? true;
 
-	return (
+	// Inline filters are label-on-top controls, so instead of seating them next to the single-line
+	// search/sort controls they get their own row beneath the control bar. When there are too many
+	// filters to inline they collapse into a single popover/drawer button, which is single-line and
+	// stays up on the control bar alongside search and sort.
+	const { isInline } = useFilterLayout(view, filterInlineThreshold);
+	const inlineFiltersOn = filtersOn && isInline;
+	const collapsedFiltersOn = filtersOn && !isInline;
+
+	const controlBar = (
 		<Group justify="space-between" wrap="wrap" gap="sm" {...groupProps}>
 			<Group wrap="wrap" gap="sm">
 				{leftSection}
@@ -81,7 +95,7 @@ export function DataToolbar<TData>({
 						}
 					/>
 				)}
-				{filtersOn && (
+				{collapsedFiltersOn && (
 					<FilterControls
 						view={view}
 						inlineThreshold={filterInlineThreshold}
@@ -102,5 +116,23 @@ export function DataToolbar<TData>({
 				{rightSection}
 			</Group>
 		</Group>
+	);
+
+	if (!inlineFiltersOn) return controlBar;
+
+	return (
+		<Stack gap="sm">
+			{controlBar}
+			{/* Bottom-align so every filter's input sits on one baseline. The labeled controls share a
+			    height, while the custom controls and the reset button are shorter — without this they
+			    float to the vertical center instead of lining up with the inputs. */}
+			<Group wrap="wrap" gap="sm" align="flex-start">
+				<FilterControls
+					view={view}
+					inlineThreshold={filterInlineThreshold}
+					disabled={loading}
+				/>
+			</Group>
+		</Stack>
 	);
 }
