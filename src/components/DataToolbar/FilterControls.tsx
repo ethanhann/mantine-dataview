@@ -25,6 +25,7 @@ function ClearFiltersButton<TData>({
 	if (!active) return null;
 	return (
 		<Button
+			style={{ alignSelf: "flex-end" }}
 			variant="subtle"
 			color="gray"
 			leftSection={<CloseIcon />}
