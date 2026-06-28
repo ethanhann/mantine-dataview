@@ -11,6 +11,7 @@ import {
 } from "../schedule";
 import { windowHistoryAdapter } from "../url";
 import { type Booking, createEventFetcher, eventColumns } from "./eventData";
+import { UrlReadout } from "./UrlReadout";
 // The schedule presentation requires Mantine's schedule styles in addition to core/dates styles.
 // @ts-expect-error CSS import has no type declarations
 import "@mantine/schedule/styles.css";
@@ -115,7 +116,8 @@ export const MonthView: Story = {
 /**
  * URL-synced: the active view and the schedule's visible window round-trip through the query
  * string (`?view=schedule&ws=…&we=…&wl=week`). Window sync is opt-in — list `"window"` in
- * `urlSync.include`. Navigate the calendar, then copy the URL or use the browser back button.
+ * `urlSync.include`. Switch to Schedule and navigate the calendar; the live readout below shows the
+ * query string updating (Storybook's iframe URL isn't visible in the address bar).
  */
 export const UrlSynced: Story = {
 	render: () => {
@@ -138,7 +140,12 @@ export const UrlSynced: Story = {
 					],
 				},
 			});
-			return <DataViewer view={view} views={[scheduleView<Booking>()]} />;
+			return (
+				<Stack gap="xs">
+					<DataViewer view={view} views={[scheduleView<Booking>()]} />
+					<UrlReadout />
+				</Stack>
+			);
 		}
 		return <Example />;
 	},

@@ -10,7 +10,7 @@ import {
 	TextInput,
 } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ViewSwitcher } from "../components/DataToolbar";
 import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
@@ -19,6 +19,7 @@ import type { FacetData } from "../types/facets";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
 import { windowHistoryAdapter } from "../url";
 import { columns, createMockFetcher, type Person, people } from "./data";
+import { UrlReadout } from "./UrlReadout";
 
 /**
  * `DataViewer` renders server-driven, paginated datasets as either a table or a card grid,
@@ -136,20 +137,6 @@ export const WithUrlSync: Story = {
 		return <Example />;
 	},
 };
-
-function UrlReadout() {
-	const [search, setSearch] = useState(window.location.search);
-	useEffect(() => {
-		const update = () => setSearch(window.location.search);
-		const id = setInterval(update, 300);
-		return () => clearInterval(id);
-	}, []);
-	return (
-		<Text size="xs" ff="monospace" c="dimmed">
-			URL: {search || "(no query params)"}
-		</Text>
-	);
-}
 
 /**
  * `historyMode: "push"` creates a new history entry for each filter/sort/page change, so browser
