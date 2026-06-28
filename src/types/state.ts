@@ -34,6 +34,21 @@ export function isViewMode(
 	);
 }
 
+/** Every known view id, including the opt-in `"schedule"`. Used to validate a view from the URL. */
+export const KNOWN_VIEW_MODES = [...VIEW_MODES, "schedule"] as const;
+
+/**
+ * Guard for any known `ViewMode`, including `"schedule"`. Unlike {@link isViewMode}, this accepts the
+ * opt-in schedule id so a `?view=schedule` URL can be restored; an unregistered schedule view then
+ * degrades to the table in `DataViewer`'s body rather than erroring.
+ */
+export function isKnownViewMode(value: unknown): value is ViewMode {
+	return (
+		typeof value === "string" &&
+		(KNOWN_VIEW_MODES as readonly string[]).includes(value)
+	);
+}
+
 /** Calendar zoom level for the schedule presentation. */
 export type ScheduleLevel = "day" | "week" | "month" | "year";
 

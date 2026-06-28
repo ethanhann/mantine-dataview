@@ -21,6 +21,12 @@ export interface UrlSerializer {
 	sort: string;
 	search: string;
 	view: string;
+	/** Schedule window start param (ISO). Only synced when `window` is in `urlSync.include`. */
+	windowStart: string;
+	/** Schedule window end param (ISO). */
+	windowEnd: string;
+	/** Schedule window level param (`day`/`week`/`month`/`year`). */
+	windowLevel: string;
 	/** Prefix for column filters. For example `f.` produces `f.<columnId>=<encoded>`. */
 	filterPrefix: string;
 	/** The column's filter meta, its variant and options, selects the codec. */

@@ -9,6 +9,7 @@ import {
 	type ScheduleEventData,
 	scheduleView,
 } from "../schedule";
+import { windowHistoryAdapter } from "../url";
 import { type Booking, createEventFetcher, eventColumns } from "./eventData";
 // The schedule presentation requires Mantine's schedule styles in addition to core/dates styles.
 // @ts-expect-error CSS import has no type declarations
@@ -106,6 +107,38 @@ export const MonthView: Story = {
 				fetcher,
 			});
 			return <DataSchedule view={view} defaultLevel="month" />;
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * URL-synced: the active view and the schedule's visible window round-trip through the query
+ * string (`?view=schedule&ws=…&we=…&wl=week`). Window sync is opt-in — list `"window"` in
+ * `urlSync.include`. Navigate the calendar, then copy the URL or use the browser back button.
+ */
+export const UrlSynced: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const adapter = useMemo(() => windowHistoryAdapter(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+				urlSync: {
+					adapter,
+					include: [
+						"pagination",
+						"sorting",
+						"columnFilters",
+						"globalFilter",
+						"view",
+						"window",
+					],
+				},
+			});
+			return <DataViewer view={view} views={[scheduleView<Booking>()]} />;
 		}
 		return <Example />;
 	},

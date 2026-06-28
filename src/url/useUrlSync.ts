@@ -53,6 +53,9 @@ function validateSerializer(serializer: UrlSerializer): void {
 		serializer.sort,
 		serializer.search,
 		serializer.view,
+		serializer.windowStart,
+		serializer.windowEnd,
+		serializer.windowLevel,
 	];
 	if (new Set(names).size !== names.length) {
 		throw new Error(

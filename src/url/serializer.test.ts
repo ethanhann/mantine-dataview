@@ -179,4 +179,69 @@ describe("deserializeParams", () => {
 		const written = serializeState(state, { ...ctx(), defaultPageSize: 10 });
 		expect(written.size).toBe("25");
 	});
+
+	it("accepts the schedule view from the URL but rejects unknown ids", () => {
+		expect(deserializeParams({ view: "schedule" }, dctx()).view).toBe(
+			"schedule",
+		);
+		expect(deserializeParams({ view: "bogus" }, dctx()).view).toBe("table");
+	});
+});
+
+describe("schedule window sync", () => {
+	const WINDOW = {
+		start: "2026-06-28T00:00:00.000Z",
+		end: "2026-07-05T00:00:00.000Z",
+		level: "week" as const,
+	};
+	const scheduleState: DataViewState = {
+		...base,
+		view: "schedule",
+		window: WINDOW,
+	};
+
+	it("is opt-in: omitted by default, included when listed", () => {
+		expect(resolveInclude()).not.toContain("window");
+		expect(resolveInclude(["window"])).toContain("window");
+	});
+
+	it("does not write window params under the default include", () => {
+		const params = serializeState(scheduleState, ctx(resolveInclude()));
+		expect(params.ws).toBeUndefined();
+		expect(params.we).toBeUndefined();
+		expect(params.wl).toBeUndefined();
+		// view still syncs by default.
+		expect(params.view).toBe("schedule");
+	});
+
+	it("encodes the window when opted in", () => {
+		const params = serializeState(scheduleState, ctx());
+		expect(params).toMatchObject({
+			ws: WINDOW.start,
+			we: WINDOW.end,
+			wl: "week",
+			view: "schedule",
+		});
+	});
+
+	it("round-trips the window", () => {
+		const params = serializeState(scheduleState, ctx());
+		const back = deserializeParams(params, dctx());
+		expect(back.window).toEqual(WINDOW);
+		expect(back.view).toBe("schedule");
+	});
+
+	it("keeps the current window when params are partial or invalid", () => {
+		const current = { ...base, window: WINDOW };
+		// Missing `we`/`wl`.
+		expect(
+			deserializeParams({ ws: "2026-01-01T00:00:00.000Z" }, dctx(current))
+				.window,
+		).toEqual(WINDOW);
+		// Bad level.
+		expect(
+			deserializeParams({ ws: "a", we: "b", wl: "decade" }, dctx(current))
+				.window,
+		).toEqual(WINDOW);
+	});
 });

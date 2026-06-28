@@ -10,7 +10,11 @@
 // representation for them, and selection is ephemeral. Only the slices below participate.
 
 import type { ColumnFilterMeta } from "../types/column";
-import { type DataViewState, isViewMode } from "../types/state";
+import {
+	type DataViewState,
+	isKnownViewMode,
+	type ScheduleLevel,
+} from "../types/state";
 import type { UrlSerializer } from "./types";
 
 export type SyncableKey =
@@ -18,15 +22,43 @@ export type SyncableKey =
 	| "sorting"
 	| "columnFilters"
 	| "globalFilter"
-	| "view";
+	| "view"
+	| "window";
 
+/** Every slice the serializer can manage. */
 export const SYNCABLE_KEYS: readonly SyncableKey[] = [
 	"pagination",
 	"sorting",
 	"columnFilters",
 	"globalFilter",
 	"view",
+	"window",
 ];
+
+/**
+ * Slices synced when `urlSync.include` is omitted. `window` is intentionally excluded — schedule
+ * date ranges are opt-in (enable them by listing `"window"` in `include`), mirroring how selection
+ * and column pinning are excluded from the URL by design.
+ */
+const DEFAULT_SYNCABLE: readonly SyncableKey[] = [
+	"pagination",
+	"sorting",
+	"columnFilters",
+	"globalFilter",
+	"view",
+];
+
+const SCHEDULE_LEVELS: readonly ScheduleLevel[] = [
+	"day",
+	"week",
+	"month",
+	"year",
+];
+function isScheduleLevel(value: string | undefined): value is ScheduleLevel {
+	return (
+		value != null && (SCHEDULE_LEVELS as readonly string[]).includes(value)
+	);
+}
 
 type FilterMetaLookup = (id: string) => ColumnFilterMeta | undefined;
 
@@ -43,6 +75,9 @@ export const defaultUrlSerializer: UrlSerializer = {
 	sort: "sort",
 	search: "q",
 	view: "view",
+	windowStart: "ws",
+	windowEnd: "we",
+	windowLevel: "wl",
 	filterPrefix: "f.",
 
 	encodeFilter(_id, value, meta) {
@@ -105,7 +140,9 @@ function toFiniteOrNull(raw: string | undefined): number | null {
 export function resolveInclude(
 	include?: Array<keyof DataViewState>,
 ): SyncableKey[] {
-	if (!include) return [...SYNCABLE_KEYS];
+	// Default omits `window` (opt-in). When `include` is given, the full set is allowed so a consumer
+	// can turn window sync on by listing it.
+	if (!include) return [...DEFAULT_SYNCABLE];
 	return SYNCABLE_KEYS.filter((k) => include.includes(k));
 }
 
@@ -162,6 +199,11 @@ export function serializeState(
 	if (include.includes("view")) {
 		params[serializer.view] = state.view;
 	}
+	if (include.includes("window") && state.window) {
+		params[serializer.windowStart] = state.window.start;
+		params[serializer.windowEnd] = state.window.end;
+		params[serializer.windowLevel] = state.window.level;
+	}
 	if (include.includes("columnFilters")) {
 		for (const { id, value } of state.columnFilters) {
 			const encoded = serializer.encodeFilter(id, value, getFilterMeta?.(id));
@@ -210,7 +252,20 @@ export function deserializeParams(
 	}
 	if (include.includes("view")) {
 		const rawView = params[serializer.view];
-		patch.view = rawView && isViewMode(rawView) ? rawView : current.view;
+		// Accept the opt-in `schedule` id too; an unregistered schedule view degrades to the table in
+		// the body rather than erroring, so restoring it from a URL is safe.
+		patch.view = rawView && isKnownViewMode(rawView) ? rawView : current.view;
+	}
+	if (include.includes("window")) {
+		const start = params[serializer.windowStart];
+		const end = params[serializer.windowEnd];
+		const level = params[serializer.windowLevel];
+		// Restore only a complete, valid window. An absent/partial param keeps the current window
+		// rather than clobbering an active calendar range (e.g. on a back/forward to a window-less URL).
+		patch.window =
+			start && end && isScheduleLevel(level)
+				? { start, end, level }
+				: current.window;
 	}
 	if (include.includes("columnFilters")) {
 		const filters: DataViewState["columnFilters"] = [];
@@ -244,6 +299,11 @@ export function stripManagedParams(
 	if (include.includes("sorting")) managed.add(serializer.sort);
 	if (include.includes("globalFilter")) managed.add(serializer.search);
 	if (include.includes("view")) managed.add(serializer.view);
+	if (include.includes("window")) {
+		managed.add(serializer.windowStart);
+		managed.add(serializer.windowEnd);
+		managed.add(serializer.windowLevel);
+	}
 
 	const stripFilters = include.includes("columnFilters");
 	const result: Record<string, string> = {};
