@@ -11,6 +11,11 @@ A reusable React library that renders **server-driven, paginated datasets** as e
 
 Built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack.com/table) v8.
 
+
+## Changelog
+
+See CHANGELOG.md
+
 ## Features
 
 - One hook drives both a Mantine `Table` and a Mantine `Card` grid; switch at runtime.
