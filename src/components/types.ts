@@ -6,7 +6,8 @@
 
 import type { Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
-import type { DataViewSelection } from "../types/options";
+import type { DataViewSelection, UseDataViewReturn } from "../types/options";
+import type { ViewMode } from "../types/state";
 
 export interface EmptySlotContext {
 	/** True when the empty result comes from active filters or search. */
@@ -39,6 +40,20 @@ export interface RenderCardContext<TData> {
 export interface CardSlotContext<TData> extends RenderCardContext<TData> {
 	/** The card body composed by default, including the selection overlay and role slots. */
 	children: ReactNode;
+}
+
+/**
+ * An opt-in presentation registered with `<DataViewer views={[...]} />`. The built-in table and
+ * cards views are always present; additional views (e.g. the schedule presentation from the
+ * `/schedule` subpath) are supplied as these descriptors so the core never has to import them.
+ */
+export interface RegisteredView<TData> {
+	/** View id, matched against `view.view` to decide which body renders. */
+	id: ViewMode;
+	/** Label shown in the view switcher. */
+	label: ReactNode;
+	/** Renders this view's body for the current state. */
+	render: (view: UseDataViewReturn<TData>) => ReactNode;
 }
 
 /** Customization slots shared by the presentations. */

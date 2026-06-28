@@ -14,6 +14,10 @@
 		"./url": {
 			"types": "./dist/url/index.d.ts",
 			"default": "./dist/url/index.js"
+		},
+		"./schedule": {
+			"types": "./dist/schedule/index.d.ts",
+			"default": "./dist/schedule/index.js"
 		}
 	},
 	"files": [
@@ -40,9 +44,19 @@
 		"@mantine/core": "^9.0.0",
 		"@mantine/dates": "^9.0.0",
 		"@mantine/hooks": "^9.0.0",
+		"@mantine/schedule": "^9.0.0",
 		"@tanstack/react-table": "^8.0.0",
+		"dayjs": "^1.11.0",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@mantine/schedule": {
+			"optional": true
+		},
+		"dayjs": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@arethetypeswrong/cli": "^0.18.3",
@@ -52,6 +66,7 @@
 		"@mantine/core": "^9.4.1",
 		"@mantine/dates": "^9.4.1",
 		"@mantine/hooks": "^9.4.1",
+		"@mantine/schedule": "^9.4.1",
 		"@storybook/addon-a11y": "^10.4.2",
 		"@storybook/addon-docs": "^10.4.2",
 		"@storybook/react-vite": "^10.4.2",
