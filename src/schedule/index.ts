@@ -28,6 +28,7 @@ export {
 // Date-window helpers, exported so consumers can drive `setWindow` from their own controls.
 export { computeWindow, shiftWindow } from "./dateWindow";
 export { composeScheduleEvent } from "./scheduleEvent";
+export { scheduleInitialState } from "./scheduleInitialState";
 export {
 	type ScheduleViewOptions,
 	scheduleView,

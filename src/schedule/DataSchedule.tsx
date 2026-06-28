@@ -55,10 +55,14 @@ export function DataSchedule<TData>({
 	const { table, renderStatus } = view;
 	const window = view.state.window;
 
-	// Set an initial window on mount so the fetcher loads the visible range. Runs once; later changes
-	// come from calendar navigation. Guarded so a window restored from initialState/URL is respected.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: mount-only; setWindow is stable
+	// On mount, make the core reflect that the schedule view is active and seed the visible window.
+	// Marking the view is what lets the window drive the request even when this component is rendered
+	// standalone (outside `DataViewer`'s switcher) — the core only sends `window` while the schedule
+	// view is active. Both are guarded so a view/window restored from `initialState` or the URL wins,
+	// and so opening via `scheduleInitialState` is a single fetch.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: mount-only; setView/setWindow are stable
 	useEffect(() => {
+		if (view.view !== "schedule") view.setView("schedule");
 		if (!view.state.window)
 			view.setWindow(computeWindow(new Date(), defaultLevel));
 	}, []);

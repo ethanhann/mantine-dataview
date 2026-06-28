@@ -1043,16 +1043,17 @@ import {DataSchedule} from "@ethanhann/mantine-dataview/schedule";
 
 There is no responsive `forceScheduleBelow` — that fallback is specific to cards (a dense table is
 unusable on small screens, so cards take over). To make the calendar the **only** view, lock the
-`DataViewer` to it: register the schedule view, open on it with `defaultView: "schedule"`, and hide
-the switcher. Compose the layout manually so you can pass `showViewSwitcher={false}`:
+`DataViewer` to it: register the schedule view, open directly on it with `scheduleInitialState()`,
+and hide the switcher. Compose the layout manually so you can pass `showViewSwitcher={false}`:
 
 ```tsx
-const view = useDataViewFetcher<Booking>({
-    columns,
-    getRowId,
-    fetcher,
-    defaultView: "schedule", // open directly on the calendar
-});
+import {scheduleInitialState, scheduleView} from "@ethanhann/mantine-dataview/schedule";
+
+// Seeds both the view and the initial window, so the first fetch is already windowed (no double
+// fetch). Memoize it so the anchor date is fixed to first render.
+const initialState = useMemo(() => scheduleInitialState("week"), []);
+
+const view = useDataViewFetcher<Booking>({columns, getRowId, fetcher, initialState});
 
 <DataViewer view={view} views={[scheduleView<Booking>()]}>
     <DataViewer.Toolbar showViewSwitcher={false}/> {/* no table/cards toggle */}
@@ -1064,6 +1065,11 @@ const view = useDataViewFetcher<Booking>({
 
 The toolbar's search and filters still apply across the calendar; there is no table/cards toggle and
 no pager. (For just the calendar with no toolbar at all, use the standalone `<DataSchedule>` above.)
+
+Without `scheduleInitialState`, opening on the calendar still works — the calendar sets its own
+window on mount — but it costs one extra fetch (a window-less request, then a windowed one). Seeding
+the window avoids that. A `window` set while the view is not the schedule view is held but never sent
+to the fetcher, so table and card requests are never polluted by a stale range.
 
 ### Mapping rows to events
 

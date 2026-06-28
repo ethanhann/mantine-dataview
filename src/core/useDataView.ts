@@ -329,6 +329,13 @@ export function useDataView<TData>(
 	const isMobileForced = useForceCards(responsive);
 	const view: ViewMode = isMobileForced ? "cards" : resolvedState.view;
 
+	// The window only drives the request while a schedule view is active. Persisting it in state
+	// (rather than clearing it on a view switch) means returning to the schedule restores the same
+	// range, while table and cards fetches never carry a stale window. Deriving it here — instead of
+	// reading `resolvedState.window` directly in the request — also keeps a table↔cards switch from
+	// churning the request: `activeWindow` stays `undefined` for both, so the memo doesn't recompute.
+	const activeWindow = view === "schedule" ? resolvedState.window : undefined;
+
 	const table = useReactTable<TData>({
 		data: rows,
 		meta: { viewMode: view },
@@ -374,15 +381,16 @@ export function useDataView<TData>(
 			filters: resolvedState.columnFilters,
 			globalFilter: resolvedState.globalFilter,
 			params,
-			// Omit `window` entirely for table/cards so existing fetchers see no new key.
-			...(resolvedState.window ? { window: resolvedState.window } : {}),
+			// Omit `window` entirely unless a schedule view is active, so table/cards fetchers see no
+			// new key and never receive a stale range.
+			...(activeWindow ? { window: activeWindow } : {}),
 		}),
 		[
 			resolvedState.pagination,
 			resolvedState.sorting,
 			resolvedState.columnFilters,
 			resolvedState.globalFilter,
-			resolvedState.window,
+			activeWindow,
 			paramsKey,
 		],
 	);

@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   backend the way you map pagination.
 - Opt-in URL sync for the schedule window (`?view=schedule&ws=…&we=…&wl=week`), enabled by listing
   `"window"` in `urlSync.include`. Off by default, like selection and column pinning.
+- `scheduleInitialState(level?, date?)` (from the `/schedule` subpath): seeds `initialState` so a
+  viewer opens directly on the calendar with its window already set, making the first fetch a single
+  windowed request instead of a window-less request followed by a windowed one.
 - New root-level type exports: `ScheduleRole`, `ScheduleFieldMeta`, `DataViewEvent`,
   `ScheduleLevel`, and `DataViewWindow`.
 
@@ -35,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ViewMode` now includes `"schedule"`, and `DataViewState` / `DataViewRequest` gain an optional
   `window` slice. These are additive; the table and card public API surface is unchanged, and a
   `?view=schedule` URL restored without a registered schedule view degrades gracefully to the table.
+- `request.window` is sent only while the schedule view is active. A window set under the table or
+  card view is held in state but never sent to the fetcher, so list requests are never polluted by a
+  stale date range, and switching between table and cards never churns the request.
 
 ## [0.9.0] - 2026-06-23
 

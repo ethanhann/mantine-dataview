@@ -206,10 +206,24 @@ describe("useDataView", () => {
 			expect("window" in lastRequest(onRequestChange)).toBe(false);
 		});
 
-		it("emits the window on the request (debounced) when set", () => {
+		it("does not include the window while the view is not schedule", () => {
+			vi.useFakeTimers();
+			const { result, onRequestChange } = setup(); // default view: table
+			act(() => result.current.setWindow(WINDOW));
+			act(() => vi.advanceTimersByTime(300));
+			// A window set in table mode is held in state but never sent — and triggers no fetch.
+			expect(onRequestChange).toHaveBeenCalledTimes(1);
+			expect("window" in lastRequest(onRequestChange)).toBe(false);
+		});
+
+		it("emits the window on the request (debounced) once the schedule view is active", () => {
 			vi.useFakeTimers();
 			const { result, onRequestChange } = setup();
 			expect(onRequestChange).toHaveBeenCalledTimes(1); // initial
+
+			// Switching to schedule with no window yet does not refetch.
+			act(() => result.current.setView("schedule"));
+			expect(onRequestChange).toHaveBeenCalledTimes(1);
 
 			act(() => result.current.setWindow(WINDOW));
 			// Debounced like a filter change — not emitted yet.
@@ -220,9 +234,24 @@ describe("useDataView", () => {
 			expect(lastRequest(onRequestChange).window).toEqual(WINDOW);
 		});
 
+		it("drops the window from the request when leaving the schedule view", () => {
+			vi.useFakeTimers();
+			const { result, onRequestChange } = setup();
+			act(() => result.current.setView("schedule"));
+			act(() => result.current.setWindow(WINDOW));
+			act(() => vi.advanceTimersByTime(300));
+			expect(lastRequest(onRequestChange).window).toEqual(WINDOW);
+
+			// Back to the table: the request drops the window so the list fetch isn't polluted.
+			act(() => result.current.setView("table"));
+			act(() => vi.advanceTimersByTime(300));
+			expect("window" in lastRequest(onRequestChange)).toBe(false);
+		});
+
 		it("coalesces rapid window changes into one request", () => {
 			vi.useFakeTimers();
 			const { result, onRequestChange } = setup();
+			act(() => result.current.setView("schedule"));
 			act(() => result.current.setWindow(WINDOW));
 			act(() =>
 				result.current.setWindow({
@@ -240,15 +269,37 @@ describe("useDataView", () => {
 		it("does not reset pagination when the window changes", () => {
 			vi.useFakeTimers();
 			const { result, onRequestChange } = setup();
+			act(() => result.current.setView("schedule"));
 			act(() => result.current.table.setPageIndex(3));
 			act(() => result.current.setWindow(WINDOW));
 			act(() => vi.advanceTimersByTime(300));
 			expect(lastRequest(onRequestChange).pagination.pageIndex).toBe(3);
 		});
 
+		it("seeds the window into the first request via initialState (no double fetch)", () => {
+			const onRequestChange = requestSpy();
+			renderHook(
+				() =>
+					useDataView({
+						columns,
+						rows: [],
+						rowCount: 0,
+						status: "success",
+						getRowId: (u: User) => u.id,
+						onRequestChange,
+						initialState: { view: "schedule", window: WINDOW },
+					}),
+				{ wrapper },
+			);
+			// Exactly one fetch on mount, already carrying the window.
+			expect(onRequestChange).toHaveBeenCalledTimes(1);
+			expect(lastRequest(onRequestChange).window).toEqual(WINDOW);
+		});
+
 		it("suppresses a pagination-only refetch while a window is active", () => {
 			vi.useFakeTimers();
 			const { result, onRequestChange } = setup();
+			act(() => result.current.setView("schedule"));
 			act(() => result.current.setWindow(WINDOW));
 			act(() => vi.advanceTimersByTime(300));
 			const countAfterWindow = onRequestChange.mock.calls.length;
