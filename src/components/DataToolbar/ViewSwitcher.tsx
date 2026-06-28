@@ -4,6 +4,8 @@
 import { SegmentedControl, Tooltip } from "@mantine/core";
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
+import type { ViewMode } from "../../types/state";
+import type { RegisteredView } from "../types";
 
 export interface ViewSwitcherProps<TData> {
 	view: UseDataViewReturn<TData>;
@@ -14,6 +16,11 @@ export interface ViewSwitcherProps<TData> {
 	tableLabel?: ReactNode;
 	/** Custom label for the cards option. Default: "Cards". */
 	cardsLabel?: ReactNode;
+	/**
+	 * Opt-in presentations to append after the built-in table/cards options. Only their `id` and
+	 * `label` are used, so the schedule chip appears only when its view is registered.
+	 */
+	views?: ReadonlyArray<Pick<RegisteredView<unknown>, "id" | "label">>;
 }
 
 export function ViewSwitcher<TData>({
@@ -22,8 +29,16 @@ export function ViewSwitcher<TData>({
 	disabled,
 	tableLabel = "Table",
 	cardsLabel = "Cards",
+	views,
 }: ViewSwitcherProps<TData>) {
 	if (view.isMobileForced && lockSwitcherOnMobile) return null;
+
+	const data = [
+		{ value: "table" as ViewMode, label: tableLabel },
+		{ value: "cards" as ViewMode, label: cardsLabel },
+		...(views ?? []).map((v) => ({ value: v.id, label: v.label })),
+	];
+	const available = new Set<string>(data.map((d) => d.value));
 
 	const control = (
 		<SegmentedControl
@@ -31,12 +46,9 @@ export function ViewSwitcher<TData>({
 			value={view.view}
 			disabled={disabled || view.isMobileForced}
 			onChange={(value) => {
-				if (value === "table" || value === "cards") view.setView(value);
+				if (available.has(value)) view.setView(value as ViewMode);
 			}}
-			data={[
-				{ value: "table", label: tableLabel },
-				{ value: "cards", label: cardsLabel },
-			]}
+			data={data}
 		/>
 	);
 

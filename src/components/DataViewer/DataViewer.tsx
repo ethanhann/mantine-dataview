@@ -11,7 +11,7 @@ import { DataCards, type DataCardsProps } from "../DataCards";
 import { DataPagination, type DataPaginationProps } from "../DataPagination";
 import { DataTable, type DataTableProps } from "../DataTable";
 import { DataToolbar, type DataToolbarProps } from "../DataToolbar";
-import type { DataViewSlots } from "../types";
+import type { DataViewSlots, RegisteredView } from "../types";
 import {
 	type DataViewContextValue,
 	DataViewProvider,
@@ -28,6 +28,12 @@ export interface DataViewerProps<TData> extends Omit<StackProps, "children"> {
 	/** Animate row enter/exit instead of showing skeletons. Default: false. */
 	animateRows?: boolean;
 	/**
+	 * Opt-in presentations beyond the built-in table and cards. Each adds a view-switcher option and
+	 * renders its own body when active. Use `scheduleView()` from the `/schedule` subpath, e.g.
+	 * `views={[scheduleView({ toEvent })]}`. With no `views` the component behaves exactly as before.
+	 */
+	views?: RegisteredView<TData>[];
+	/**
 	 * Custom composition. It defaults to Toolbar, BulkActions, Body, and Pagination. To pass
 	 * `tableProps`/`cardsProps` to the body or props to the pagination, compose manually with the
 	 * compound parts, e.g. `<DataViewer.Body tableProps={...} />` — these aren't exposed on the
@@ -43,6 +49,7 @@ export function DataViewer<TData>({
 	fallbackRole,
 	lockSwitcherOnMobile,
 	animateRows,
+	views,
 	children,
 	...stackProps
 }: DataViewerProps<TData>) {
@@ -56,6 +63,7 @@ export function DataViewer<TData>({
 		fallbackRole,
 		lockSwitcherOnMobile,
 		animateRows,
+		views,
 	};
 
 	return (
@@ -80,11 +88,12 @@ export type DataViewerToolbarProps<TData> = Omit<
 >;
 
 function DataViewToolbar<TData>(props: DataViewerToolbarProps<TData>) {
-	const { view, lockSwitcherOnMobile } = useDataViewContext<TData>();
+	const { view, lockSwitcherOnMobile, views } = useDataViewContext<TData>();
 	return (
 		<DataToolbar
 			view={view}
 			lockSwitcherOnMobile={lockSwitcherOnMobile}
+			views={views}
 			{...props}
 		/>
 	);
@@ -102,8 +111,13 @@ function DataViewBody<TData>({
 	tableProps,
 	cardsProps,
 }: DataViewerBodyProps<TData>) {
-	const { view, slots, renderCard, fallbackRole, animateRows } =
+	const { view, slots, renderCard, fallbackRole, animateRows, views } =
 		useDataViewContext<TData>();
+	// A registered opt-in view (e.g. schedule) renders its own body. If the active view id has no
+	// matching registration — e.g. a stale `?view=schedule` URL with no `views` prop — fall through
+	// to the built-in table, so an unregistered view degrades gracefully rather than rendering blank.
+	const registered = views?.find((v) => v.id === view.view);
+	if (registered) return registered.render(view);
 	return view.view === "cards" ? (
 		<DataCards
 			view={view}

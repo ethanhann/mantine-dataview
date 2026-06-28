@@ -72,12 +72,15 @@ export const bookings: Booking[] = (() => {
 	return out;
 })();
 
+// Card roles are set alongside schedule roles so the same columns project cleanly into the table,
+// cards, and schedule presentations in the integrated DataViewer story.
 export const eventColumns = col<Booking>()
-	.text("title", { schedule: "title" })
-	.date("start", { schedule: "start" })
-	.date("end", { schedule: "end" })
+	.text("title", { schedule: "title", card: "title" })
+	.date("start", { schedule: "start", card: "meta" })
+	.date("end", { schedule: "end", card: "meta" })
 	.select("room", {
 		schedule: "resource",
+		card: "badge",
 		options: ROOMS.map((r) => ({ value: r, label: r })),
 	})
 	.select("status", {
@@ -85,6 +88,7 @@ export const eventColumns = col<Booking>()
 			role: "color",
 			map: (s) => STATUS_COLOR[s as Booking["status"]],
 		},
+		card: "badge",
 		options: STATUSES.map((s) => ({ value: s, label: s })),
 	})
 	.build() satisfies DataColumnDef<Booking>[];
@@ -115,6 +119,8 @@ export function createEventFetcher(data: Booking[] = bookings, delay = 350) {
 		for (const f of request.filters) {
 			result = result.filter((b) => matchesFilter(b, f.id, f.value));
 		}
+
+		// Schedule mode: a window is set, so return every event overlapping the visible range.
 		if (request.window) {
 			const ws = new Date(request.window.start).getTime();
 			const we = new Date(request.window.end).getTime();
@@ -122,7 +128,13 @@ export function createEventFetcher(data: Booking[] = bookings, delay = 350) {
 				(b) =>
 					new Date(b.start).getTime() < we && new Date(b.end).getTime() > ws,
 			);
+			return { rows: result, rowCount: result.length };
 		}
-		return { rows: result, rowCount: result.length };
+
+		// Table/cards mode: no window, so paginate the full filtered set like a normal list backend.
+		const total = result.length;
+		const { pageIndex, pageSize } = request.pagination;
+		const start = pageIndex * pageSize;
+		return { rows: result.slice(start, start + pageSize), rowCount: total };
 	};
 }

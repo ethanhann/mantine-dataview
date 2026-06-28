@@ -1,11 +1,13 @@
 import { Stack } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
+import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
 import {
 	DataSchedule,
 	DataScheduleNav,
 	type ScheduleEventData,
+	scheduleView,
 } from "../schedule";
 import { type Booking, createEventFetcher, eventColumns } from "./eventData";
 // The schedule presentation requires Mantine's schedule styles in addition to core/dates styles.
@@ -66,6 +68,28 @@ export const WithExternalNav: Story = {
 					<DataSchedule view={view} />
 				</Stack>
 			);
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * The headline integration: one `DataViewer` driven by one fetcher, switchable between **table**,
+ * **cards**, and **schedule** at runtime. Registering `scheduleView()` adds the Schedule chip to
+ * the switcher; in schedule mode the toolbar drops the sort/column controls and the pager
+ * disappears (the calendar fetches by date window instead). Search and filters apply across all
+ * three views.
+ */
+export const IntegratedDataViewer: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return <DataViewer view={view} views={[scheduleView<Booking>()]} />;
 		}
 		return <Example />;
 	},

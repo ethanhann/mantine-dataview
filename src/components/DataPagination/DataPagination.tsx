@@ -31,6 +31,10 @@ export function DataPagination<TData>({
 	pageSizeLabel = "Rows per page",
 	...groupProps
 }: DataPaginationProps<TData>) {
+	// A calendar fetches by date window, not by page — the pager is meaningless in schedule mode and
+	// the calendar owns its own date navigation. Render nothing.
+	if (view.view === "schedule") return null;
+
 	const { table } = view;
 	const { pageIndex, pageSize } = view.state.pagination;
 	const total = table.getRowCount();
