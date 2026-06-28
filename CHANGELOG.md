@@ -3,6 +3,61 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-06-28
+
+### Added
+
+- Opt-in **schedule presentation**: project event-shaped data into a Mantine calendar
+  (day/week/month/year), switchable at runtime alongside the table and card views. It ships from a
+  separate entry point, `@ethanhann/mantine-dataview/schedule`, so the scheduler dependency is never
+  bundled unless you import it. `@mantine/schedule` and `dayjs` are **optional** peer dependencies.
+- New exports from the `@ethanhann/mantine-dataview/schedule` subpath: `DataSchedule`,
+  `DataScheduleNav`, `scheduleView`, `composeEvent`, `composeScheduleEvent`, `computeWindow`,
+  `shiftWindow`, and the `ScheduleEventData` / `RegisteredView` types.
+- Declarative row-to-event mapping via `meta.schedule` column roles (`start`, `end`, `duration`,
+  `title`, `color`, `resource`, `allDay`) with an optional `map` transform, plus a `schedule`
+  shorthand on the `col` builder. A `toEvent` escape hatch on `DataSchedule` bypasses role
+  composition for derived event shapes.
+- `DataViewer` gains a `views` prop to register opt-in presentations (e.g.
+  `views={[scheduleView()]}`). The view switcher shows registered views; in schedule mode the
+  toolbar hides the sort and column controls and the pager is suppressed (the calendar fetches by
+  date window and owns its own navigation). With no `views`, behavior is unchanged.
+- `DataViewRequest.window` (`{ start, end, level }`) and a `setWindow` method on the hook return:
+  a schedule view fetches the visible date range instead of a page. Map `request.window` onto your
+  backend the way you map pagination.
+- Opt-in URL sync for the schedule window (`?view=schedule&ws=…&we=…&wl=week`), enabled by listing
+  `"window"` in `urlSync.include`. Off by default, like selection and column pinning.
+- New root-level type exports: `ScheduleRole`, `ScheduleFieldMeta`, `DataViewEvent`,
+  `ScheduleLevel`, and `DataViewWindow`.
+
+### Changed
+
+- `ViewMode` now includes `"schedule"`, and `DataViewState` / `DataViewRequest` gain an optional
+  `window` slice. These are additive; the table and card public API surface is unchanged, and a
+  `?view=schedule` URL restored without a registered schedule view degrades gracefully to the table.
+
+## [0.9.0] - 2026-06-23
+
+### Added
+
+- `size` prop on the toolbar filter controls for layout customization.
+- Package-validation tooling wired into the build and CI: `publint` (`lint:package`) and
+  `@arethetypeswrong/cli` (`check:exports`) verify the published package and its type definitions.
+
+### Fixed
+
+- Emitted `.d.ts` files now rewrite relative imports with explicit `.js` extensions and directory
+  `index.js` paths, so subpath type resolution works correctly under `node16`/`bundler` module
+  resolution.
+- The filter close button aligns to the bottom in `FilterControls` so it sits on the same baseline
+  as the filter inputs.
+
+### Changed
+
+- Tooling: adopted Biome 2.5.1 (with the recommended preset) for lint and format, replaced the
+  `justfile` recipes with standardized npm scripts, and upgraded dev dependencies
+  (`@arethetypeswrong/cli` 0.18.4, `axe-core` 4.12.1).
+
 ## [0.8.1] - 2026-06-14
 
 ### Added
