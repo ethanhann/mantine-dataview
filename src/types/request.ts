@@ -5,7 +5,12 @@
 // variables. They then map the result back into a `DataViewResponse`.
 
 import type { FacetData } from "./facets";
-import type { DataViewFilter, DataViewPagination, DataViewSort } from "./state";
+import type {
+	DataViewFilter,
+	DataViewPagination,
+	DataViewSort,
+	DataViewWindow,
+} from "./state";
 
 /** Allowed value types for external filter parameters. */
 export type FilterParam =
@@ -28,6 +33,12 @@ export interface DataViewRequest {
 	globalFilter: string;
 	/** External parameters passed through from the consumer. A value of `undefined` means "omit". */
 	params: Record<string, FilterParam>;
+	/**
+	 * Visible date range when projecting into a schedule view. Absent for table/cards, so existing
+	 * fetchers are unaffected. The consumer maps this onto their backend the same way they map
+	 * pagination — it is the schedule equivalent of "which page".
+	 */
+	window?: DataViewWindow;
 }
 
 /** What the consumer feeds back in for the current page. */

@@ -194,6 +194,71 @@ describe("useDataView", () => {
 		expect(result.current.view).toBe("cards");
 	});
 
+	const WINDOW = {
+		start: "2026-06-28T00:00:00.000Z",
+		end: "2026-07-05T00:00:00.000Z",
+		level: "week" as const,
+	};
+
+	describe("schedule window", () => {
+		it("omits window from the request for table/cards", () => {
+			const { onRequestChange } = setup();
+			expect("window" in lastRequest(onRequestChange)).toBe(false);
+		});
+
+		it("emits the window on the request (debounced) when set", () => {
+			vi.useFakeTimers();
+			const { result, onRequestChange } = setup();
+			expect(onRequestChange).toHaveBeenCalledTimes(1); // initial
+
+			act(() => result.current.setWindow(WINDOW));
+			// Debounced like a filter change — not emitted yet.
+			expect(onRequestChange).toHaveBeenCalledTimes(1);
+
+			act(() => vi.advanceTimersByTime(300));
+			expect(onRequestChange).toHaveBeenCalledTimes(2);
+			expect(lastRequest(onRequestChange).window).toEqual(WINDOW);
+		});
+
+		it("coalesces rapid window changes into one request", () => {
+			vi.useFakeTimers();
+			const { result, onRequestChange } = setup();
+			act(() => result.current.setWindow(WINDOW));
+			act(() =>
+				result.current.setWindow({
+					...WINDOW,
+					level: "day",
+					end: WINDOW.start,
+				}),
+			);
+			act(() => vi.advanceTimersByTime(300));
+			// Initial + a single coalesced emit.
+			expect(onRequestChange).toHaveBeenCalledTimes(2);
+			expect(lastRequest(onRequestChange).window?.level).toBe("day");
+		});
+
+		it("does not reset pagination when the window changes", () => {
+			vi.useFakeTimers();
+			const { result, onRequestChange } = setup();
+			act(() => result.current.table.setPageIndex(3));
+			act(() => result.current.setWindow(WINDOW));
+			act(() => vi.advanceTimersByTime(300));
+			expect(lastRequest(onRequestChange).pagination.pageIndex).toBe(3);
+		});
+
+		it("suppresses a pagination-only refetch while a window is active", () => {
+			vi.useFakeTimers();
+			const { result, onRequestChange } = setup();
+			act(() => result.current.setWindow(WINDOW));
+			act(() => vi.advanceTimersByTime(300));
+			const countAfterWindow = onRequestChange.mock.calls.length;
+
+			// The pager is inert in schedule mode: this must not emit a new request.
+			act(() => result.current.table.setPageIndex(2));
+			expect(onRequestChange).toHaveBeenCalledTimes(countAfterWindow);
+		});
+	});
+
 	it("keeps selection across pages, keyed by getRowId", () => {
 		const { result, rerender, initialProps } = setup();
 		act(() => result.current.table.setRowSelection({ "1": true }));

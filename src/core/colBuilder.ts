@@ -9,6 +9,7 @@ import type {
 	DataColumnDef,
 	FilterOption,
 } from "../types/column";
+import type { ScheduleFieldMeta, ScheduleRole } from "../types/schedule";
 
 type Field<TData> = keyof TData & string;
 
@@ -27,6 +28,11 @@ export interface ColOptions<TData> {
 	options?: FilterOption[];
 	/** Column width in pixels. Sets TanStack's `size` property. */
 	width?: number;
+	/**
+	 * Role this column plays in the schedule presentation. A bare `ScheduleRole` is shorthand for
+	 * `{ role }`; pass the object form to add a `map` transform (e.g. status → color).
+	 */
+	schedule?: ScheduleRole | ScheduleFieldMeta;
 }
 
 export function humanize(field: string): string {
@@ -102,6 +108,12 @@ export class ColumnBuilder<TData> {
 						...(opts.cardOrder != null ? { order: opts.cardOrder } : {}),
 					}
 				: undefined;
+		const schedule: ScheduleFieldMeta | undefined =
+			opts?.schedule == null
+				? undefined
+				: typeof opts.schedule === "string"
+					? { role: opts.schedule }
+					: opts.schedule;
 		const meta: ColumnMeta<TData, unknown> = {
 			label,
 			...(config.dataType ? { dataType: config.dataType } : {}),
@@ -109,6 +121,7 @@ export class ColumnBuilder<TData> {
 			...(filter ? { filter } : {}),
 			...(opts?.format ? { format: opts.format } : {}),
 			...(card ? { card } : {}),
+			...(schedule ? { schedule } : {}),
 		};
 
 		// biome-ignore lint/suspicious/noExplicitAny: TanStack accessor expects any for heterogeneous columns

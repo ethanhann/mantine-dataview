@@ -4,6 +4,7 @@
 
 import type { Column, ColumnDef, RowData } from "@tanstack/react-table";
 import type { ComponentType } from "react";
+import type { ScheduleFieldMeta } from "./schedule";
 
 /**
  * The column definition consumers author. Use it with `satisfies DataColumnDef<T>[]`.
@@ -112,7 +113,7 @@ export type ColumnFilterMeta =
 declare module "@tanstack/react-table" {
 	interface TableMeta<TData extends RowData> {
 		/** Current view mode, available in cell renderers via `ctx.table.options.meta?.viewMode`. */
-		viewMode?: "table" | "cards";
+		viewMode?: "table" | "cards" | "schedule";
 	}
 
 	// The type parameters are required to match TanStack's declaration for merging, even
@@ -122,6 +123,8 @@ declare module "@tanstack/react-table" {
 		label?: string;
 		/** Controls how this column appears in card view. */
 		card?: CardFieldMeta;
+		/** Maps this column into a calendar event in the schedule presentation. */
+		schedule?: ScheduleFieldMeta;
 		/** Declarative filter UI. It renders identically in both views. */
 		filter?: ColumnFilterMeta;
 		align?: ColumnAlign;

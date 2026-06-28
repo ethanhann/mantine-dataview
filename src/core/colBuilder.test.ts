@@ -97,6 +97,24 @@ describe("col builder", () => {
 		expect(columns[0]!.meta?.card).toEqual({ role: "badge", order: 2 });
 	});
 
+	it("sets schedule role from string shorthand", () => {
+		const columns = col<Product>().text("name", { schedule: "title" }).build();
+		expect(columns[0]!.meta?.schedule).toEqual({ role: "title" });
+	});
+
+	it("sets schedule role with a map transform from object form", () => {
+		const map = (v: unknown) => String(v);
+		const columns = col<Product>()
+			.text("status", { schedule: { role: "color", map } })
+			.build();
+		expect(columns[0]!.meta?.schedule).toEqual({ role: "color", map });
+	});
+
+	it("omits schedule meta when not provided", () => {
+		const columns = col<Product>().text("name").build();
+		expect(columns[0]!.meta?.schedule).toBeUndefined();
+	});
+
 	it("disables filter with filter: false", () => {
 		const columns = col<Product>().text("name", { filter: false }).build();
 		expect(columns[0]!.meta?.filter).toBeUndefined();

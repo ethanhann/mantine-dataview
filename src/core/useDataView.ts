@@ -22,7 +22,7 @@ import type {
 	UseDataViewReturn,
 } from "../types/options";
 import type { DataViewRequest } from "../types/request";
-import type { DataViewState, ViewMode } from "../types/state";
+import type { DataViewState, DataViewWindow, ViewMode } from "../types/state";
 import {
 	hydrateFromUrl,
 	resolveUrlConfig,
@@ -143,7 +143,11 @@ export function useDataView<TData>(
 
 	const facets = facetsInput ?? {};
 	const paramsKey = paramsInput ? JSON.stringify(paramsInput) : "";
-	const params = paramsInput ?? {};
+	// Keep `params` reference-stable while its content is unchanged. Without this it would be a fresh
+	// object every render, so the request's `params` slice would look "changed" on a pagination-only
+	// update — which the schedule pager-suppression check relies on being able to distinguish.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: paramsKey is the value-identity of paramsInput
+	const params = useMemo(() => paramsInput ?? {}, [paramsKey]);
 
 	const columns = useMemo(
 		() =>
@@ -370,12 +374,15 @@ export function useDataView<TData>(
 			filters: resolvedState.columnFilters,
 			globalFilter: resolvedState.globalFilter,
 			params,
+			// Omit `window` entirely for table/cards so existing fetchers see no new key.
+			...(resolvedState.window ? { window: resolvedState.window } : {}),
 		}),
 		[
 			resolvedState.pagination,
 			resolvedState.sorting,
 			resolvedState.columnFilters,
 			resolvedState.globalFilter,
+			resolvedState.window,
 			paramsKey,
 		],
 	);
@@ -398,6 +405,9 @@ export function useDataView<TData>(
 		const isFirst = prev === null;
 		const searchChanged = !!prev && prev.globalFilter !== request.globalFilter;
 		const filtersChanged = !!prev && prev.filters !== request.filters;
+		const windowChanged = !!prev && prev.window !== request.window;
+		const paginationChanged = !!prev && prev.pagination !== request.pagination;
+		const windowActive = request.window != null;
 		prevRequestRef.current = request;
 
 		const emit = () => {
@@ -409,14 +419,34 @@ export function useDataView<TData>(
 			delay = Math.max(delay, debounceRef.current.globalFilter);
 		if (filtersChanged)
 			delay = Math.max(delay, debounceRef.current.columnFilters);
-		// Only debounce when the *sole* change is search/filter. If anything else changed (e.g. the
-		// user paginated or sorted), emit immediately — clearing any pending search timer also flushes
-		// the in-progress search value along with the new pagination, so nothing is lost.
+		// Date navigation coalesces like filtering — rapid prev/next steps emit one request.
+		if (windowChanged)
+			delay = Math.max(delay, debounceRef.current.columnFilters);
+		// Only debounce when the *sole* change is search/filter/window. If anything else changed (e.g.
+		// the user paginated or sorted), emit immediately — clearing any pending timer also flushes the
+		// in-progress debounced value along with the new change, so nothing is lost.
 		const shouldDebounce =
-			!isFirst && (searchChanged || filtersChanged) && delay > 0;
+			!isFirst &&
+			(searchChanged || filtersChanged || windowChanged) &&
+			delay > 0;
+
+		// While a schedule window is active the pager is inert: the calendar renders its whole window,
+		// not a page. A pagination-only change must not refetch. Any change beyond pagination falls
+		// through to normal emission.
+		const onlyPaginationChanged =
+			paginationChanged &&
+			!searchChanged &&
+			!filtersChanged &&
+			!windowChanged &&
+			!!prev &&
+			prev.sorting === request.sorting &&
+			prev.params === request.params;
+		const suppressed = !isFirst && windowActive && onlyPaginationChanged;
 
 		clearTimeout(timerRef.current);
-		if (shouldDebounce) {
+		if (suppressed) {
+			// Intentionally emit nothing.
+		} else if (shouldDebounce) {
 			timerRef.current = setTimeout(emit, delay);
 		} else {
 			emit();
@@ -445,6 +475,13 @@ export function useDataView<TData>(
 
 	const setView = useCallback(
 		(next: ViewMode) => applyPatch({ view: next }),
+		[applyPatch],
+	);
+
+	// Date navigation for the schedule view. Deliberately does not reset pagination: the window and
+	// the pager are independent, and the pager is inert while a window is active.
+	const setWindow = useCallback(
+		(next: DataViewWindow) => applyPatch({ window: next }),
 		[applyPatch],
 	);
 
@@ -523,6 +560,7 @@ export function useDataView<TData>(
 		state: resolvedState,
 		view,
 		setView,
+		setWindow,
 		isMobileForced,
 		status,
 		error,
