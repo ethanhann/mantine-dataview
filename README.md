@@ -1039,6 +1039,32 @@ import {DataSchedule} from "@ethanhann/mantine-dataview/schedule";
 <DataSchedule view={view}/>;
 ```
 
+### Locking to the schedule view
+
+There is no responsive `forceScheduleBelow` — that fallback is specific to cards (a dense table is
+unusable on small screens, so cards take over). To make the calendar the **only** view, lock the
+`DataViewer` to it: register the schedule view, open on it with `defaultView: "schedule"`, and hide
+the switcher. Compose the layout manually so you can pass `showViewSwitcher={false}`:
+
+```tsx
+const view = useDataViewFetcher<Booking>({
+    columns,
+    getRowId,
+    fetcher,
+    defaultView: "schedule", // open directly on the calendar
+});
+
+<DataViewer view={view} views={[scheduleView<Booking>()]}>
+    <DataViewer.Toolbar showViewSwitcher={false}/> {/* no table/cards toggle */}
+    <DataViewer.BulkActions/>
+    <DataViewer.Body/>
+    <DataViewer.Pagination/> {/* auto-suppressed in schedule mode */}
+</DataViewer>;
+```
+
+The toolbar's search and filters still apply across the calendar; there is no table/cards toggle and
+no pager. (For just the calendar with no toolbar at all, use the standalone `<DataSchedule>` above.)
+
 ### Mapping rows to events
 
 Rows become calendar events the same way columns become card fields — declaratively, via
