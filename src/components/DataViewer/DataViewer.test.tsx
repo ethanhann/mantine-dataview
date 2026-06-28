@@ -8,8 +8,16 @@ import { useDataView } from "../../core/useDataView";
 import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
 import type { DataViewState, Status } from "../../types/state";
-import type { DataViewSlots } from "../types";
+import type { DataViewSlots, RegisteredView } from "../types";
 import { DataViewer } from "./DataViewer";
+
+// A registration stub that needs no `@mantine/schedule` dependency, so the orchestrator's view
+// dispatch is tested in isolation from the real schedule presentation.
+const scheduleStub: RegisteredView<User> = {
+	id: "schedule",
+	label: "Schedule",
+	render: () => <div data-testid="sched-body">calendar</div>,
+};
 
 interface User {
 	id: string;
@@ -34,6 +42,7 @@ interface HarnessProps {
 	status?: Status;
 	initialState?: Partial<DataViewState>;
 	slots?: DataViewSlots<User>;
+	views?: RegisteredView<User>[];
 	children?: ReactNode;
 }
 
@@ -47,7 +56,7 @@ function Harness({ children, ...props }: HarnessProps) {
 		initialState: props.initialState,
 	});
 	return (
-		<DataViewer view={view} slots={props.slots}>
+		<DataViewer view={view} slots={props.slots} views={props.views}>
 			{children}
 		</DataViewer>
 	);
@@ -116,5 +125,42 @@ describe("DataViewer orchestrator", () => {
 	it("has no accessibility violations", async () => {
 		const { container } = renderView();
 		expect(await axe(container)).toHaveNoViolations();
+	});
+
+	describe("registered views", () => {
+		it("offers no schedule option unless a view is registered", () => {
+			renderView();
+			expect(screen.getByRole("radio", { name: "Table" })).toBeInTheDocument();
+			expect(screen.queryByRole("radio", { name: "Schedule" })).toBeNull();
+		});
+
+		it("offers the schedule option and switches the body to it", async () => {
+			renderView({ views: [scheduleStub] });
+			expect(
+				screen.getByRole("radio", { name: "Schedule" }),
+			).toBeInTheDocument();
+			// Built-in body is shown first.
+			expect(screen.queryByTestId("sched-body")).toBeNull();
+
+			await userEvent.click(screen.getByRole("radio", { name: "Schedule" }));
+			expect(screen.getByTestId("sched-body")).toBeVisible();
+			// The pager is suppressed in schedule mode.
+			expect(screen.queryByText(/of 2/)).toBeNull();
+		});
+
+		it("hides sort and column controls in schedule mode but keeps search", () => {
+			renderView({ views: [scheduleStub], initialState: { view: "schedule" } });
+			expect(screen.getByTestId("sched-body")).toBeVisible();
+			expect(screen.getByLabelText("Search")).toBeVisible();
+			expect(screen.queryByLabelText("Sort by")).toBeNull();
+			expect(screen.queryByRole("button", { name: "Columns" })).toBeNull();
+		});
+
+		it("falls back to the table body for an unregistered active view", () => {
+			// `?view=schedule`-style state with no matching registration: degrade to the table.
+			renderView({ initialState: { view: "schedule" } });
+			expect(screen.getByRole("columnheader", { name: /Name/ })).toBeVisible();
+			expect(screen.queryByTestId("sched-body")).toBeNull();
+		});
 	});
 });

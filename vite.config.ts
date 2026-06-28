@@ -39,6 +39,7 @@ export default defineConfig({
 			entry: {
 				index: resolve(__dirname, "src/index.ts"),
 				"url/index": resolve(__dirname, "src/url/index.ts"),
+				"schedule/index": resolve(__dirname, "src/schedule/index.ts"),
 			},
 			formats: ["es"],
 			fileName: (_format, entryName) => `${entryName}.js`,
@@ -52,7 +53,10 @@ export default defineConfig({
 				"@mantine/dates",
 				"@mantine/dates/styles.css",
 				"@mantine/hooks",
+				"@mantine/schedule",
+				"@mantine/schedule/styles.css",
 				"@tanstack/react-table",
+				"dayjs",
 			],
 			output: {
 				preserveModules: false,

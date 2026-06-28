@@ -13,7 +13,13 @@ import type {
 } from "./column";
 import type { FacetData } from "./facets";
 import type { DataViewRequest, FilterParam } from "./request";
-import type { DataViewState, DataViewStatus, Status, ViewMode } from "./state";
+import type {
+	DataViewState,
+	DataViewStatus,
+	DataViewWindow,
+	Status,
+	ViewMode,
+} from "./state";
 
 /** Force cards at or below a Mantine breakpoint. Cards are the preferred view on small screens. */
 export interface ResponsiveOptions {
@@ -114,6 +120,11 @@ export interface UseDataViewReturn<TData> {
 	state: DataViewState;
 	view: ViewMode;
 	setView: (v: ViewMode) => void;
+	/**
+	 * Set the visible date range for a schedule view. Emits a (debounced) request carrying the new
+	 * `window` and does not reset pagination. Driven by the schedule presentation's date navigator.
+	 */
+	setWindow: (next: DataViewWindow) => void;
 	/** True when the responsive rule forces cards. */
 	isMobileForced: boolean;
 	// The echoed inputs plus a derived render status let presentations stay thin projections.

@@ -103,6 +103,13 @@ export type {
 	DataViewResponse,
 	FilterParam,
 } from "./types/request";
+// Schedule presentation column model. Types only — the runtime presentation ships from the
+// optional `@ethanhann/mantine-dataview/schedule` subpath, so importing these pulls no scheduler.
+export type {
+	DataViewEvent,
+	ScheduleFieldMeta,
+	ScheduleRole,
+} from "./types/schedule";
 export type {
 	DataViewColumnPinning,
 	DataViewFilter,
@@ -110,6 +117,8 @@ export type {
 	DataViewSort,
 	DataViewState,
 	DataViewStatus,
+	DataViewWindow,
+	ScheduleLevel,
 	Status,
 	ViewMode,
 } from "./types/state";

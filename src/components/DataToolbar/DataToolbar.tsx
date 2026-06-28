@@ -12,6 +12,7 @@ import {
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import { SearchIcon } from "../icons";
+import type { RegisteredView } from "../types";
 import { FilterControls, useFilterLayout } from "./FilterControls";
 import { SortControl } from "./SortControl";
 import { ViewSwitcher } from "./ViewSwitcher";
@@ -38,6 +39,8 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 	leftSection?: ReactNode;
 	/** Content injected at the end of the right control group (after view switcher). */
 	rightSection?: ReactNode;
+	/** Opt-in presentations to offer in the view switcher (e.g. the schedule view). */
+	views?: ReadonlyArray<Pick<RegisteredView<unknown>, "id" | "label">>;
 }
 
 export function DataToolbar<TData>({
@@ -53,14 +56,18 @@ export function DataToolbar<TData>({
 	disableWhileLoading = true,
 	leftSection,
 	rightSection,
+	views,
 	...groupProps
 }: DataToolbarProps<TData>) {
 	const { table, state } = view;
 	const loading = disableWhileLoading && view.status === "loading";
+	// Sorting and column visibility are table/cards concepts; a calendar has neither. Hide both in
+	// schedule mode while keeping search, filters, and the switcher.
+	const scheduleMode = view.view === "schedule";
 	const searchOn = showSearch ?? table.options.enableGlobalFilter !== false;
 	const filtersOn = showFilters ?? view.filterableColumns.length > 0;
-	const sortOn = showSort ?? view.sortableColumns.length > 0;
-	const visibilityOn = showVisibility ?? true;
+	const sortOn = (showSort ?? view.sortableColumns.length > 0) && !scheduleMode;
+	const visibilityOn = (showVisibility ?? true) && !scheduleMode;
 	const switcherOn = showViewSwitcher ?? true;
 
 	// Inline filters are label-on-top controls, so instead of seating them next to the single-line
@@ -111,6 +118,7 @@ export function DataToolbar<TData>({
 						view={view}
 						lockSwitcherOnMobile={lockSwitcherOnMobile}
 						disabled={loading}
+						views={views}
 					/>
 				)}
 				{rightSection}

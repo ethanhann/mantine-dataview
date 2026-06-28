@@ -129,3 +129,74 @@ describe("useDataView + URL sync", () => {
 		expect(result.current.view).toBe("cards");
 	});
 });
+
+describe("useDataView + schedule window URL sync", () => {
+	const WINDOW = {
+		start: "2026-06-28T00:00:00.000Z",
+		end: "2026-07-05T00:00:00.000Z",
+		level: "week" as const,
+	};
+	const withWindow = {
+		adapter,
+		include: [
+			"pagination",
+			"sorting",
+			"columnFilters",
+			"globalFilter",
+			"view",
+			"window",
+		] as Array<
+			| "pagination"
+			| "sorting"
+			| "columnFilters"
+			| "globalFilter"
+			| "view"
+			| "window"
+		>,
+	};
+
+	function renderWith(urlSyncOpts: typeof urlSync | typeof withWindow) {
+		return renderHook(
+			() =>
+				useDataView({
+					columns,
+					rows: [],
+					rowCount: 0,
+					status: "success",
+					getRowId: (u: User) => u.id,
+					urlSync: urlSyncOpts,
+				}),
+			{ wrapper },
+		);
+	}
+
+	it("writes the window to the URL only when opted in", () => {
+		const { result } = renderWith(withWindow);
+		act(() => result.current.setView("schedule"));
+		act(() => result.current.setWindow(WINDOW));
+		const params = new URLSearchParams(window.location.search);
+		expect(params.get("view")).toBe("schedule");
+		expect(params.get("ws")).toBe(WINDOW.start);
+		expect(params.get("we")).toBe(WINDOW.end);
+		expect(params.get("wl")).toBe("week");
+	});
+
+	it("does not write the window under the default include", () => {
+		const { result } = renderWith(urlSync);
+		act(() => result.current.setWindow(WINDOW));
+		expect(new URLSearchParams(window.location.search).get("ws")).toBeNull();
+	});
+
+	it("hydrates the window and schedule view from the URL", () => {
+		const qs = new URLSearchParams({
+			view: "schedule",
+			ws: WINDOW.start,
+			we: WINDOW.end,
+			wl: "week",
+		}).toString();
+		window.history.replaceState(null, "", `/?${qs}`);
+		const { result } = renderWith(withWindow);
+		expect(result.current.view).toBe("schedule");
+		expect(result.current.state.window).toEqual(WINDOW);
+	});
+});
