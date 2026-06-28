@@ -52,6 +52,36 @@ export const Default: Story = {
 };
 
 /**
+ * Schedule as the **only** view — the analog of forcing cards. There is no responsive
+ * `forceScheduleBelow` (that fallback is cards-specific), but you can lock a `DataViewer` to the
+ * calendar: register the schedule view, set `defaultView: "schedule"`, and hide the switcher (here
+ * via a manual composition with `showViewSwitcher={false}`). The toolbar's search and filters still
+ * apply across the calendar; there is no table/cards toggle and no pager.
+ */
+export const ScheduleOnly: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+				defaultView: "schedule",
+			});
+			return (
+				<DataViewer view={view} views={[scheduleView<Booking>()]}>
+					<DataViewer.Toolbar showViewSwitcher={false} />
+					<DataViewer.BulkActions />
+					<DataViewer.Body />
+					<DataViewer.Pagination />
+				</DataViewer>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
  * The standalone `DataScheduleNav` (prev / today / next + level) placed above the calendar. It
  * drives the same `window` slice as the calendar's built-in header.
  */
