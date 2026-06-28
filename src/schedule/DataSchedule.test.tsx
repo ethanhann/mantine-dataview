@@ -1,6 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { col } from "../core/colBuilder";
 import { useDataView } from "../core/useDataView";
@@ -66,6 +67,8 @@ function Harness({
 	status = "success" as Status,
 	toEvent,
 	globalFilter,
+	leftSection,
+	rightSection,
 }: {
 	rows?: Shift[];
 	status?: Status;
@@ -77,6 +80,8 @@ function Harness({
 		color: string;
 	};
 	globalFilter?: string;
+	leftSection?: ReactNode;
+	rightSection?: ReactNode;
 }) {
 	const view = useDataView<Shift>({
 		columns,
@@ -90,7 +95,12 @@ function Harness({
 	return (
 		<>
 			<span data-testid="selection">{view.selection.count}</span>
-			<DataSchedule view={view} toEvent={toEvent} />
+			<DataSchedule
+				view={view}
+				toEvent={toEvent}
+				leftSection={leftSection}
+				rightSection={rightSection}
+			/>
 		</>
 	);
 }
@@ -153,5 +163,27 @@ describe("DataSchedule", () => {
 	it("shows the filtered-empty affordance when a filter is active and empty", () => {
 		renderHarness({ rows: [], globalFilter: "zzz" });
 		expect(screen.getByText("No matches.")).toBeInTheDocument();
+	});
+
+	it("renders header leftSection and rightSection above the calendar", () => {
+		renderHarness({
+			leftSection: <span>Team calendar</span>,
+			rightSection: <button type="button">Refresh</button>,
+		});
+		expect(screen.getByText("Team calendar")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
+		expect(screen.getByTestId("schedule")).toBeInTheDocument();
+	});
+
+	it("keeps the header sections visible across the error state", () => {
+		renderHarness({
+			rows: [],
+			status: "error",
+			leftSection: <span>Team calendar</span>,
+		});
+		// Header persists even though the calendar body is replaced by the error state.
+		expect(screen.getByText("Team calendar")).toBeInTheDocument();
+		expect(screen.getByText("Something went wrong.")).toBeInTheDocument();
+		expect(screen.queryByTestId("schedule")).not.toBeInTheDocument();
 	});
 });

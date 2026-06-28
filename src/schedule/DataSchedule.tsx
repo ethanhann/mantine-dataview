@@ -7,14 +7,20 @@
 // through `scheduleProps`. This file imports `@mantine/schedule`, so it ships only from the optional
 // `/schedule` subpath, never from the main entry.
 
-import { Center, type MantineColor, Skeleton } from "@mantine/core";
+import {
+	Center,
+	Group,
+	type MantineColor,
+	Skeleton,
+	Stack,
+} from "@mantine/core";
 import {
 	Schedule,
 	type ScheduleEventData,
 	type ScheduleProps,
 } from "@mantine/schedule";
 import dayjs from "dayjs";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { EmptyContent, ErrorContent } from "../components/StateMessage";
 import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
@@ -41,6 +47,14 @@ export interface DataScheduleProps<TData> {
 	scheduleProps?: Partial<ScheduleProps>;
 	/** Reuses the shared empty/error slots so states match the table and card views. */
 	slots?: Pick<DataViewSlots<TData>, "Empty" | "ErrorState">;
+	/**
+	 * Custom content at the start of a header row above the calendar — the schedule analog of the
+	 * toolbar's `leftSection` (e.g. a title or `DataScheduleNav`). The header persists across the
+	 * loading, error, and empty states.
+	 */
+	leftSection?: ReactNode;
+	/** Custom content at the end of the header row above the calendar (e.g. action buttons). */
+	rightSection?: ReactNode;
 }
 
 export function DataSchedule<TData>({
@@ -51,6 +65,8 @@ export function DataSchedule<TData>({
 	defaultColor = "blue",
 	scheduleProps,
 	slots,
+	leftSection,
+	rightSection,
 }: DataScheduleProps<TData>) {
 	const { table, renderStatus } = view;
 	const window = view.state.window;
@@ -97,39 +113,56 @@ export function DataSchedule<TData>({
 		row?.toggleSelected();
 	};
 
-	if (renderStatus.phase === "error") {
+	// The state-dependent body: error, first-load skeleton, filtered-empty affordance, or the calendar.
+	// A populated calendar with zero events IS the empty state — render the grid rather than a "no
+	// results" message. Once events exist the calendar stays mounted across window changes so
+	// navigation never flashes a skeleton over the grid.
+	const renderBody = (): ReactNode => {
+		if (renderStatus.phase === "error") {
+			return (
+				<Center p="xl">
+					<ErrorContent view={view} slots={slots} />
+				</Center>
+			);
+		}
+		if (renderStatus.phase === "loading" && events.length === 0) {
+			return <Skeleton height={480} radius="sm" />;
+		}
+		if (renderStatus.phase === "empty-filtered" && events.length === 0) {
+			return (
+				<Center p="xl">
+					<EmptyContent view={view} slots={slots} />
+				</Center>
+			);
+		}
 		return (
-			<Center p="xl">
-				<ErrorContent view={view} slots={slots} />
-			</Center>
+			<Schedule
+				events={events}
+				date={date}
+				view={level}
+				onViewChange={handleViewChange}
+				onDateChange={handleDateChange}
+				onEventClick={handleEventClick}
+				{...scheduleProps}
+			/>
 		);
-	}
+	};
 
-	// First load with nothing to show yet: a skeleton. Once events exist, keep the calendar mounted
-	// across window changes so navigation never flashes a skeleton over the grid.
-	if (renderStatus.phase === "loading" && events.length === 0) {
-		return <Skeleton height={480} radius="sm" />;
-	}
-
-	// A populated calendar with zero events IS the empty state — render the grid rather than a
-	// "no results" message. Surface the filtered-empty affordance only when filters are active.
-	if (renderStatus.phase === "empty-filtered" && events.length === 0) {
-		return (
-			<Center p="xl">
-				<EmptyContent view={view} slots={slots} />
-			</Center>
-		);
-	}
+	// No header sections: render the body directly so the common case adds no wrapper. Otherwise the
+	// header row persists above the body across every state.
+	if (leftSection == null && rightSection == null) return renderBody();
 
 	return (
-		<Schedule
-			events={events}
-			date={date}
-			view={level}
-			onViewChange={handleViewChange}
-			onDateChange={handleDateChange}
-			onEventClick={handleEventClick}
-			{...scheduleProps}
-		/>
+		<Stack gap="sm">
+			<Group justify="space-between" wrap="wrap" gap="sm">
+				<Group gap="sm" wrap="wrap">
+					{leftSection}
+				</Group>
+				<Group gap="sm" wrap="wrap">
+					{rightSection}
+				</Group>
+			</Group>
+			{renderBody()}
+		</Stack>
 	);
 }

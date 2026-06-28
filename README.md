@@ -1071,6 +1071,30 @@ window on mount — but it costs one extra fetch (a window-less request, then a 
 the window avoids that. A `window` set while the view is not the schedule view is held but never sent
 to the fetcher, so table and card requests are never polluted by a stale range.
 
+### Header sections
+
+Slot custom controls into a header row above the calendar with `leftSection` and `rightSection` —
+the schedule analog of the toolbar's sections. The header persists across the loading, error, and
+empty states.
+
+```tsx
+<DataSchedule
+    view={view}
+    leftSection={<Text fw={600}>Team calendar</Text>}
+    rightSection={
+        <Group gap="xs">
+            <Button size="xs" variant="default" onClick={() => view.refetch()}>Refresh</Button>
+            <Button size="xs" onClick={createEvent}>New event</Button>
+        </Group>
+    }
+/>;
+```
+
+- `leftSection` renders at the start of the header row, `rightSection` at the end.
+- They also flow through `scheduleView({ leftSection, rightSection })` for the integrated `DataViewer`.
+- Unlike the toolbar's sections, these are not auto-disabled while loading — read `view.status` or
+  `view.isRevalidating` if you want to disable your own controls.
+
 ### Mapping rows to events
 
 Rows become calendar events the same way columns become card fields — declaratively, via

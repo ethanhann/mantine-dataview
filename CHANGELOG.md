@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scheduleInitialState(level?, date?)` (from the `/schedule` subpath): seeds `initialState` so a
   viewer opens directly on the calendar with its window already set, making the first fetch a single
   windowed request instead of a window-less request followed by a windowed one.
+- `DataSchedule` `leftSection` / `rightSection` props (also accepted by `scheduleView`): slot custom
+  controls into a header row above the calendar, the schedule analog of the toolbar's sections. The
+  header persists across the loading, error, and empty states.
 - New root-level type exports: `ScheduleRole`, `ScheduleFieldMeta`, `DataViewEvent`,
   `ScheduleLevel`, and `DataViewWindow`.
 

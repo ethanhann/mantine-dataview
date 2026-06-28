@@ -1,4 +1,4 @@
-import { Stack } from "@mantine/core";
+import { Button, Group, Stack, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
 import { DataViewer } from "../components/DataViewer";
@@ -78,6 +78,43 @@ export const ScheduleOnly: Story = {
 					<DataViewer.Body />
 					<DataViewer.Pagination />
 				</DataViewer>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * `leftSection` / `rightSection` slot custom controls into a header row above the calendar — the
+ * schedule analog of the toolbar's sections. The header persists across the loading, error, and
+ * empty states. These also flow through `scheduleView({ leftSection, rightSection })`.
+ */
+export const WithHeaderSections: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataSchedule
+					view={view}
+					leftSection={<Text fw={600}>Team calendar</Text>}
+					rightSection={
+						<Group gap="xs">
+							<Button
+								size="xs"
+								variant="default"
+								onClick={() => view.refetch()}
+							>
+								Refresh
+							</Button>
+							<Button size="xs">New event</Button>
+						</Group>
+					}
+				/>
 			);
 		}
 		return <Example />;
