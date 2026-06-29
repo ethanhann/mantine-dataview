@@ -80,6 +80,7 @@ export default defineConfig({
 				"src/**/*.test.{ts,tsx}",
 				"src/**/index.ts",
 				"src/types/**",
+				"src/**/types.ts",
 			],
 			// Gate regressions
 			thresholds: {
