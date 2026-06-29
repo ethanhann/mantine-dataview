@@ -102,9 +102,16 @@ describe("DataAgenda", () => {
 		expect(screen.getByTestId("selection")).toHaveTextContent("1");
 	});
 
-	it("renders the nav by default (AgendaView has none of its own)", () => {
+	it("renders the agenda nav by default (AgendaView has none of its own)", () => {
+		// Arrange / Act
 		renderHarness();
+		// Assert: the DataAgendaNav range selector, not the calendar's level selector. DataAgendaNav
+		// offers Day/Week/Month and drops Year, which is what distinguishes it from DataScheduleNav.
 		expect(screen.getByRole("button", { name: "Today" })).toBeInTheDocument();
+		expect(screen.getByRole("radio", { name: "Day" })).toBeInTheDocument();
+		expect(screen.getByRole("radio", { name: "Week" })).toBeInTheDocument();
+		expect(screen.getByRole("radio", { name: "Month" })).toBeInTheDocument();
+		expect(screen.queryByRole("radio", { name: "Year" })).toBeNull();
 	});
 
 	it("omits the nav when withNav is false", () => {
