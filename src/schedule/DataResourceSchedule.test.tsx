@@ -121,6 +121,12 @@ const columns = col<Shift>()
 	})
 	.build();
 
+// No `resource`-role column with options, so deriving yields nothing and the component warns.
+const noResourceColumns = col<Shift>()
+	.text("name", { schedule: "title" })
+	.date("startsAt", { schedule: "start" })
+	.build();
+
 const ROWS: Shift[] = [
 	{ id: "1", name: "Morning", startsAt: "2026-06-28T09:00:00.000Z", room: "A" },
 ];
@@ -292,5 +298,32 @@ describe("DataResourceSchedule", () => {
 	it("shows no counts when the response carries no facet", () => {
 		renderHarness();
 		expect(screen.queryByText("(12)")).toBeNull();
+	});
+
+	it("warns once when deriving finds no resource column, even across re-renders", () => {
+		// Arrange
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		function WarnHarness() {
+			const view = useDataView<Shift>({
+				columns: noResourceColumns,
+				rows: ROWS,
+				rowCount: ROWS.length,
+				status: "success",
+				getRowId: (r) => r.id,
+			});
+			return <DataResourceSchedule view={view} />;
+		}
+		const tree = (
+			<MantineProvider>
+				<WarnHarness />
+			</MantineProvider>
+		);
+		// Act
+		const { rerender } = render(tree);
+		rerender(tree);
+		// Assert: the dev warning fired exactly once despite the second render.
+		expect(warn).toHaveBeenCalledTimes(1);
+		expect(warn.mock.calls[0]?.[0]).toContain("resource view");
+		warn.mockRestore();
 	});
 });

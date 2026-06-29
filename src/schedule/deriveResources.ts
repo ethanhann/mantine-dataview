@@ -9,8 +9,9 @@ import type { FacetData } from "../types/facets";
 
 /**
  * Maps the `resource`-role column's filter `options` (`{ value, label }`) to Mantine
- * `ScheduleResourceData` (`{ id, label }`; Mantine assigns colors). Returns `[]` and warns in dev
- * when no resource column or no options are found.
+ * `ScheduleResourceData` (`{ id, label }`, Mantine assigns colors). Pure: returns `[]` when no
+ * resource column or no options are found, and leaves any dev warning to the caller (which can warn
+ * once per mount rather than on every render).
  */
 export function deriveResources<TData>(
 	columns: DataColumnDef<TData>[],
@@ -19,17 +20,7 @@ export function deriveResources<TData>(
 		(c) => c.meta?.schedule?.role === "resource",
 	);
 	const options = resourceCol?.meta?.filter?.options;
-	if (!options || options.length === 0) {
-		if (
-			typeof process !== "undefined" &&
-			process.env.NODE_ENV !== "production"
-		) {
-			console.warn(
-				"[mantine-dataview] resource view: no `resource`-role column with filter options found to derive resources from. Pass an explicit `resources` prop.",
-			);
-		}
-		return [];
-	}
+	if (!options || options.length === 0) return [];
 	return options.map((o) => ({ id: o.value, label: o.label }));
 }
 

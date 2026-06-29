@@ -14,7 +14,7 @@ import {
 	type ScheduleResourceGroup,
 } from "@mantine/schedule";
 import dayjs from "dayjs";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
 import { computeWindow } from "./dateWindow";
@@ -123,6 +123,23 @@ export function DataResourceSchedule<TData>({
 	const allColumns = view.table.getAllColumns();
 	const columns = allColumns.map((c) => c.columnDef);
 	const resolvedResources = resources ?? deriveResources(columns);
+
+	// Dev-only: warn once per mount when deriving yields no rows (no `resource`-role column with filter
+	// options, and no explicit `resources`). A ref keeps a re-render from repeating the message.
+	const derivedEmpty = !resources && resolvedResources.length === 0;
+	const warnedRef = useRef(false);
+	useEffect(() => {
+		if (!derivedEmpty || warnedRef.current) return;
+		if (
+			typeof process !== "undefined" &&
+			process.env.NODE_ENV !== "production"
+		) {
+			console.warn(
+				"[mantine-dataview] resource view: no `resource`-role column with filter options found to derive resources from. Pass an explicit `resources` prop.",
+			);
+		}
+		warnedRef.current = true;
+	}, [derivedEmpty]);
 
 	// Overlay server counts onto the (stable) resource rows when the resource column has a value
 	// facet. The rows themselves never change with filtering — only the counts do. A consumer

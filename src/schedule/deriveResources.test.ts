@@ -30,7 +30,8 @@ describe("deriveResources", () => {
 		]);
 	});
 
-	it("returns [] and warns when no resource-role column exists", () => {
+	it("returns [] silently when no resource-role column exists", () => {
+		// Arrange
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 		const columns: DataColumnDef<Booking>[] = [
 			{
@@ -40,18 +41,25 @@ describe("deriveResources", () => {
 				},
 			},
 		];
-		expect(deriveResources(columns)).toEqual([]);
-		expect(warn).toHaveBeenCalled();
+		// Act
+		const resources = deriveResources(columns);
+		// Assert: pure, the dev warning is the caller's responsibility now.
+		expect(resources).toEqual([]);
+		expect(warn).not.toHaveBeenCalled();
 		warn.mockRestore();
 	});
 
-	it("returns [] and warns when the resource column has no filter options", () => {
+	it("returns [] silently when the resource column has no filter options", () => {
+		// Arrange
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 		const columns: DataColumnDef<Booking>[] = [
 			{ accessorKey: "room", meta: { schedule: { role: "resource" } } },
 		];
-		expect(deriveResources(columns)).toEqual([]);
-		expect(warn).toHaveBeenCalled();
+		// Act
+		const resources = deriveResources(columns);
+		// Assert
+		expect(resources).toEqual([]);
+		expect(warn).not.toHaveBeenCalled();
 		warn.mockRestore();
 	});
 });
