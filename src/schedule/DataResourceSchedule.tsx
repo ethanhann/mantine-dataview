@@ -18,7 +18,11 @@ import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
 import { computeWindow } from "./dateWindow";
 import { buildResourceCounts, deriveResources } from "./deriveResources";
-import { resolveEvents, toggleEventSelection } from "./resolveEvents";
+import {
+	type EventClickHandler,
+	makeEventClickHandler,
+	resolveEvents,
+} from "./resolveEvents";
 import { ScheduleShell } from "./ScheduleShell";
 import { useWindowedView } from "./useWindowedView";
 
@@ -38,7 +42,10 @@ export interface DataResourceScheduleProps<TData> {
 	defaultLevel?: ResourcesScheduleViewLevel;
 	/** Color for events whose `color` role resolves to nothing. Default `"blue"`. */
 	defaultColor?: MantineColor;
-	/** Forwarded to Mantine's `<ResourcesSchedule>` (e.g. `renderResourceLabel`). */
+	/** Called when an event is clicked, with the typed original row. Replaces the default selection toggle. */
+	onEventClick?: EventClickHandler<TData>;
+	/** Forwarded to Mantine's `<ResourcesSchedule>` (e.g. `renderResourceLabel`). A raw `onEventClick`
+	 * here overrides the typed `onEventClick` above. */
 	resourcesProps?: Partial<ResourcesScheduleProps>;
 	/**
 	 * Show a per-resource count next to each row label when the `resource`-role column has a value
@@ -60,6 +67,7 @@ export function DataResourceSchedule<TData>({
 	defaultDuration,
 	defaultLevel = "week",
 	defaultColor = "blue",
+	onEventClick,
 	resourcesProps,
 	showResourceCounts = true,
 	slots,
@@ -117,7 +125,7 @@ export function DataResourceSchedule<TData>({
 			onDateChange={(next) =>
 				view.setWindow(computeWindow(dayjs(next).toDate(), resourceLevel))
 			}
-			onEventClick={(event) => toggleEventSelection(view, event.id)}
+			onEventClick={makeEventClickHandler(view, onEventClick)}
 			{...resourcesProps}
 		/>
 	);

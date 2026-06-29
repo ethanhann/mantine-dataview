@@ -45,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for the resource column (e.g. "Aspen (12)"): the rows stay stable while filtering, only the counts
   change. On by default (`showResourceCounts`); a `renderResourceLabel` in `resourcesProps` overrides
   it. `buildResourceCounts` helper exported.
+- First-class `onEventClick(row, event, nativeEvent)` prop on all three presentations, handing back
+  the typed original row. Replaces the default selection toggle; compose with the exported
+  `toggleEventSelection` to keep both. `EventClickHandler` type and `findEventRow` helper exported.
 - `scheduleInitialState` accepts a target `view`, so a viewer can open directly on agenda or
   resources as a single windowed fetch.
 - `WINDOWED_VIEWS` constant and `isWindowedView` guard exported from the package root, for custom

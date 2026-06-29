@@ -1168,6 +1168,37 @@ For event shapes that aren't column-backed, use the `toEvent` escape hatch, whic
 />;
 ```
 
+### Handling event clicks
+
+All three presentations take an `onEventClick(row, event, nativeEvent)` that hands you the typed
+original row (plus the Mantine event and the DOM event):
+
+```tsx
+<DataSchedule
+    view={view}
+    onEventClick={(booking) => openDetail(booking)} // `booking` is your row type
+/>;
+```
+
+Same prop on `DataAgenda` and `DataResourceSchedule`. By default (no handler) clicking an event
+toggles that row's selection, feeding the bulk-action bar. Providing `onEventClick` replaces that
+default; to keep selection as well, call the exported helper inside your handler:
+
+```tsx
+import {toggleEventSelection} from "@ethanhann/mantine-dataview/schedule";
+
+<DataSchedule
+    view={view}
+    onEventClick={(booking, event) => {
+        toggleEventSelection(view, event.id); // keep selection
+        openDetail(booking);                  // plus your action
+    }}
+/>;
+```
+
+For full control, a raw `onEventClick` in `scheduleProps` / `agendaProps` / `resourcesProps` still
+overrides everything.
+
 ### Fetching by date window
 
 A calendar fetches the visible date range, not a page. When a schedule view is active the core

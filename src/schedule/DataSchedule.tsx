@@ -19,7 +19,11 @@ import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
 import { computeWindow } from "./dateWindow";
-import { resolveEvents, toggleEventSelection } from "./resolveEvents";
+import {
+	type EventClickHandler,
+	makeEventClickHandler,
+	resolveEvents,
+} from "./resolveEvents";
 import { ScheduleShell } from "./ScheduleShell";
 import { useWindowedView } from "./useWindowedView";
 
@@ -37,7 +41,14 @@ export interface DataScheduleProps<TData> {
 	defaultLevel?: ScheduleLevel;
 	/** Color for events whose `color` role resolves to nothing (Mantine requires a color). Default `"blue"`. */
 	defaultColor?: MantineColor;
-	/** Forwarded to Mantine's `<Schedule>` (e.g. `startTime`, `weekViewProps`, custom `onEventClick`). */
+	/**
+	 * Called when an event is clicked, with the typed original row. Replaces the default (which
+	 * toggles the row's selection); call `toggleEventSelection(view, event.id)` inside if you also
+	 * want selection.
+	 */
+	onEventClick?: EventClickHandler<TData>;
+	/** Forwarded to Mantine's `<Schedule>` (e.g. `startTime`, `weekViewProps`). A raw `onEventClick`
+	 * here overrides the typed `onEventClick` above. */
 	scheduleProps?: Partial<ScheduleProps>;
 	/** Reuses the shared empty/error slots so states match the table and card views. */
 	slots?: Pick<DataViewSlots<TData>, "Empty" | "ErrorState">;
@@ -57,6 +68,7 @@ export function DataSchedule<TData>({
 	defaultDuration,
 	defaultLevel = "week",
 	defaultColor = "blue",
+	onEventClick,
 	scheduleProps,
 	slots,
 	leftSection,
@@ -78,7 +90,7 @@ export function DataSchedule<TData>({
 			onDateChange={(next) =>
 				view.setWindow(computeWindow(dayjs(next).toDate(), level))
 			}
-			onEventClick={(event) => toggleEventSelection(view, event.id)}
+			onEventClick={makeEventClickHandler(view, onEventClick)}
 			{...scheduleProps}
 		/>
 	);

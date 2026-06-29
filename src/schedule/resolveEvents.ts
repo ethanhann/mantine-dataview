@@ -3,6 +3,7 @@
 
 import type { MantineColor } from "@mantine/core";
 import type { ScheduleEventData } from "@mantine/schedule";
+import type { MouseEvent } from "react";
 import type { UseDataViewReturn } from "../types/options";
 import { composeEvent } from "./composeEvent";
 import { composeScheduleEvent } from "./scheduleEvent";
@@ -56,4 +57,42 @@ export function toggleEventSelection<TData>(
 		.getRowModel()
 		.rows.find((r) => r.id === String(eventId));
 	row?.toggleSelected();
+}
+
+/** The original row backing an event id, or `undefined` if it isn't on the current page. */
+export function findEventRow<TData>(
+	view: UseDataViewReturn<TData>,
+	eventId: string | number,
+): TData | undefined {
+	return view.table.getRowModel().rows.find((r) => r.id === String(eventId))
+		?.original;
+}
+
+/** A first-class event-click handler that receives the typed original row. */
+export type EventClickHandler<TData> = (
+	row: TData,
+	event: ScheduleEventData,
+	nativeEvent: MouseEvent<HTMLButtonElement>,
+) => void;
+
+/**
+ * Builds the `onEventClick` passed to the Mantine component. When the consumer provides a handler it
+ * is called with the resolved row; otherwise the default toggles row selection (feeding bulk
+ * actions). A handler in `*Props` still overrides this entirely, since it is spread afterward.
+ */
+export function makeEventClickHandler<TData>(
+	view: UseDataViewReturn<TData>,
+	onEventClick: EventClickHandler<TData> | undefined,
+) {
+	return (
+		event: ScheduleEventData,
+		nativeEvent: MouseEvent<HTMLButtonElement>,
+	) => {
+		if (!onEventClick) {
+			toggleEventSelection(view, event.id);
+			return;
+		}
+		const row = findEventRow(view, event.id);
+		if (row !== undefined) onEventClick(row, event, nativeEvent);
+	};
 }

@@ -94,6 +94,7 @@ function Harness({
 	window,
 	facets,
 	showResourceCounts,
+	onEventClick,
 }: {
 	rows?: Shift[];
 	status?: Status;
@@ -101,6 +102,7 @@ function Harness({
 	window?: DataViewWindow;
 	facets?: typeof ROOM_FACET;
 	showResourceCounts?: boolean;
+	onEventClick?: (row: Shift) => void;
 }) {
 	const view = useDataView<Shift>({
 		columns,
@@ -118,6 +120,7 @@ function Harness({
 				view={view}
 				resources={resources}
 				showResourceCounts={showResourceCounts}
+				onEventClick={onEventClick}
 			/>
 		</>
 	);
@@ -165,6 +168,16 @@ describe("DataResourceSchedule", () => {
 		expect(screen.getByTestId("selection")).toHaveTextContent("0");
 		await user.click(screen.getByTestId("event"));
 		expect(screen.getByTestId("selection")).toHaveTextContent("1");
+	});
+
+	it("calls a first-class onEventClick with the typed row", async () => {
+		const user = userEvent.setup();
+		const onEventClick = vi.fn<(row: Shift) => void>();
+		renderHarness({ onEventClick });
+		await user.click(screen.getByTestId("event"));
+		expect(onEventClick).toHaveBeenCalledTimes(1);
+		expect(onEventClick.mock.calls[0]?.[0]).toEqual(ROWS[0]);
+		expect(screen.getByTestId("selection")).toHaveTextContent("0");
 	});
 
 	it("overlays facet counts on the resource rows when a value facet is present", () => {

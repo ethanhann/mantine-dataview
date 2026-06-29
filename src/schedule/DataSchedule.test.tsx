@@ -69,6 +69,7 @@ function Harness({
 	globalFilter,
 	leftSection,
 	rightSection,
+	onEventClick,
 }: {
 	rows?: Shift[];
 	status?: Status;
@@ -82,6 +83,7 @@ function Harness({
 	globalFilter?: string;
 	leftSection?: ReactNode;
 	rightSection?: ReactNode;
+	onEventClick?: (row: Shift) => void;
 }) {
 	const view = useDataView<Shift>({
 		columns,
@@ -100,6 +102,7 @@ function Harness({
 				toEvent={toEvent}
 				leftSection={leftSection}
 				rightSection={rightSection}
+				onEventClick={onEventClick}
 			/>
 		</>
 	);
@@ -141,6 +144,17 @@ describe("DataSchedule", () => {
 		expect(screen.getByTestId("selection")).toHaveTextContent("0");
 		await user.click(screen.getAllByTestId("event")[0]!);
 		expect(screen.getByTestId("selection")).toHaveTextContent("1");
+	});
+
+	it("calls a first-class onEventClick with the typed row instead of selecting", async () => {
+		const user = userEvent.setup();
+		const onEventClick = vi.fn<(row: Shift) => void>();
+		renderHarness({ onEventClick });
+		await user.click(screen.getByText("Morning"));
+		expect(onEventClick).toHaveBeenCalledTimes(1);
+		expect(onEventClick.mock.calls[0]?.[0]).toEqual(ROWS[0]);
+		// The default selection toggle is replaced by the custom handler.
+		expect(screen.getByTestId("selection")).toHaveTextContent("0");
 	});
 
 	it("shows a skeleton (not the calendar) on first load with no rows", () => {

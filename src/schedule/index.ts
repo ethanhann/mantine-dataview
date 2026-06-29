@@ -46,6 +46,8 @@ export { computeWindow, shiftWindow } from "./dateWindow";
 export { buildResourceCounts, deriveResources } from "./deriveResources";
 // Shared event helpers, for custom schedule-family presentations.
 export {
+	type EventClickHandler,
+	findEventRow,
 	type ResolveEventsOptions,
 	resolveEvents,
 	toggleEventSelection,
