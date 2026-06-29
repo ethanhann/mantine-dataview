@@ -1,14 +1,16 @@
-// Seeds a `useDataView` so it opens directly on the schedule view with its window already set. This
-// matters because the calendar otherwise sets its window in a post-mount effect, after the core has
-// already emitted its first (window-less) request — costing a second fetch. Spreading this into
-// `initialState` puts the window in the very first request, so opening on the calendar is one fetch.
+// Seeds a `useDataView` so it opens directly on a windowed (schedule-family) view with its window
+// already set. This matters because the presentation otherwise sets its window in a post-mount
+// effect, after the core has already emitted its first (window-less) request — costing a second
+// fetch. Spreading this into `initialState` puts the window in the very first request, so opening on
+// the calendar/agenda/resources view is a single fetch.
 
-import type { DataViewState, ScheduleLevel } from "../types/state";
+import type { DataViewState, ScheduleLevel, ViewMode } from "../types/state";
 import { computeWindow } from "./dateWindow";
 
 /**
- * Initial state for opening on the schedule view at `level` (default `"week"`) around `date`
- * (default now). Sets both `view` and `window` so the first fetch is already windowed.
+ * Initial state for opening on a windowed view (default `"schedule"`) at `level` (default `"week"`)
+ * around `date` (default now). Sets both `view` and `window` so the first fetch is already windowed.
+ * Pass `view: "agenda"` or `"resources"` to open on those presentations instead.
  *
  * ```tsx
  * const initialState = useMemo(() => scheduleInitialState("week"), []);
@@ -20,6 +22,7 @@ import { computeWindow } from "./dateWindow";
 export function scheduleInitialState(
 	level: ScheduleLevel = "week",
 	date: Date = new Date(),
+	view: ViewMode = "schedule",
 ): Pick<DataViewState, "view" | "window"> {
-	return { view: "schedule", window: computeWindow(date, level) };
+	return { view, window: computeWindow(date, level) };
 }

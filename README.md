@@ -1039,6 +1039,29 @@ import {DataSchedule} from "@ethanhann/mantine-dataview/schedule";
 <DataSchedule view={view}/>;
 ```
 
+### Agenda and resource views
+
+The same event data projects into two more presentations, each a registered view alongside the
+calendar. Register any subset; the switcher shows **Table / Cards / Calendar / Agenda / Resources**,
+and switching among the schedule-family views reuses the loaded window (no refetch).
+
+```tsx
+import {scheduleView, agendaView, resourcesView} from "@ethanhann/mantine-dataview/schedule";
+
+<DataViewer view={view} views={[scheduleView(), agendaView(), resourcesView()]}/>;
+```
+
+- **Agenda** (`agendaView` / `DataAgenda`) — a date-grouped list over the visible window. Mantine's
+  `AgendaView` has no navigation of its own, so `DataAgenda` renders a `DataScheduleNav` header by
+  default (set `withNav={false}` to supply your own via `leftSection`).
+- **Resources** (`resourcesView` / `DataResourceSchedule`) — one row per resource. The rows are
+  **derived** from the `resource`-role column's filter options; pass an explicit `resources` prop
+  (`ScheduleResourceData[]`) to control labels, colors, or order. Resource views have only
+  day/week/month levels — a `year` window is clamped to `month`.
+
+To show the agenda *inside* the calendar instead of as a separate view, enable Mantine's built-in
+toggle: `<DataSchedule scheduleProps={{withAgenda: true}}/>`.
+
 ### Locking to the schedule view
 
 There is no responsive `forceScheduleBelow` — that fallback is specific to cards (a dense table is
@@ -1202,7 +1225,7 @@ them yourself (they pair well with the reconciliation primitives). Recurrence is
 | `getViewMode`                                                          | Detect table vs cards from cell context                             |
 | `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`        | Column helpers                                                      |
 | `@ethanhann/mantine-dataview/url`                                      | `windowHistoryAdapter` + serializer utilities                       |
-| `@ethanhann/mantine-dataview/schedule`                                 | `DataSchedule`, `scheduleView`, `DataScheduleNav` (opt-in calendar) |
+| `@ethanhann/mantine-dataview/schedule`                                 | Opt-in calendar / agenda / resources: `scheduleView` · `agendaView` · `resourcesView` (+ `DataSchedule` / `DataAgenda` / `DataResourceSchedule`, `DataScheduleNav`) |
 
 ### Reconciliation primitives
 

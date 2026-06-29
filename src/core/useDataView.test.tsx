@@ -248,6 +248,18 @@ describe("useDataView", () => {
 			expect("window" in lastRequest(onRequestChange)).toBe(false);
 		});
 
+		it("includes the window for every windowed view (agenda, resources)", () => {
+			for (const windowed of ["agenda", "resources"] as const) {
+				vi.useFakeTimers();
+				const { result, onRequestChange } = setup();
+				act(() => result.current.setView(windowed));
+				act(() => result.current.setWindow(WINDOW));
+				act(() => vi.advanceTimersByTime(300));
+				expect(lastRequest(onRequestChange).window).toEqual(WINDOW);
+				vi.useRealTimers();
+			}
+		});
+
 		it("coalesces rapid window changes into one request", () => {
 			vi.useFakeTimers();
 			const { result, onRequestChange } = setup();

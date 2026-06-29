@@ -103,9 +103,9 @@ describe("public type surface (Phase 1)", () => {
 	});
 
 	it("exposes the single source-of-truth state shape", () => {
-		// Built-in views plus the opt-in `schedule` identifier (shipped from the `/schedule` subpath).
+		// Built-in views plus the opt-in schedule family (shipped from the `/schedule` subpath).
 		expectTypeOf<DataViewState["view"]>().toEqualTypeOf<
-			"table" | "cards" | "schedule"
+			"table" | "cards" | "schedule" | "agenda" | "resources"
 		>();
 		expectTypeOf<DataViewState["rowSelection"]>().toEqualTypeOf<
 			Record<string, boolean>

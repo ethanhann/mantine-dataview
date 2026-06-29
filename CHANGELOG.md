@@ -33,17 +33,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DataSchedule` `leftSection` / `rightSection` props (also accepted by `scheduleView`): slot custom
   controls into a header row above the calendar, the schedule analog of the toolbar's sections. The
   header persists across the loading, error, and empty states.
+- Two more schedule-family presentations: **agenda** (`agendaView` / `DataAgenda` — a date-grouped
+  list; renders a `DataScheduleNav` header by default since Mantine's `AgendaView` has no navigation)
+  and **resources** (`resourcesView` / `DataResourceSchedule` — one row per resource). The switcher
+  can offer Table / Cards / Calendar / Agenda / Resources; switching among the windowed views reuses
+  the loaded window without refetching.
+- Resource rows are derived from the `resource`-role column's filter options (`deriveResources`
+  helper), with an explicit `resources` prop (`ScheduleResourceData[]`) as override. Resource views
+  clamp a `year` window to `month` (they have only day/week/month levels).
+- `scheduleInitialState` accepts a target `view`, so a viewer can open directly on agenda or
+  resources as a single windowed fetch.
+- `WINDOWED_VIEWS` constant and `isWindowedView` guard exported from the package root, for custom
+  layouts that branch on whether a date-window view is active.
 - New root-level type exports: `ScheduleRole`, `ScheduleFieldMeta`, `DataViewEvent`,
   `ScheduleLevel`, and `DataViewWindow`.
 
 ### Changed
 
-- `ViewMode` now includes `"schedule"`, and `DataViewState` / `DataViewRequest` gain an optional
-  `window` slice. These are additive; the table and card public API surface is unchanged, and a
-  `?view=schedule` URL restored without a registered schedule view degrades gracefully to the table.
-- `request.window` is sent only while the schedule view is active. A window set under the table or
-  card view is held in state but never sent to the fetcher, so list requests are never polluted by a
-  stale date range, and switching between table and cards never churns the request.
+- `ViewMode` now includes the schedule family (`"schedule"`, `"agenda"`, `"resources"`), and
+  `DataViewState` / `DataViewRequest` gain an optional `window` slice. These are additive; the table
+  and card public API surface is unchanged, and a `?view=…` URL restored without a registered view of
+  that id degrades gracefully to the table.
+- `request.window` is sent only while a windowed (schedule-family) view is active. A window set under
+  the table or card view is held in state but never sent to the fetcher, so list requests are never
+  polluted by a stale date range, and switching between table and cards never churns the request.
+- `getViewMode` now reports the active schedule-family id (`"schedule"`/`"agenda"`/`"resources"`)
+  instead of collapsing it to `"table"`.
 
 ## [0.9.0] - 2026-06-23
 

@@ -4,8 +4,12 @@ import { useMemo } from "react";
 import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
 import {
+	agendaView,
+	DataAgenda,
+	DataResourceSchedule,
 	DataSchedule,
 	DataScheduleNav,
+	resourcesView,
 	type ScheduleEventData,
 	scheduleInitialState,
 	scheduleView,
@@ -162,6 +166,74 @@ export const IntegratedDataViewer: Story = {
 				fetcher,
 			});
 			return <DataViewer view={view} views={[scheduleView<Booking>()]} />;
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Agenda — the same events as a date-grouped list. `AgendaView` has no navigation of its own, so
+ * `DataAgenda` renders a `DataScheduleNav` header by default.
+ */
+export const AgendaOnly: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return <DataAgenda view={view} />;
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Resources — one row per resource. The rows are derived from the `room` column's filter options
+ * (its `meta.schedule.role` is `"resource"`); pass an explicit `resources` prop to control labels,
+ * colors, or order.
+ */
+export const ResourcesOnly: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return <DataResourceSchedule view={view} />;
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * The full switcher: one `DataViewer` registering all three schedule-family views, switchable
+ * between **Table / Cards / Calendar / Agenda / Resources** at runtime on the same event data and
+ * date window. Switching among the windowed views reuses the loaded window (no refetch).
+ */
+export const FullSwitcher: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataViewer
+					view={view}
+					views={[
+						scheduleView<Booking>(),
+						agendaView<Booking>(),
+						resourcesView<Booking>(),
+					]}
+				/>
+			);
 		}
 		return <Example />;
 	},

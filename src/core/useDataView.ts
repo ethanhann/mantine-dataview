@@ -22,7 +22,12 @@ import type {
 	UseDataViewReturn,
 } from "../types/options";
 import type { DataViewRequest } from "../types/request";
-import type { DataViewState, DataViewWindow, ViewMode } from "../types/state";
+import {
+	type DataViewState,
+	type DataViewWindow,
+	isWindowedView,
+	type ViewMode,
+} from "../types/state";
 import {
 	hydrateFromUrl,
 	resolveUrlConfig,
@@ -329,12 +334,13 @@ export function useDataView<TData>(
 	const isMobileForced = useForceCards(responsive);
 	const view: ViewMode = isMobileForced ? "cards" : resolvedState.view;
 
-	// The window only drives the request while a schedule view is active. Persisting it in state
-	// (rather than clearing it on a view switch) means returning to the schedule restores the same
-	// range, while table and cards fetches never carry a stale window. Deriving it here — instead of
-	// reading `resolvedState.window` directly in the request — also keeps a table↔cards switch from
-	// churning the request: `activeWindow` stays `undefined` for both, so the memo doesn't recompute.
-	const activeWindow = view === "schedule" ? resolvedState.window : undefined;
+	// The window only drives the request while a windowed (schedule-family) view is active. Persisting
+	// it in state (rather than clearing it on a view switch) means returning to a windowed view
+	// restores the same range, while table and cards fetches never carry a stale window. Deriving it
+	// here — instead of reading `resolvedState.window` directly in the request — also keeps a
+	// table↔cards switch from churning the request: `activeWindow` stays `undefined` for both, so the
+	// memo doesn't recompute.
+	const activeWindow = isWindowedView(view) ? resolvedState.window : undefined;
 
 	const table = useReactTable<TData>({
 		data: rows,

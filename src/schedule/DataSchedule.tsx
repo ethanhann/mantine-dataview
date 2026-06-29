@@ -1,33 +1,27 @@
-// Schedule presentation. The third projection of the same core state: each row becomes a calendar
-// event via the columns' declarative `meta.schedule` roles (or a `toEvent` override), and the date
-// navigation drives the core's `window` slice so the consumer's fetcher loads the visible range.
+// Schedule presentation. The calendar projection of the core state: each row becomes an event via
+// the columns' declarative `meta.schedule` roles (or a `toEvent` override), and the date navigation
+// drives the core's `window` slice so the consumer's fetcher loads the visible range.
 //
-// v1 is read-only apart from click-to-select: events are clickable (toggling row selection, which
-// feeds bulk actions) but not draggable or resizable. Mantine's drag/resize hooks can be opted into
-// through `scheduleProps`. This file imports `@mantine/schedule`, so it ships only from the optional
+// Read-only apart from click-to-select: events are clickable (toggling row selection, which feeds
+// bulk actions) but not draggable or resizable. Mantine's drag/resize hooks can be opted into through
+// `scheduleProps`. This file imports `@mantine/schedule`, so it ships only from the optional
 // `/schedule` subpath, never from the main entry.
 
-import {
-	Center,
-	Group,
-	type MantineColor,
-	Skeleton,
-	Stack,
-} from "@mantine/core";
+import type { MantineColor } from "@mantine/core";
 import {
 	Schedule,
 	type ScheduleEventData,
 	type ScheduleProps,
 } from "@mantine/schedule";
 import dayjs from "dayjs";
-import { type ReactNode, useEffect } from "react";
-import { EmptyContent, ErrorContent } from "../components/StateMessage";
+import type { ReactNode } from "react";
 import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
-import { composeEvent } from "./composeEvent";
 import { computeWindow } from "./dateWindow";
-import { composeScheduleEvent } from "./scheduleEvent";
+import { resolveEvents, toggleEventSelection } from "./resolveEvents";
+import { ScheduleShell } from "./ScheduleShell";
+import { useWindowedView } from "./useWindowedView";
 
 export interface DataScheduleProps<TData> {
 	/** The `useDataView` instance to project. */
@@ -68,101 +62,36 @@ export function DataSchedule<TData>({
 	leftSection,
 	rightSection,
 }: DataScheduleProps<TData>) {
-	const { table, renderStatus } = view;
-	const window = view.state.window;
+	const { level, date } = useWindowedView(view, "schedule", defaultLevel);
+	const events = resolveEvents(view, {
+		toEvent,
+		defaultDuration,
+		defaultColor,
+	});
 
-	// On mount, make the core reflect that the schedule view is active and seed the visible window.
-	// Marking the view is what lets the window drive the request even when this component is rendered
-	// standalone (outside `DataViewer`'s switcher) — the core only sends `window` while the schedule
-	// view is active. Both are guarded so a view/window restored from `initialState` or the URL wins,
-	// and so opening via `scheduleInitialState` is a single fetch.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: mount-only; setView/setWindow are stable
-	useEffect(() => {
-		if (view.view !== "schedule") view.setView("schedule");
-		if (!view.state.window)
-			view.setWindow(computeWindow(new Date(), defaultLevel));
-	}, []);
-
-	const level: ScheduleLevel = window?.level ?? defaultLevel;
-	const date = window ? new Date(window.start) : new Date();
-
-	const rows = table.getRowModel().rows;
-	// Computed every render over a single page of rows (cheap), matching how the core derives its
-	// other helpers. `columnDefs` carries the `meta.schedule` roles `composeEvent` reads.
-	const columnDefs = table.getAllColumns().map((c) => c.columnDef);
-	const events: ScheduleEventData[] = [];
-	for (const row of rows) {
-		if (toEvent) {
-			events.push(toEvent(row.original));
-			continue;
-		}
-		const composed = composeEvent(row.original, {
-			columns: columnDefs,
-			getRowId: () => row.id,
-			defaultDuration,
-		});
-		if (composed) events.push(composeScheduleEvent(composed, defaultColor));
-	}
-
-	const handleViewChange = (next: ScheduleLevel) =>
-		view.setWindow(computeWindow(date, next));
-	const handleDateChange = (next: string) =>
-		view.setWindow(computeWindow(dayjs(next).toDate(), level));
-	const handleEventClick = (event: ScheduleEventData) => {
-		const row = rows.find((r) => r.id === String(event.id));
-		row?.toggleSelected();
-	};
-
-	// The state-dependent body: error, first-load skeleton, filtered-empty affordance, or the calendar.
-	// A populated calendar with zero events IS the empty state — render the grid rather than a "no
-	// results" message. Once events exist the calendar stays mounted across window changes so
-	// navigation never flashes a skeleton over the grid.
-	const renderBody = (): ReactNode => {
-		if (renderStatus.phase === "error") {
-			return (
-				<Center p="xl">
-					<ErrorContent view={view} slots={slots} />
-				</Center>
-			);
-		}
-		if (renderStatus.phase === "loading" && events.length === 0) {
-			return <Skeleton height={480} radius="sm" />;
-		}
-		if (renderStatus.phase === "empty-filtered" && events.length === 0) {
-			return (
-				<Center p="xl">
-					<EmptyContent view={view} slots={slots} />
-				</Center>
-			);
-		}
-		return (
-			<Schedule
-				events={events}
-				date={date}
-				view={level}
-				onViewChange={handleViewChange}
-				onDateChange={handleDateChange}
-				onEventClick={handleEventClick}
-				{...scheduleProps}
-			/>
-		);
-	};
-
-	// No header sections: render the body directly so the common case adds no wrapper. Otherwise the
-	// header row persists above the body across every state.
-	if (leftSection == null && rightSection == null) return renderBody();
+	const calendar = (
+		<Schedule
+			events={events}
+			date={date}
+			view={level}
+			onViewChange={(next) => view.setWindow(computeWindow(date, next))}
+			onDateChange={(next) =>
+				view.setWindow(computeWindow(dayjs(next).toDate(), level))
+			}
+			onEventClick={(event) => toggleEventSelection(view, event.id)}
+			{...scheduleProps}
+		/>
+	);
 
 	return (
-		<Stack gap="sm">
-			<Group justify="space-between" wrap="wrap" gap="sm">
-				<Group gap="sm" wrap="wrap">
-					{leftSection}
-				</Group>
-				<Group gap="sm" wrap="wrap">
-					{rightSection}
-				</Group>
-			</Group>
-			{renderBody()}
-		</Stack>
+		<ScheduleShell
+			view={view}
+			slots={slots}
+			leftSection={leftSection}
+			rightSection={rightSection}
+			hasEvents={events.length > 0}
+		>
+			{calendar}
+		</ScheduleShell>
 	);
 }

@@ -14,16 +14,25 @@
 export const VIEW_MODES = ["table", "cards"] as const;
 
 /**
- * A presentation a core state instance can project into. Includes the built-ins plus `"schedule"`,
- * which ships from the optional `@ethanhann/mantine-dataview/schedule` subpath. This is a bare
- * string literal: naming it here costs nothing and pulls in no scheduler dependency.
+ * Views that fetch by a date `window` instead of a page. While one is active the pager is suppressed
+ * and the sort/column controls are hidden. All ship from the optional
+ * `@ethanhann/mantine-dataview/schedule` subpath; naming them here is bare string literals and pulls
+ * in no scheduler dependency.
  */
-export type ViewMode = (typeof VIEW_MODES)[number] | "schedule";
+export const WINDOWED_VIEWS = ["schedule", "agenda", "resources"] as const;
 
 /**
- * Runtime guard for a *built-in* `ViewMode`. `"schedule"` is intentionally excluded: it is only
- * selectable once the consumer registers it, so an external string (e.g. a stale `?view=schedule`
- * URL) should not hydrate as a view the host app never opted into.
+ * A presentation a core state instance can project into: the built-ins plus the opt-in schedule
+ * family ({@link WINDOWED_VIEWS}).
+ */
+export type ViewMode =
+	| (typeof VIEW_MODES)[number]
+	| (typeof WINDOWED_VIEWS)[number];
+
+/**
+ * Runtime guard for a *built-in* `ViewMode`. The schedule-family views are intentionally excluded:
+ * they are only selectable once the consumer registers them, so an external string (e.g. a stale
+ * `?view=schedule` URL) should not hydrate as a view the host app never opted into.
  */
 export function isViewMode(
 	value: unknown,
@@ -34,13 +43,18 @@ export function isViewMode(
 	);
 }
 
-/** Every known view id, including the opt-in `"schedule"`. Used to validate a view from the URL. */
-export const KNOWN_VIEW_MODES = [...VIEW_MODES, "schedule"] as const;
+/** True for a view that fetches by date window (the schedule family) rather than by page. */
+export function isWindowedView(value: ViewMode): boolean {
+	return (WINDOWED_VIEWS as readonly string[]).includes(value);
+}
+
+/** Every known view id, including the opt-in schedule family. Used to validate a view from the URL. */
+export const KNOWN_VIEW_MODES = [...VIEW_MODES, ...WINDOWED_VIEWS] as const;
 
 /**
- * Guard for any known `ViewMode`, including `"schedule"`. Unlike {@link isViewMode}, this accepts the
- * opt-in schedule id so a `?view=schedule` URL can be restored; an unregistered schedule view then
- * degrades to the table in `DataViewer`'s body rather than erroring.
+ * Guard for any known `ViewMode`, including the schedule family. Unlike {@link isViewMode}, this
+ * accepts the opt-in ids so a `?view=schedule` (or `agenda`/`resources`) URL can be restored; an
+ * unregistered such view then degrades to the table in `DataViewer`'s body rather than erroring.
  */
 export function isKnownViewMode(value: unknown): value is ViewMode {
 	return (
