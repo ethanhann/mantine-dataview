@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DataColumnDef } from "../types/column";
-import { deriveResources } from "./deriveResources";
+import { buildResourceCounts, deriveResources } from "./deriveResources";
 
 interface Booking {
 	id: string;
@@ -53,5 +53,24 @@ describe("deriveResources", () => {
 		expect(deriveResources(columns)).toEqual([]);
 		expect(warn).toHaveBeenCalled();
 		warn.mockRestore();
+	});
+});
+
+describe("buildResourceCounts", () => {
+	it("maps a value facet to a value→count map", () => {
+		const counts = buildResourceCounts({
+			type: "values",
+			values: [
+				{ value: "A", count: 12 },
+				{ value: "B", count: 3 },
+			],
+		});
+		expect(counts?.get("A")).toBe(12);
+		expect(counts?.get("B")).toBe(3);
+	});
+
+	it("returns null for a missing facet or a range facet", () => {
+		expect(buildResourceCounts(undefined)).toBeNull();
+		expect(buildResourceCounts({ type: "ranges", ranges: [] })).toBeNull();
 	});
 });

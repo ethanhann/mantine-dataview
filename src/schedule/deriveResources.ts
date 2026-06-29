@@ -5,6 +5,7 @@
 
 import type { ScheduleResourceData } from "@mantine/schedule";
 import type { DataColumnDef } from "../types/column";
+import type { FacetData } from "../types/facets";
 
 /**
  * Maps the `resource`-role column's filter `options` (`{ value, label }`) to Mantine
@@ -30,4 +31,17 @@ export function deriveResources<TData>(
 		return [];
 	}
 	return options.map((o) => ({ id: o.value, label: o.label }));
+}
+
+/**
+ * Builds a `value → count` map from the resource column's value facet, for overlaying server counts
+ * on the (stable) resource rows. Returns `null` when there is no value facet to read counts from.
+ */
+export function buildResourceCounts(
+	facet: FacetData | undefined,
+): Map<string, number> | null {
+	if (!facet || facet.type !== "values") return null;
+	const counts = new Map<string, number>();
+	for (const entry of facet.values) counts.set(entry.value, entry.count);
+	return counts;
 }

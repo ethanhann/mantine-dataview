@@ -4,7 +4,7 @@
 // column's filter options. `ResourcesSchedule` has only day/week/month levels (no year), so a `year`
 // window is clamped to `month` for display. Ships from the optional `/schedule` subpath only.
 
-import type { MantineColor } from "@mantine/core";
+import { type MantineColor, Text } from "@mantine/core";
 import {
 	ResourcesSchedule,
 	type ResourcesScheduleProps,
@@ -17,7 +17,7 @@ import type { ReactNode } from "react";
 import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
 import { computeWindow } from "./dateWindow";
-import { deriveResources } from "./deriveResources";
+import { buildResourceCounts, deriveResources } from "./deriveResources";
 import { resolveEvents, toggleEventSelection } from "./resolveEvents";
 import { ScheduleShell } from "./ScheduleShell";
 import { useWindowedView } from "./useWindowedView";
@@ -40,6 +40,11 @@ export interface DataResourceScheduleProps<TData> {
 	defaultColor?: MantineColor;
 	/** Forwarded to Mantine's `<ResourcesSchedule>` (e.g. `renderResourceLabel`). */
 	resourcesProps?: Partial<ResourcesScheduleProps>;
+	/**
+	 * Show a per-resource count next to each row label when the `resource`-role column has a value
+	 * facet in the response. Default `true`. A `renderResourceLabel` in `resourcesProps` overrides it.
+	 */
+	showResourceCounts?: boolean;
 	/** Reuses the shared empty/error slots so states match the other views. */
 	slots?: Pick<DataViewSlots<TData>, "Empty" | "ErrorState">;
 	/** Custom content at the start of a header row above the calendar. */
@@ -56,6 +61,7 @@ export function DataResourceSchedule<TData>({
 	defaultLevel = "week",
 	defaultColor = "blue",
 	resourcesProps,
+	showResourceCounts = true,
 	slots,
 	leftSection,
 	rightSection,
@@ -71,8 +77,35 @@ export function DataResourceSchedule<TData>({
 	const resourceLevel: ResourcesScheduleViewLevel =
 		level === "year" ? "month" : level;
 
-	const columns = view.table.getAllColumns().map((c) => c.columnDef);
+	const allColumns = view.table.getAllColumns();
+	const columns = allColumns.map((c) => c.columnDef);
 	const resolvedResources = resources ?? deriveResources(columns);
+
+	// Overlay server counts onto the (stable) resource rows when the resource column has a value
+	// facet. The rows themselves never change with filtering — only the counts do. A consumer
+	// `renderResourceLabel` in `resourcesProps` wins (it is spread after this default).
+	const resourceColumn = allColumns.find(
+		(c) => c.columnDef.meta?.schedule?.role === "resource",
+	);
+	const counts =
+		showResourceCounts && resourceColumn
+			? buildResourceCounts(view.facets[resourceColumn.id])
+			: null;
+	const renderResourceLabel = counts
+		? (resource: ScheduleResourceData) => {
+				const count = counts.get(String(resource.id));
+				return count == null ? (
+					<>{resource.label}</>
+				) : (
+					<>
+						{resource.label}{" "}
+						<Text span size="sm" c="dimmed">
+							({count})
+						</Text>
+					</>
+				);
+			}
+		: undefined;
 
 	const calendar = (
 		<ResourcesSchedule
@@ -80,6 +113,7 @@ export function DataResourceSchedule<TData>({
 			events={events}
 			date={date}
 			view={resourceLevel}
+			renderResourceLabel={renderResourceLabel}
 			onViewChange={(next) => view.setWindow(computeWindow(date, next))}
 			onDateChange={(next) =>
 				view.setWindow(computeWindow(dayjs(next).toDate(), resourceLevel))

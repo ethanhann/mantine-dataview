@@ -1057,7 +1057,9 @@ import {scheduleView, agendaView, resourcesView} from "@ethanhann/mantine-datavi
 - **Resources** (`resourcesView` / `DataResourceSchedule`) — one row per resource. The rows are
   **derived** from the `resource`-role column's filter options; pass an explicit `resources` prop
   (`ScheduleResourceData[]`) to control labels, colors, or order. Resource views have only
-  day/week/month levels — a `year` window is clamped to `month`.
+  day/week/month levels — a `year` window is clamped to `month`. When the response includes a value
+  **facet** for the resource column, each row shows a live count (e.g. "Aspen (12)"); the rows stay
+  stable as you filter, only the counts change. Opt out with `showResourceCounts={false}`.
 
 To show the agenda *inside* the calendar instead of as a separate view, enable Mantine's built-in
 toggle: `<DataSchedule scheduleProps={{withAgenda: true}}/>`.

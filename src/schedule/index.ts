@@ -42,8 +42,8 @@ export {
 } from "./DataScheduleNav";
 // Date-window helpers, exported so consumers can drive `setWindow` from their own controls.
 export { computeWindow, shiftWindow } from "./dateWindow";
-// Resource-list derivation, exported for custom resource presentations.
-export { deriveResources } from "./deriveResources";
+// Resource-list derivation and facet count overlay, exported for custom resource presentations.
+export { buildResourceCounts, deriveResources } from "./deriveResources";
 // Shared event helpers, for custom schedule-family presentations.
 export {
 	type ResolveEventsOptions,

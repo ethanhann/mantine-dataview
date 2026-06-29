@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resource rows are derived from the `resource`-role column's filter options (`deriveResources`
   helper), with an explicit `resources` prop (`ScheduleResourceData[]`) as override. Resource views
   clamp a `year` window to `month` (they have only day/week/month levels).
+- The resource view overlays live **per-resource counts** when the response includes a value facet
+  for the resource column (e.g. "Aspen (12)"): the rows stay stable while filtering, only the counts
+  change. On by default (`showResourceCounts`); a `renderResourceLabel` in `resourcesProps` overrides
+  it. `buildResourceCounts` helper exported.
 - `scheduleInitialState` accepts a target `view`, so a viewer can open directly on agenda or
   resources as a single windowed fetch.
 - `WINDOWED_VIEWS` constant and `isWindowedView` guard exported from the package root, for custom
