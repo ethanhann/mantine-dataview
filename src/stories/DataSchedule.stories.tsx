@@ -15,7 +15,12 @@ import {
 	scheduleView,
 } from "../schedule";
 import { windowHistoryAdapter } from "../url";
-import { type Booking, createEventFetcher, eventColumns } from "./eventData";
+import {
+	type Booking,
+	bookings,
+	createEventFetcher,
+	eventColumns,
+} from "./eventData";
 import { UrlReadout } from "./UrlReadout";
 // The schedule presentation requires Mantine's schedule styles in addition to core/dates styles.
 // @ts-expect-error CSS import has no type declarations
@@ -134,6 +139,44 @@ export const WithHeaderSections: Story = {
 						</Group>
 					}
 				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Editable: drag an event to move it and drag its edge to resize. The typed `onEventMove` /
+ * `onEventResize` callbacks hand back the row and the new `{ start, end }`; here they persist to a
+ * local copy of the data (the "server") and call `view.patchRow` for instant feedback.
+ */
+export const EditableEvents: Story = {
+	render: () => {
+		function Example() {
+			const data = useMemo(() => bookings.map((b) => ({ ...b })), []);
+			const fetcher = useMemo(() => createEventFetcher(data), [data]);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			const apply = (
+				row: Booking,
+				{ start, end }: { start: Date; end: Date },
+			) => {
+				const target = data.find((b) => b.id === row.id);
+				if (target) {
+					target.start = start.toISOString();
+					target.end = end.toISOString();
+				}
+				view.patchRow({
+					...row,
+					start: start.toISOString(),
+					end: end.toISOString(),
+				});
+			};
+			return (
+				<DataSchedule view={view} onEventMove={apply} onEventResize={apply} />
 			);
 		}
 		return <Example />;

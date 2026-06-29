@@ -2,10 +2,10 @@
 // the columns' declarative `meta.schedule` roles (or a `toEvent` override), and the date navigation
 // drives the core's `window` slice so the consumer's fetcher loads the visible range.
 //
-// Read-only apart from click-to-select: events are clickable (toggling row selection, which feeds
-// bulk actions) but not draggable or resizable. Mantine's drag/resize hooks can be opted into through
-// `scheduleProps`. This file imports `@mantine/schedule`, so it ships only from the optional
-// `/schedule` subpath, never from the main entry.
+// Click-to-select by default; opt into editing with the typed `onEventMove`/`onEventResize`/
+// `onRangeSelect`/`onSlotClick` callbacks (which enable Mantine's interaction flags for you). This
+// file imports `@mantine/schedule`, so it ships only from the optional `/schedule` subpath, never
+// from the main entry.
 
 import type { MantineColor } from "@mantine/core";
 import {
@@ -19,6 +19,14 @@ import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
 import { computeWindow } from "./dateWindow";
+import {
+	type EventMoveHandler,
+	makeMoveHandler,
+	makeScheduleSlotDragHandler,
+	makeSlotClickHandler,
+	type RangeSelectHandler,
+	type SlotClickHandler,
+} from "./eventInteractions";
 import {
 	type EventClickHandler,
 	makeEventClickHandler,
@@ -47,8 +55,17 @@ export interface DataScheduleProps<TData> {
 	 * want selection.
 	 */
 	onEventClick?: EventClickHandler<TData>;
-	/** Forwarded to Mantine's `<Schedule>` (e.g. `startTime`, `weekViewProps`). A raw `onEventClick`
-	 * here overrides the typed `onEventClick` above. */
+	/** Drag an event to a new time. Receives the typed row and the new `{ start, end }`. Enables
+	 * Mantine's drag-and-drop automatically. Apply the change with `view.patchRow` after persisting. */
+	onEventMove?: EventMoveHandler<TData>;
+	/** Resize an event. Receives the typed row and the new `{ start, end }`. Enables resize automatically. */
+	onEventResize?: EventMoveHandler<TData>;
+	/** Drag-select a time range (to create). Receives the `{ start, end }`. Enables drag-select automatically. */
+	onRangeSelect?: RangeSelectHandler;
+	/** Click an empty time slot (to create). Receives the slot `{ start, end }`. */
+	onSlotClick?: SlotClickHandler;
+	/** Forwarded to Mantine's `<Schedule>` (e.g. `startTime`, `weekViewProps`). Raw handlers/flags
+	 * here override the typed callbacks above. */
 	scheduleProps?: Partial<ScheduleProps>;
 	/** Reuses the shared empty/error slots so states match the table and card views. */
 	slots?: Pick<DataViewSlots<TData>, "Empty" | "ErrorState">;
@@ -69,6 +86,10 @@ export function DataSchedule<TData>({
 	defaultLevel = "week",
 	defaultColor = "blue",
 	onEventClick,
+	onEventMove,
+	onEventResize,
+	onRangeSelect,
+	onSlotClick,
 	scheduleProps,
 	slots,
 	leftSection,
@@ -91,6 +112,14 @@ export function DataSchedule<TData>({
 				view.setWindow(computeWindow(dayjs(next).toDate(), level))
 			}
 			onEventClick={makeEventClickHandler(view, onEventClick)}
+			// Editing: enable each Mantine interaction only when its typed handler is given.
+			withEventsDragAndDrop={onEventMove != null}
+			onEventDrop={makeMoveHandler(view, onEventMove)}
+			withEventResize={onEventResize != null}
+			onEventResize={makeMoveHandler(view, onEventResize)}
+			withDragSlotSelect={onRangeSelect != null}
+			onSlotDragEnd={makeScheduleSlotDragHandler(onRangeSelect)}
+			onTimeSlotClick={makeSlotClickHandler(onSlotClick)}
 			{...scheduleProps}
 		/>
 	);

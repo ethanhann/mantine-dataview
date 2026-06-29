@@ -6,7 +6,10 @@ import { describe, expect, it, vi } from "vitest";
 import { col } from "../core/colBuilder";
 import { useDataView } from "../core/useDataView";
 import type { DataViewWindow, Status } from "../types/state";
-import { DataResourceSchedule } from "./DataResourceSchedule";
+import {
+	DataResourceSchedule,
+	type DataResourceScheduleProps,
+} from "./DataResourceSchedule";
 
 // Replace Mantine's ResourcesSchedule with a light double exposing the props we care about. It calls
 // `renderResourceLabel` (when given) so the facet-count overlay is observable.
@@ -27,12 +30,52 @@ vi.mock("@mantine/schedule", () => ({
 			e: { id: string | number; title: string },
 			ev: unknown,
 		) => void;
+		onEventDrop?: (data: {
+			eventId: string;
+			newStart: string;
+			newEnd: string;
+			event: { id: string };
+			resourceId?: string;
+		}) => void;
+		onSlotDragEnd?: (data: {
+			rangeStart: string;
+			rangeEnd: string;
+			resourceId?: string;
+		}) => void;
 	}) => (
 		<div
 			data-testid="resources"
 			data-view={props.view}
 			data-resource-count={props.resources.length}
 		>
+			<button
+				type="button"
+				data-testid="drop"
+				onClick={() =>
+					props.onEventDrop?.({
+						eventId: "1",
+						newStart: "2026-06-29 10:00:00",
+						newEnd: "2026-06-29 11:00:00",
+						event: { id: "1" },
+						resourceId: "B",
+					})
+				}
+			>
+				drop
+			</button>
+			<button
+				type="button"
+				data-testid="rangeselect"
+				onClick={() =>
+					props.onSlotDragEnd?.({
+						rangeStart: "2026-06-29 13:00:00",
+						rangeEnd: "2026-06-29 14:00:00",
+						resourceId: "A",
+					})
+				}
+			>
+				range
+			</button>
 			{props.weekViewProps?.groups?.map((g) => (
 				<div key={g.label} data-testid="group">
 					{props.weekViewProps?.renderGroupLabel
@@ -107,6 +150,8 @@ function Harness({
 	showResourceCounts,
 	onEventClick,
 	groups,
+	onEventMove,
+	onRangeSelect,
 }: {
 	rows?: Shift[];
 	status?: Status;
@@ -116,6 +161,8 @@ function Harness({
 	showResourceCounts?: boolean;
 	onEventClick?: (row: Shift) => void;
 	groups?: { label: string; resourceIds: string[] }[];
+	onEventMove?: DataResourceScheduleProps<Shift>["onEventMove"];
+	onRangeSelect?: DataResourceScheduleProps<Shift>["onRangeSelect"];
 }) {
 	const view = useDataView<Shift>({
 		columns,
@@ -135,6 +182,8 @@ function Harness({
 				showResourceCounts={showResourceCounts}
 				onEventClick={onEventClick}
 				groups={groups}
+				onEventMove={onEventMove}
+				onRangeSelect={onRangeSelect}
 			/>
 		</>
 	);
@@ -199,6 +248,31 @@ describe("DataResourceSchedule", () => {
 			groups: [{ label: "Building A", resourceIds: ["A", "B"] }],
 		});
 		expect(screen.getByTestId("group")).toHaveTextContent("Building A");
+	});
+
+	it("onEventMove includes the target resourceId in ctx", async () => {
+		const user = userEvent.setup();
+		const onEventMove = vi.fn<
+			DataResourceScheduleProps<Shift>["onEventMove"] & object
+		>();
+		renderHarness({ onEventMove });
+		await user.click(screen.getByTestId("drop"));
+		const [row, range, ctx] = onEventMove.mock.calls[0]!;
+		expect(row).toEqual(ROWS[0]);
+		expect(range.start).toBeInstanceOf(Date);
+		expect(ctx.resourceId).toBe("B");
+	});
+
+	it("onRangeSelect uses the resource object form and carries resourceId", async () => {
+		const user = userEvent.setup();
+		const onRangeSelect = vi.fn<
+			DataResourceScheduleProps<Shift>["onRangeSelect"] & object
+		>();
+		renderHarness({ onRangeSelect });
+		await user.click(screen.getByTestId("rangeselect"));
+		const [range, ctx] = onRangeSelect.mock.calls[0]!;
+		expect(range.start).toBeInstanceOf(Date);
+		expect(ctx.resourceId).toBe("A");
 	});
 
 	it("overlays facet counts on the resource rows when a value facet is present", () => {

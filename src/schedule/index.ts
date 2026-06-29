@@ -45,6 +45,15 @@ export {
 export { computeWindow, shiftWindow } from "./dateWindow";
 // Resource-list derivation and facet count overlay, exported for custom resource presentations.
 export { buildResourceCounts, deriveResources } from "./deriveResources";
+// Typed interaction callback types, for annotating handlers.
+export type {
+	EventMoveContext,
+	EventMoveHandler,
+	EventRange,
+	RangeSelectHandler,
+	SlotClickHandler,
+	SlotContext,
+} from "./eventInteractions";
 // Shared event helpers, for custom schedule-family presentations.
 export {
 	type EventClickHandler,

@@ -20,6 +20,14 @@ import type { UseDataViewReturn } from "../types/options";
 import { computeWindow } from "./dateWindow";
 import { buildResourceCounts, deriveResources } from "./deriveResources";
 import {
+	type EventMoveHandler,
+	makeMoveHandler,
+	makeResourceSlotDragHandler,
+	makeSlotClickHandler,
+	type RangeSelectHandler,
+	type SlotClickHandler,
+} from "./eventInteractions";
+import {
 	type EventClickHandler,
 	makeEventClickHandler,
 	resolveEvents,
@@ -52,8 +60,17 @@ export interface DataResourceScheduleProps<TData> {
 	defaultColor?: MantineColor;
 	/** Called when an event is clicked, with the typed original row. Replaces the default selection toggle. */
 	onEventClick?: EventClickHandler<TData>;
-	/** Forwarded to Mantine's `<ResourcesSchedule>` (e.g. `renderResourceLabel`). A raw `onEventClick`
-	 * here overrides the typed `onEventClick` above. */
+	/** Drag an event to a new time/resource. Receives the typed row, new `{ start, end }`, and
+	 * `ctx.resourceId`. Enables drag-and-drop automatically. */
+	onEventMove?: EventMoveHandler<TData>;
+	/** Resize an event. Receives the typed row and the new `{ start, end }`. Enables resize automatically. */
+	onEventResize?: EventMoveHandler<TData>;
+	/** Drag-select a time range (to create); `ctx.resourceId` is the target row. Enables drag-select automatically. */
+	onRangeSelect?: RangeSelectHandler;
+	/** Click an empty slot (to create); `ctx.resourceId` is the target row. */
+	onSlotClick?: SlotClickHandler;
+	/** Forwarded to Mantine's `<ResourcesSchedule>` (e.g. `renderResourceLabel`). Raw handlers/flags
+	 * here override the typed callbacks above. */
 	resourcesProps?: Partial<ResourcesScheduleProps>;
 	/**
 	 * Show a per-resource count next to each row label when the `resource`-role column has a value
@@ -78,6 +95,10 @@ export function DataResourceSchedule<TData>({
 	defaultLevel = "week",
 	defaultColor = "blue",
 	onEventClick,
+	onEventMove,
+	onEventResize,
+	onRangeSelect,
+	onSlotClick,
 	resourcesProps,
 	showResourceCounts = true,
 	slots,
@@ -151,6 +172,13 @@ export function DataResourceSchedule<TData>({
 				view.setWindow(computeWindow(dayjs(next).toDate(), resourceLevel))
 			}
 			onEventClick={makeEventClickHandler(view, onEventClick)}
+			withEventsDragAndDrop={onEventMove != null}
+			onEventDrop={makeMoveHandler(view, onEventMove)}
+			withEventResize={onEventResize != null}
+			onEventResize={makeMoveHandler(view, onEventResize)}
+			withDragSlotSelect={onRangeSelect != null}
+			onSlotDragEnd={makeResourceSlotDragHandler(onRangeSelect)}
+			onTimeSlotClick={makeSlotClickHandler(onSlotClick)}
 			{...resourcesProps}
 			dayViewProps={withGroups(resourcesProps?.dayViewProps)}
 			weekViewProps={withGroups(resourcesProps?.weekViewProps)}

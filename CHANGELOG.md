@@ -51,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DataResourceSchedule` `groups` / `renderGroupLabel` props (`ScheduleResourceGroup[]`): a rowspan
   column grouping resources, fanned out to all view levels. Mantine accepts groups only per-view, so
   this is the single-prop convenience. `ScheduleResourceGroup` type re-exported.
+- Event editing callbacks on `DataSchedule` / `DataResourceSchedule`: `onEventMove`, `onEventResize`,
+  `onRangeSelect`, `onSlotClick`. Each hands back the typed row and a `{ start, end }` `Date` range
+  (resource views include `ctx.resourceId`) and auto-enables the matching Mantine interaction flag.
+  Pair with `patchRow`/`insertRow`/`removeRow` to persist. Handler types exported (`EventMoveHandler`,
+  `RangeSelectHandler`, `SlotClickHandler`, `EventRange`, etc.).
 - `scheduleInitialState` accepts a target `view`, so a viewer can open directly on agenda or
   resources as a single windowed fetch.
 - `WINDOWED_VIEWS` constant and `isWindowedView` guard exported from the package root, for custom
