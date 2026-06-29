@@ -8,12 +8,15 @@ import { useEffect } from "react";
 import type { UseDataViewReturn } from "../types/options";
 import type { DataViewWindow, ScheduleLevel, ViewMode } from "../types/state";
 import { computeWindow } from "./dateWindow";
+import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
 
 export interface WindowedView {
 	level: ScheduleLevel;
 	/** Anchor date for the current window (its start), or now before a window exists. */
 	date: Date;
 	window: DataViewWindow | undefined;
+	/** Active week-start from `DatesProvider`, for the presentation's own `computeWindow` calls. */
+	firstDayOfWeek: number;
 }
 
 export function useWindowedView<TData>(
@@ -21,11 +24,12 @@ export function useWindowedView<TData>(
 	viewId: ViewMode,
 	defaultLevel: ScheduleLevel,
 ): WindowedView {
+	const firstDayOfWeek = useFirstDayOfWeek();
 	// biome-ignore lint/correctness/useExhaustiveDependencies: mount-only; setView/setWindow are stable
 	useEffect(() => {
 		if (view.view !== viewId) view.setView(viewId);
 		if (!view.state.window)
-			view.setWindow(computeWindow(new Date(), defaultLevel));
+			view.setWindow(computeWindow(new Date(), defaultLevel, firstDayOfWeek));
 	}, []);
 
 	const window = view.state.window;
@@ -41,5 +45,6 @@ export function useWindowedView<TData>(
 				)
 			: new Date(),
 		window,
+		firstDayOfWeek,
 	};
 }

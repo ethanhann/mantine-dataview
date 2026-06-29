@@ -17,12 +17,16 @@ import { computeWindow } from "./dateWindow";
  * const view = useDataViewFetcher({ columns, getRowId, fetcher, initialState });
  * ```
  *
- * Memoize it (as above) so the anchor date is fixed to first render rather than recomputed.
+ * Memoize it (as above) so the anchor date is fixed to first render rather than recomputed. The
+ * rendered presentations read `firstDayOfWeek` from `DatesProvider`, but this seed runs before render,
+ * so pass `firstDayOfWeek` here too if your `DatesProvider` overrides Mantine's Monday default.
+ * Otherwise the very first window is Monday-aligned until the user navigates.
  */
 export function scheduleInitialState(
 	level: ScheduleLevel = "week",
 	date: Date = new Date(),
 	view: ViewMode = "schedule",
+	firstDayOfWeek?: number,
 ): Pick<DataViewState, "view" | "window"> {
-	return { view, window: computeWindow(date, level) };
+	return { view, window: computeWindow(date, level, firstDayOfWeek) };
 }

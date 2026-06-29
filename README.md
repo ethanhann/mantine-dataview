@@ -1098,6 +1098,23 @@ window on mount — but it costs one extra fetch (a window-less request, then a 
 the window avoids that. A `window` set while the view is not the schedule view is held but never sent
 to the fetcher, so table and card requests are never polluted by a stale range.
 
+### Week start
+
+The fetched window aligns to the same week start the calendar grid renders.
+Mantine defaults to Monday, and the schedule views read `firstDayOfWeek` from your `DatesProvider`, so
+setting it in one place keeps the grid and the request in agreement with no extra prop.
+
+```tsx
+<DatesProvider settings={{firstDayOfWeek: 0}}> {/* Sunday */}
+    <DataSchedule view={view}/>
+</DatesProvider>;
+```
+
+`scheduleInitialState` runs before render, so it cannot read the provider.
+Pass `firstDayOfWeek` to it as well when your `DatesProvider` overrides the default, otherwise the
+first seeded window is Monday-aligned until the first navigation:
+`scheduleInitialState("week", new Date(), "schedule", 0)`.
+
 ### Header sections
 
 Slot custom controls into a header row above the calendar with `leftSection` and `rightSection` —

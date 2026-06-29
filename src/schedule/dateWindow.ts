@@ -54,13 +54,19 @@ export function computeWindow(
 
 /**
  * Steps the window one level-unit earlier (`-1`) or later (`1`), keeping the same level. Steps from
- * the window's midpoint so a padded month/week lands squarely in the next period.
+ * the window's midpoint so a padded month/week lands squarely in the next period. `firstDayOfWeek`
+ * defaults to Monday to match Mantine. Pass the value from your `DatesProvider` if it differs.
  */
 export function shiftWindow(
 	window: DataViewWindow,
 	direction: -1 | 1,
+	firstDayOfWeek: number = DEFAULT_FIRST_DAY,
 ): DataViewWindow {
 	const start = dayjs(window.start);
 	const mid = start.add(dayjs(window.end).diff(start) / 2, "millisecond");
-	return computeWindow(mid.add(direction, window.level).toDate(), window.level);
+	return computeWindow(
+		mid.add(direction, window.level).toDate(),
+		window.level,
+		firstDayOfWeek,
+	);
 }

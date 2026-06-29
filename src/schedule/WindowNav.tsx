@@ -6,6 +6,7 @@ import { Button, Group, SegmentedControl } from "@mantine/core";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
 import { computeWindow, shiftWindow } from "./dateWindow";
+import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
 
 export interface WindowNavProps<TData> {
 	view: UseDataViewReturn<TData>;
@@ -31,15 +32,17 @@ export function WindowNav<TData>({
 }: WindowNavProps<TData>) {
 	const window = view.state.window;
 	const level: ScheduleLevel = window?.level ?? defaultLevel;
+	const firstDayOfWeek = useFirstDayOfWeek();
 
 	const step = (direction: -1 | 1) => {
-		const current = window ?? computeWindow(new Date(), level);
-		view.setWindow(shiftWindow(current, direction));
+		const current = window ?? computeWindow(new Date(), level, firstDayOfWeek);
+		view.setWindow(shiftWindow(current, direction, firstDayOfWeek));
 	};
-	const goToday = () => view.setWindow(computeWindow(new Date(), level));
+	const goToday = () =>
+		view.setWindow(computeWindow(new Date(), level, firstDayOfWeek));
 	const setLevel = (next: ScheduleLevel) => {
 		const anchor = window ? new Date(window.start) : new Date();
-		view.setWindow(computeWindow(anchor, next));
+		view.setWindow(computeWindow(anchor, next, firstDayOfWeek));
 	};
 
 	return (

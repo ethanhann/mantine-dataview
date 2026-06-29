@@ -95,7 +95,11 @@ export function DataSchedule<TData>({
 	leftSection,
 	rightSection,
 }: DataScheduleProps<TData>) {
-	const { level, date } = useWindowedView(view, "schedule", defaultLevel);
+	const { level, date, firstDayOfWeek } = useWindowedView(
+		view,
+		"schedule",
+		defaultLevel,
+	);
 	const events = resolveEvents(view, {
 		toEvent,
 		defaultDuration,
@@ -107,9 +111,13 @@ export function DataSchedule<TData>({
 			events={events}
 			date={date}
 			view={level}
-			onViewChange={(next) => view.setWindow(computeWindow(date, next))}
+			onViewChange={(next) =>
+				view.setWindow(computeWindow(date, next, firstDayOfWeek))
+			}
 			onDateChange={(next) =>
-				view.setWindow(computeWindow(dayjs(next).toDate(), level))
+				view.setWindow(
+					computeWindow(dayjs(next).toDate(), level, firstDayOfWeek),
+				)
 			}
 			onEventClick={makeEventClickHandler(view, onEventClick)}
 			// Editing: enable each Mantine interaction only when its typed handler is given.

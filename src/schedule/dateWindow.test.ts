@@ -70,4 +70,14 @@ describe("shiftWindow", () => {
 			expect(shiftWindow(shiftWindow(w, 1), -1)).toEqual(w);
 		}
 	});
+
+	it("keeps a Sunday alignment when given a Sunday firstDayOfWeek", () => {
+		// Arrange
+		const w = computeWindow(anchor, "week", 0);
+		// Act
+		const next = shiftWindow(w, 1, 0);
+		// Assert
+		expect(dayjs(next.start).day()).toBe(0); // still Sunday-aligned
+		expect(next.start).toBe(dayjs(w.start).add(1, "week").toISOString());
+	});
 });

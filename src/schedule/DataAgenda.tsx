@@ -1,6 +1,6 @@
 // Agenda presentation. The list projection of the same event data: a date-grouped flat list over the
 // visible window. Unlike `Schedule`/`ResourcesSchedule`, Mantine's `AgendaView` has no built-in
-// navigation, so this renders a `DataScheduleNav` header by default (`withNav`). Same row→event
+// navigation, so this renders a `DataAgendaNav` header by default (`withNav`). Same row→event
 // mapping, window model, and click-to-select as the calendar. Ships from the optional `/schedule`
 // subpath only.
 
@@ -43,7 +43,7 @@ export interface DataAgendaProps<TData> {
 	/** Reuses the shared empty/error slots so states match the other views. */
 	slots?: Pick<DataViewSlots<TData>, "Empty" | "ErrorState">;
 	/**
-	 * Render a `DataScheduleNav` (prev / today / next + level) in the header. `AgendaView` has no
+	 * Render a `DataAgendaNav` (prev / today / next + range) in the header. `AgendaView` has no
 	 * navigation of its own, so this is on by default; set `false` to supply your own via `leftSection`.
 	 */
 	withNav?: boolean;
@@ -66,7 +66,11 @@ export function DataAgenda<TData>({
 	leftSection,
 	rightSection,
 }: DataAgendaProps<TData>) {
-	const { level, date } = useWindowedView(view, "agenda", defaultLevel);
+	const { level, date, firstDayOfWeek } = useWindowedView(
+		view,
+		"agenda",
+		defaultLevel,
+	);
 	const events = resolveEvents(view, {
 		toEvent,
 		defaultDuration,
@@ -74,7 +78,7 @@ export function DataAgenda<TData>({
 	});
 	// `computeWindow` reconstructs the visible range from the (possibly not-yet-stored) level/date,
 	// so the agenda always has a valid range to render.
-	const range = computeWindow(date, level);
+	const range = computeWindow(date, level, firstDayOfWeek);
 
 	const agenda = (
 		<AgendaView

@@ -105,7 +105,11 @@ export function DataResourceSchedule<TData>({
 	leftSection,
 	rightSection,
 }: DataResourceScheduleProps<TData>) {
-	const { level, date } = useWindowedView(view, "resources", defaultLevel);
+	const { level, date, firstDayOfWeek } = useWindowedView(
+		view,
+		"resources",
+		defaultLevel,
+	);
 	const events = resolveEvents(view, {
 		toEvent,
 		defaultDuration,
@@ -167,9 +171,13 @@ export function DataResourceSchedule<TData>({
 			date={date}
 			view={resourceLevel}
 			renderResourceLabel={renderResourceLabel}
-			onViewChange={(next) => view.setWindow(computeWindow(date, next))}
+			onViewChange={(next) =>
+				view.setWindow(computeWindow(date, next, firstDayOfWeek))
+			}
 			onDateChange={(next) =>
-				view.setWindow(computeWindow(dayjs(next).toDate(), resourceLevel))
+				view.setWindow(
+					computeWindow(dayjs(next).toDate(), resourceLevel, firstDayOfWeek),
+				)
 			}
 			onEventClick={makeEventClickHandler(view, onEventClick)}
 			withEventsDragAndDrop={onEventMove != null}

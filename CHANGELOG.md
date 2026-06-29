@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   controls into a header row above the calendar, the schedule analog of the toolbar's sections. The
   header persists across the loading, error, and empty states.
 - Two more schedule-family presentations: **agenda** (`agendaView` / `DataAgenda` — a date-grouped
-  list; renders a `DataScheduleNav` header by default since Mantine's `AgendaView` has no navigation)
+  list; renders a `DataAgendaNav` header by default since Mantine's `AgendaView` has no navigation)
   and **resources** (`resourcesView` / `DataResourceSchedule` — one row per resource). The switcher
   can offer Table / Cards / Calendar / Agenda / Resources; switching among the windowed views reuses
   the loaded window without refetching.
@@ -59,7 +59,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DataAgendaNav` — a purpose-built navigator for the agenda (prev / today / next and a day/week/month
   range, no year), rendered by `DataAgenda` by default in place of the calendar's `DataScheduleNav`.
 - `scheduleInitialState` accepts a target `view`, so a viewer can open directly on agenda or
-  resources as a single windowed fetch.
+  resources as a single windowed fetch. It also accepts a `firstDayOfWeek` for the seed window.
+- The fetched window now aligns to the active week start. The schedule views read `firstDayOfWeek`
+  from Mantine's `DatesProvider`, so a non-Monday week (e.g. `firstDayOfWeek: 0`) keeps the fetched
+  range, its facet counts, and the rendered grid in agreement with no extra prop. `computeWindow` and
+  `shiftWindow` take an optional `firstDayOfWeek` for consumers driving `setWindow` themselves.
 - `WINDOWED_VIEWS` constant and `isWindowedView` guard exported from the package root, for custom
   layouts that branch on whether a date-window view is active.
 - New root-level type exports: `ScheduleRole`, `ScheduleFieldMeta`, `DataViewEvent`,
