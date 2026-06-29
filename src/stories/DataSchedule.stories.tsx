@@ -40,6 +40,21 @@ type Story = StoryObj<typeof DataSchedule>;
 
 const getRowId = (b: Booking) => b.id;
 
+// The resource day/week views are horizontal time strips (resources × time across the period), so an
+// unbounded 24h day is very wide. Clipping to business hours keeps the demo readable.
+const resourceBusinessHours = {
+	dayViewProps: {
+		startTime: "08:00:00",
+		endTime: "18:00:00",
+		intervalMinutes: 60,
+	},
+	weekViewProps: {
+		startTime: "08:00:00",
+		endTime: "18:00:00",
+		intervalMinutes: 60,
+	},
+};
+
 /** Events mapped from declarative `meta.schedule` roles; colored by status via a `map`. */
 export const Default: Story = {
 	render: () => {
@@ -193,7 +208,9 @@ export const AgendaOnly: Story = {
 /**
  * Resources — one row per resource. The rows are derived from the `room` column's filter options
  * (its `meta.schedule.role` is `"resource"`); pass an explicit `resources` prop to control labels,
- * colors, or order.
+ * colors, or order. Because this story's mock fetcher returns a `room` **value facet** over the
+ * visible window, each row shows a live count (e.g. "Aspen (12)") — navigate the calendar and the
+ * counts update while the rows stay put.
  */
 export const ResourcesOnly: Story = {
 	render: () => {
@@ -204,7 +221,37 @@ export const ResourcesOnly: Story = {
 				getRowId,
 				fetcher,
 			});
-			return <DataResourceSchedule view={view} />;
+			return (
+				<DataResourceSchedule
+					view={view}
+					resourcesProps={resourceBusinessHours}
+				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Resource counts come from the response's value facet and are on by default. Opt out with
+ * `showResourceCounts={false}` to show plain resource labels (compare with `ResourcesOnly`).
+ */
+export const ResourcesWithoutCounts: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataResourceSchedule
+					view={view}
+					showResourceCounts={false}
+					resourcesProps={resourceBusinessHours}
+				/>
+			);
 		}
 		return <Example />;
 	},
@@ -230,7 +277,7 @@ export const FullSwitcher: Story = {
 					views={[
 						scheduleView<Booking>(),
 						agendaView<Booking>(),
-						resourcesView<Booking>(),
+						resourcesView<Booking>({ resourcesProps: resourceBusinessHours }),
 					]}
 				/>
 			);

@@ -31,7 +31,15 @@ export function useWindowedView<TData>(
 	const window = view.state.window;
 	return {
 		level: window?.level ?? defaultLevel,
-		date: window ? new Date(window.start) : new Date(),
+		// Anchor the calendar on the window's midpoint, not its start: a month window is padded into
+		// the adjacent months' weeks, so its start can sit in the previous month — the midpoint always
+		// lands inside the logical period, so the calendar displays the right day/week/month/year.
+		date: window
+			? new Date(
+					(new Date(window.start).getTime() + new Date(window.end).getTime()) /
+						2,
+				)
+			: new Date(),
 		window,
 	};
 }

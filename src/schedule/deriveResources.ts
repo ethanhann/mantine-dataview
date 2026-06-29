@@ -40,7 +40,7 @@ export function deriveResources<TData>(
 export function buildResourceCounts(
 	facet: FacetData | undefined,
 ): Map<string, number> | null {
-	if (!facet || facet.type !== "values") return null;
+	if (facet?.type !== "values") return null;
 	const counts = new Map<string, number>();
 	for (const entry of facet.values) counts.set(entry.value, entry.count);
 	return counts;

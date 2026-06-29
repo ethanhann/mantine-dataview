@@ -61,7 +61,7 @@ describe("DataScheduleNav", () => {
 		await user.click(screen.getByRole("button", { name: "Today" }));
 		const w = readWindow();
 		expect(w?.level).toBe("week");
-		expect(dayjs(w?.start).isSame(dayjs(w?.start).startOf("week"))).toBe(true);
+		expect(dayjs(w?.start).day()).toBe(1); // Monday-aligned (Mantine default)
 	});
 
 	it("steps the window forward one week on Next", async () => {
@@ -82,6 +82,7 @@ describe("DataScheduleNav", () => {
 		await user.click(screen.getByRole("radio", { name: "Month" }));
 		const w = readWindow();
 		expect(w?.level).toBe("month");
-		expect(dayjs(w?.start).isSame(dayjs(w?.start).startOf("month"))).toBe(true);
+		// The month window is padded to whole Monday-weeks, so its start lands on a Monday.
+		expect(dayjs(w?.start).day()).toBe(1);
 	});
 });

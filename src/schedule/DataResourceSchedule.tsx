@@ -94,9 +94,8 @@ export function DataResourceSchedule<TData>({
 	const renderResourceLabel = counts
 		? (resource: ScheduleResourceData) => {
 				const count = counts.get(String(resource.id));
-				return count == null ? (
-					<>{resource.label}</>
-				) : (
+				if (count == null) return resource.label;
+				return (
 					<>
 						{resource.label}{" "}
 						<Text span size="sm" c="dimmed">

@@ -12,11 +12,17 @@ describe("scheduleInitialState", () => {
 		expect(state.window).toEqual(computeWindow(date, "month"));
 	});
 
-	it("defaults to the week level", () => {
+	it("defaults to the week level (Monday-aligned)", () => {
 		const state = scheduleInitialState(undefined, date);
 		expect(state.window?.level).toBe("week");
-		expect(dayjs(state.window?.start).isSame(dayjs(date).startOf("week"))).toBe(
-			true,
+		expect(state.window).toEqual(computeWindow(date, "week"));
+		expect(dayjs(state.window?.start).day()).toBe(1);
+	});
+
+	it("targets an explicit view", () => {
+		expect(scheduleInitialState("week", date, "agenda").view).toBe("agenda");
+		expect(scheduleInitialState("week", date, "resources").view).toBe(
+			"resources",
 		);
 	});
 });
