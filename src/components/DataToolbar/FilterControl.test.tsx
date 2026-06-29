@@ -1,10 +1,12 @@
 import { MantineProvider } from "@mantine/core";
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { useDataView } from "../../core/useDataView";
 import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
 import type { FacetData } from "../../types/facets";
+import type { DataViewState } from "../../types/state";
 import { DataTable } from "../DataTable";
 import { FilterControl } from "./FilterControl";
 
@@ -25,9 +27,11 @@ const rows: Item[] = [
 function Harness({
 	cols,
 	facets,
+	initialState,
 }: {
 	cols: DataColumnDef<Item>[];
 	facets?: Record<string, FacetData>;
+	initialState?: Partial<DataViewState>;
 }) {
 	const view = useDataView<Item>({
 		columns: cols,
@@ -37,9 +41,13 @@ function Harness({
 		getRowId: (i) => i.id,
 		debounce: 0,
 		facets,
+		...(initialState ? { initialState } : {}),
 	});
 	return (
 		<>
+			<span data-testid="filters">
+				{JSON.stringify(view.state.columnFilters)}
+			</span>
 			{view.filterableColumns.map((col) => (
 				<FilterControl key={col.id} column={col} facet={view.facets[col.id]} />
 			))}
@@ -54,6 +62,14 @@ const renderFilter = (props: Parameters<typeof Harness>[0]) =>
 			<Harness {...props} />
 		</MantineProvider>,
 	);
+
+function readFilters(): { id: string; value: unknown }[] {
+	return JSON.parse(screen.getByTestId("filters").textContent || "[]");
+}
+
+function filterValue(id: string): unknown {
+	return readFilters().find((f) => f.id === id)?.value;
+}
 
 describe("FilterControl", () => {
 	it("renders a boolean filter as a segmented control", () => {
@@ -216,5 +232,215 @@ describe("FilterControl", () => {
 		});
 		expect(screen.getByText("Low")).toBeVisible();
 		expect(screen.getByText("High")).toBeVisible();
+	});
+
+	it("writes the typed text through, and clears the filter on empty", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderFilter({
+			cols: [
+				helper.accessor("name", {
+					meta: { label: "Name", filter: { variant: "text" } },
+				}),
+			],
+		});
+		// Act
+		await user.type(screen.getByLabelText("Name"), "Ab");
+		// Assert
+		expect(filterValue("name")).toBe("Ab");
+		// Act
+		await user.clear(screen.getByLabelText("Name"));
+		// Assert: an empty string removes the column filter entirely.
+		expect(readFilters()).toEqual([]);
+	});
+
+	it("writes true, false, then undefined as the boolean control changes", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderFilter({
+			cols: [
+				helper.accessor("active", {
+					filterFn: () => true,
+					meta: { label: "Active", filter: { variant: "boolean" } },
+				}),
+			],
+		});
+		// Act
+		await user.click(screen.getByRole("radio", { name: "Yes" }));
+		// Assert
+		expect(filterValue("active")).toBe(true);
+		// Act
+		await user.click(screen.getByRole("radio", { name: "No" }));
+		// Assert
+		expect(filterValue("active")).toBe(false);
+		// Act
+		await user.click(screen.getByRole("radio", { name: "All" }));
+		// Assert
+		expect(readFilters()).toEqual([]);
+	});
+
+	it("writes the chosen option through for a select filter", () => {
+		// Arrange
+		renderFilter({
+			cols: [
+				helper.accessor("name", {
+					meta: {
+						label: "Name",
+						filter: {
+							variant: "select",
+							options: [
+								{ value: "A", label: "Apple" },
+								{ value: "B", label: "Banana" },
+							],
+						},
+					},
+				}),
+			],
+		});
+		// Act: open the dropdown, then pick an option (kept in the a11y tree as hidden).
+		fireEvent.click(screen.getByRole("combobox", { name: "Name" }));
+		fireEvent.click(
+			screen.getByRole("option", { name: "Banana", hidden: true }),
+		);
+		// Assert
+		expect(filterValue("name")).toBe("B");
+	});
+
+	it("writes the selected values through for a multiselect filter", () => {
+		// Arrange
+		renderFilter({
+			cols: [
+				helper.accessor("name", {
+					filterFn: () => true,
+					meta: {
+						label: "Tags",
+						filter: {
+							variant: "multiselect",
+							options: [
+								{ value: "A", label: "Apple" },
+								{ value: "B", label: "Banana" },
+							],
+						},
+					},
+				}),
+			],
+		});
+		// Act
+		fireEvent.click(screen.getByRole("combobox", { name: "Tags" }));
+		fireEvent.click(
+			screen.getByRole("option", { name: "Apple", hidden: true }),
+		);
+		// Assert
+		expect(filterValue("name")).toEqual(["A"]);
+	});
+
+	it("writes a [min, max] range through the number inputs and clears when both empty", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderFilter({
+			cols: [
+				helper.accessor("score", {
+					filterFn: () => true,
+					meta: { label: "Score", filter: { variant: "numberRange" } },
+				}),
+			],
+		});
+		// Act
+		await user.type(screen.getByLabelText("Score minimum"), "10");
+		// Assert
+		expect(filterValue("score")).toEqual([10, null]);
+		// Act
+		await user.type(screen.getByLabelText("Score maximum"), "90");
+		// Assert
+		expect(filterValue("score")).toEqual([10, 90]);
+		// Act
+		await user.clear(screen.getByLabelText("Score minimum"));
+		await user.clear(screen.getByLabelText("Score maximum"));
+		// Assert: emptying both bounds removes the filter.
+		expect(readFilters()).toEqual([]);
+	});
+
+	it("shows a clear affordance for a bounded range with a value and clears it", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderFilter({
+			cols: [
+				helper.accessor("score", {
+					filterFn: () => true,
+					meta: {
+						label: "Score",
+						filter: { variant: "numberRange", min: 0, max: 100 },
+					},
+				}),
+			],
+			initialState: { columnFilters: [{ id: "score", value: [20, 80] }] },
+		});
+		expect(filterValue("score")).toEqual([20, 80]);
+		// Act
+		await user.click(screen.getByRole("button", { name: "clear" }));
+		// Assert
+		expect(readFilters()).toEqual([]);
+	});
+
+	it("renders only facet buckets when a range facet has no slider bounds", () => {
+		// Arrange / Act
+		renderFilter({
+			cols: [
+				helper.accessor("score", {
+					filterFn: () => true,
+					meta: { label: "Score", filter: { variant: "numberRange" } },
+				}),
+			],
+			facets: {
+				score: {
+					type: "ranges",
+					ranges: [
+						{ label: "Low", from: 0, to: 50, count: 5 },
+						{ label: "High", from: 50, to: 100, count: 8 },
+					],
+				},
+			},
+		});
+		// Assert: buckets render, but no slider and no min/max inputs.
+		expect(screen.getByText("Low")).toBeVisible();
+		expect(screen.queryByLabelText("Score minimum")).toBeNull();
+		expect(screen.queryByLabelText("Score maximum")).toBeNull();
+	});
+
+	it("parses and renders a seeded date value", () => {
+		// Arrange / Act
+		renderFilter({
+			cols: [
+				helper.accessor("date", {
+					filterFn: () => true,
+					meta: { label: "Date", filter: { variant: "date" } },
+				}),
+			],
+			initialState: { columnFilters: [{ id: "date", value: "2026-03-15" }] },
+		});
+		// Assert: the seeded value parsed without error (parseLocalDate) and is preserved.
+		expect(filterValue("date")).toBe("2026-03-15");
+		expect(screen.getByLabelText("Date")).toBeInTheDocument();
+	});
+
+	it("renders a seeded date range with a clear affordance and clears it", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderFilter({
+			cols: [
+				helper.accessor("date", {
+					filterFn: () => true,
+					meta: { label: "Window", filter: { variant: "dateRange" } },
+				}),
+			],
+			initialState: {
+				columnFilters: [{ id: "date", value: ["2026-01-01", "2026-02-01"] }],
+			},
+		});
+		expect(filterValue("date")).toEqual(["2026-01-01", "2026-02-01"]);
+		// Act
+		await user.click(screen.getByRole("button", { name: "clear" }));
+		// Assert
+		expect(readFilters()).toEqual([]);
 	});
 });

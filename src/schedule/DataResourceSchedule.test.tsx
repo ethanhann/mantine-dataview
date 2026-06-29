@@ -1,6 +1,8 @@
 import { MantineProvider } from "@mantine/core";
+import { DatesProvider } from "@mantine/dates";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import dayjs from "dayjs";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { col } from "../core/colBuilder";
@@ -42,6 +44,8 @@ vi.mock("@mantine/schedule", () => ({
 			rangeEnd: string;
 			resourceId?: string;
 		}) => void;
+		onViewChange?: (next: string) => void;
+		onDateChange?: (next: string) => void;
 	}) => (
 		<div
 			data-testid="resources"
@@ -75,6 +79,20 @@ vi.mock("@mantine/schedule", () => ({
 				}
 			>
 				range
+			</button>
+			<button
+				type="button"
+				data-testid="viewchange"
+				onClick={() => props.onViewChange?.("day")}
+			>
+				view
+			</button>
+			<button
+				type="button"
+				data-testid="datechange"
+				onClick={() => props.onDateChange?.("2026-09-15")}
+			>
+				date
 			</button>
 			{props.weekViewProps?.groups?.map((g) => (
 				<div key={g.label} data-testid="group">
@@ -182,6 +200,9 @@ function Harness({
 	return (
 		<>
 			<span data-testid="selection">{view.selection.count}</span>
+			<span data-testid="window">
+				{JSON.stringify(view.state.window ?? null)}
+			</span>
 			<DataResourceSchedule
 				view={view}
 				resources={resources}
@@ -195,12 +216,17 @@ function Harness({
 	);
 }
 
-function renderHarness(props: Parameters<typeof Harness>[0] = {}) {
+function renderHarness(
+	props: Parameters<typeof Harness>[0] = {},
+	wrapper: (children: ReactNode) => ReactNode = (c) => c,
+) {
 	return render(
-		<MantineProvider>
-			<Harness {...props} />
-		</MantineProvider>,
+		<MantineProvider>{wrapper(<Harness {...props} />)}</MantineProvider>,
 	);
+}
+
+function readWindow(): DataViewWindow | null {
+	return JSON.parse(screen.getByTestId("window").textContent || "null");
 }
 
 describe("DataResourceSchedule", () => {
@@ -325,5 +351,46 @@ describe("DataResourceSchedule", () => {
 		expect(warn).toHaveBeenCalledTimes(1);
 		expect(warn.mock.calls[0]?.[0]).toContain("resource view");
 		warn.mockRestore();
+	});
+
+	it("changes the window level when the grid reports a view change", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderHarness();
+		expect(readWindow()?.level).toBe("week"); // seeded on mount
+		// Act
+		await user.click(screen.getByTestId("viewchange"));
+		// Assert
+		expect(readWindow()?.level).toBe("day");
+	});
+
+	it("recenters the window on the picked date when the grid reports a date change", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderHarness();
+		// Act
+		await user.click(screen.getByTestId("datechange"));
+		// Assert: the new window brackets 2026-09-15 at the current (week) level.
+		const w = readWindow();
+		const picked = dayjs("2026-09-15").valueOf();
+		expect(w?.level).toBe("week");
+		expect(picked).toBeGreaterThanOrEqual(dayjs(w?.start).valueOf());
+		expect(picked).toBeLessThan(dayjs(w?.end).valueOf());
+	});
+
+	it("aligns the navigated window to a Sunday DatesProvider firstDayOfWeek", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderHarness({}, (children) => (
+			<DatesProvider settings={{ firstDayOfWeek: 0 }}>{children}</DatesProvider>
+		));
+		// Act
+		await user.click(screen.getByTestId("datechange"));
+		// Assert
+		const w = readWindow();
+		const picked = dayjs("2026-09-15").valueOf();
+		expect(dayjs(w?.start).day()).toBe(0);
+		expect(picked).toBeGreaterThanOrEqual(dayjs(w?.start).valueOf());
+		expect(picked).toBeLessThan(dayjs(w?.end).valueOf());
 	});
 });
