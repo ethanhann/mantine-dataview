@@ -18,7 +18,6 @@ vi.mock("@mantine/schedule", () => ({
 		weekViewProps?: {
 			groups?: { label: string }[];
 			renderGroupLabel?: (g: { label: string }) => ReactNode;
-			styles?: Record<string, unknown>;
 		};
 		renderResourceLabel?: (r: {
 			id: string | number;
@@ -33,12 +32,6 @@ vi.mock("@mantine/schedule", () => ({
 			data-testid="resources"
 			data-view={props.view}
 			data-resource-count={props.resources.length}
-			data-group-padded={
-				props.weekViewProps?.styles &&
-				"resourcesWeekViewGroupColumn" in props.weekViewProps.styles
-					? "yes"
-					: "no"
-			}
 		>
 			{props.weekViewProps?.groups?.map((g) => (
 				<div key={g.label} data-testid="group">
@@ -201,16 +194,11 @@ describe("DataResourceSchedule", () => {
 		expect(screen.getByTestId("selection")).toHaveTextContent("0");
 	});
 
-	it("fans the groups prop out and pads the group column", () => {
+	it("fans the groups prop out to the per-view props", () => {
 		renderHarness({
 			groups: [{ label: "Building A", resourceIds: ["A", "B"] }],
 		});
 		expect(screen.getByTestId("group")).toHaveTextContent("Building A");
-		// Padding is applied via the Styles API (a CSS tweak, not a label wrapper).
-		expect(screen.getByTestId("resources")).toHaveAttribute(
-			"data-group-padded",
-			"yes",
-		);
 	});
 
 	it("overlays facet counts on the resource rows when a value facet is present", () => {

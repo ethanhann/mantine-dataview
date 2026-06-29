@@ -125,29 +125,18 @@ export function DataResourceSchedule<TData>({
 		: undefined;
 
 	// `groups`/`renderGroupLabel` live on each per-view props, not on ResourcesSchedule itself, so fan
-	// them out to all three. Also add horizontal padding to the group-label column via the Styles API
-	// (Mantine's default sits flush against the cell edge). This is a CSS tweak on the existing cell,
-	// not a content wrapper — wrapping the label in an element breaks the merged rowspan group cell.
-	// Consumer per-view props (including their own `styles`) are merged on top and win.
-	const withGroups = <T extends { styles?: unknown }>(
+	// them out to all three. Group-cell styling (padding, width) is left to Mantine and the consumer
+	// (via `resourcesProps` / `groupLabelWidth`); injecting our own breaks the merged rowspan cell.
+	// Consumer per-view props are merged on top and win.
+	const withGroups = <T extends object>(
 		viewProps: T | undefined,
-		groupColumnSelector: string,
 	): T | undefined => {
 		if (!groups) return viewProps;
-		const padded = {
-			[groupColumnSelector]: { paddingInline: "var(--mantine-spacing-sm)" },
-		};
-		const consumerStyles = viewProps?.styles;
-		const styles =
-			typeof consumerStyles === "function"
-				? consumerStyles
-				: { ...padded, ...((consumerStyles as Record<string, unknown>) ?? {}) };
 		return {
 			groups,
 			...(renderGroupLabel ? { renderGroupLabel } : {}),
 			...viewProps,
-			styles,
-		} as unknown as T;
+		} as T;
 	};
 
 	const calendar = (
@@ -163,18 +152,9 @@ export function DataResourceSchedule<TData>({
 			}
 			onEventClick={makeEventClickHandler(view, onEventClick)}
 			{...resourcesProps}
-			dayViewProps={withGroups(
-				resourcesProps?.dayViewProps,
-				"resourcesDayViewGroupColumn",
-			)}
-			weekViewProps={withGroups(
-				resourcesProps?.weekViewProps,
-				"resourcesWeekViewGroupColumn",
-			)}
-			monthViewProps={withGroups(
-				resourcesProps?.monthViewProps,
-				"resourcesMonthViewGroupColumn",
-			)}
+			dayViewProps={withGroups(resourcesProps?.dayViewProps)}
+			weekViewProps={withGroups(resourcesProps?.weekViewProps)}
+			monthViewProps={withGroups(resourcesProps?.monthViewProps)}
 		/>
 	);
 
