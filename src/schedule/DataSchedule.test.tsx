@@ -1,11 +1,13 @@
 import { MantineProvider } from "@mantine/core";
+import { DatesProvider } from "@mantine/dates";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import dayjs from "dayjs";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { col } from "../core/colBuilder";
 import { useDataView } from "../core/useDataView";
-import type { Status } from "../types/state";
+import type { DataViewWindow, Status } from "../types/state";
 import { DataSchedule, type DataScheduleProps } from "./DataSchedule";
 
 // Replace Mantine's calendar with a lightweight double so the tests assert OUR logic (event
@@ -35,6 +37,8 @@ vi.mock("@mantine/schedule", () => ({
 			slotEnd: string;
 			nativeEvent: unknown;
 		}) => void;
+		onViewChange?: (next: string) => void;
+		onDateChange?: (next: string) => void;
 	}) => (
 		<div
 			data-testid="schedule"
@@ -102,6 +106,20 @@ vi.mock("@mantine/schedule", () => ({
 				}
 			>
 				slot
+			</button>
+			<button
+				type="button"
+				data-testid="viewchange"
+				onClick={() => props.onViewChange?.("month")}
+			>
+				view
+			</button>
+			<button
+				type="button"
+				data-testid="datechange"
+				onClick={() => props.onDateChange?.("2026-09-15")}
+			>
+				date
 			</button>
 		</div>
 	),
@@ -178,6 +196,9 @@ function Harness({
 	return (
 		<>
 			<span data-testid="selection">{view.selection.count}</span>
+			<span data-testid="window">
+				{JSON.stringify(view.state.window ?? null)}
+			</span>
 			<DataSchedule
 				view={view}
 				toEvent={toEvent}
@@ -193,12 +214,17 @@ function Harness({
 	);
 }
 
-function renderHarness(props: Parameters<typeof Harness>[0] = {}) {
+function renderHarness(
+	props: Parameters<typeof Harness>[0] = {},
+	wrapper: (children: ReactNode) => ReactNode = (c) => c,
+) {
 	return render(
-		<MantineProvider>
-			<Harness {...props} />
-		</MantineProvider>,
+		<MantineProvider>{wrapper(<Harness {...props} />)}</MantineProvider>,
 	);
+}
+
+function readWindow(): DataViewWindow | null {
+	return JSON.parse(screen.getByTestId("window").textContent || "null");
 }
 
 describe("DataSchedule", () => {
@@ -343,5 +369,47 @@ describe("DataSchedule", () => {
 		await user.click(screen.getByTestId("slotclick"));
 		expect(onRangeSelect.mock.calls[0]?.[0].start).toBeInstanceOf(Date);
 		expect(onSlotClick.mock.calls[0]?.[0].start).toBeInstanceOf(Date);
+	});
+
+	it("changes the window level when the calendar reports a view change", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderHarness();
+		expect(readWindow()?.level).toBe("week"); // seeded on mount
+		// Act
+		await user.click(screen.getByTestId("viewchange"));
+		// Assert
+		expect(readWindow()?.level).toBe("month");
+	});
+
+	it("recenters the window on the picked date, keeping the level, on a date change", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderHarness();
+		// Act
+		await user.click(screen.getByTestId("datechange"));
+		// Assert: the new window is the week bracketing 2026-09-15 (a Monday-aligned default week).
+		const w = readWindow();
+		const picked = dayjs("2026-09-15").valueOf();
+		expect(w?.level).toBe("week");
+		expect(dayjs(w?.start).day()).toBe(1);
+		expect(picked).toBeGreaterThanOrEqual(dayjs(w?.start).valueOf());
+		expect(picked).toBeLessThan(dayjs(w?.end).valueOf());
+	});
+
+	it("aligns the navigated window to a Sunday DatesProvider firstDayOfWeek", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderHarness({}, (children) => (
+			<DatesProvider settings={{ firstDayOfWeek: 0 }}>{children}</DatesProvider>
+		));
+		// Act
+		await user.click(screen.getByTestId("datechange"));
+		// Assert: the date-change path threads firstDayOfWeek, so the week starts on Sunday.
+		const w = readWindow();
+		const picked = dayjs("2026-09-15").valueOf();
+		expect(dayjs(w?.start).day()).toBe(0);
+		expect(picked).toBeGreaterThanOrEqual(dayjs(w?.start).valueOf());
+		expect(picked).toBeLessThan(dayjs(w?.end).valueOf());
 	});
 });
