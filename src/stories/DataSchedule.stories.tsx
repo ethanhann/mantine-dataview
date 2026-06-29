@@ -258,6 +258,34 @@ export const ResourcesWithoutCounts: Story = {
 };
 
 /**
+ * Resource groups: a single `groups` prop (fanned out to all view levels) renders a rowspan column
+ * grouping resources — here the three rooms into two wings. Group ids reference the resource ids.
+ */
+export const ResourcesWithGroups: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataResourceSchedule
+					view={view}
+					resourcesProps={resourceBusinessHours}
+					groups={[
+						{ label: "North Wing", resourceIds: ["Aspen", "Birch"] },
+						{ label: "South Wing", resourceIds: ["Cedar"] },
+					]}
+				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
  * The full switcher: one `DataViewer` registering all three schedule-family views, switchable
  * between **Table / Cards / Calendar / Agenda / Resources** at runtime on the same event data and
  * date window. Switching among the windowed views reuses the loaded window (no refetch).

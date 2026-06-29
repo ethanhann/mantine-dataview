@@ -7,6 +7,7 @@
 export type {
 	ScheduleEventData,
 	ScheduleResourceData,
+	ScheduleResourceGroup,
 } from "@mantine/schedule";
 export type { RegisteredView } from "../components/types";
 export type {

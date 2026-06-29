@@ -15,6 +15,7 @@ vi.mock("@mantine/schedule", () => ({
 		resources: { id: string | number; label: string }[];
 		view: string;
 		events: { id: string | number; title: string }[];
+		weekViewProps?: { groups?: { label: string }[] };
 		renderResourceLabel?: (r: {
 			id: string | number;
 			label: string;
@@ -29,6 +30,11 @@ vi.mock("@mantine/schedule", () => ({
 			data-view={props.view}
 			data-resource-count={props.resources.length}
 		>
+			{props.weekViewProps?.groups?.map((g) => (
+				<span key={g.label} data-testid="group">
+					{g.label}
+				</span>
+			))}
 			{props.resources.map((r) => (
 				<span key={r.id} data-testid="resource">
 					{props.renderResourceLabel ? props.renderResourceLabel(r) : r.label}
@@ -95,6 +101,7 @@ function Harness({
 	facets,
 	showResourceCounts,
 	onEventClick,
+	groups,
 }: {
 	rows?: Shift[];
 	status?: Status;
@@ -103,6 +110,7 @@ function Harness({
 	facets?: typeof ROOM_FACET;
 	showResourceCounts?: boolean;
 	onEventClick?: (row: Shift) => void;
+	groups?: { label: string; resourceIds: string[] }[];
 }) {
 	const view = useDataView<Shift>({
 		columns,
@@ -121,6 +129,7 @@ function Harness({
 				resources={resources}
 				showResourceCounts={showResourceCounts}
 				onEventClick={onEventClick}
+				groups={groups}
 			/>
 		</>
 	);
@@ -178,6 +187,13 @@ describe("DataResourceSchedule", () => {
 		expect(onEventClick).toHaveBeenCalledTimes(1);
 		expect(onEventClick.mock.calls[0]?.[0]).toEqual(ROWS[0]);
 		expect(screen.getByTestId("selection")).toHaveTextContent("0");
+	});
+
+	it("fans the groups prop out to the per-view props", () => {
+		renderHarness({
+			groups: [{ label: "Building A", resourceIds: ["A", "B"] }],
+		});
+		expect(screen.getByTestId("group")).toHaveTextContent("Building A");
 	});
 
 	it("overlays facet counts on the resource rows when a value facet is present", () => {

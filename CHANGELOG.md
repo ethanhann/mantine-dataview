@@ -48,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First-class `onEventClick(row, event, nativeEvent)` prop on all three presentations, handing back
   the typed original row. Replaces the default selection toggle; compose with the exported
   `toggleEventSelection` to keep both. `EventClickHandler` type and `findEventRow` helper exported.
+- `DataResourceSchedule` `groups` / `renderGroupLabel` props (`ScheduleResourceGroup[]`): a rowspan
+  column grouping resources, fanned out to all view levels. Mantine accepts groups only per-view, so
+  this is the single-prop convenience. `ScheduleResourceGroup` type re-exported.
 - `scheduleInitialState` accepts a target `view`, so a viewer can open directly on agenda or
   resources as a single windowed fetch.
 - `WINDOWED_VIEWS` constant and `isWindowedView` guard exported from the package root, for custom

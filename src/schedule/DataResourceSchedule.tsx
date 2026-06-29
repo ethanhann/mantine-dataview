@@ -11,6 +11,7 @@ import {
 	type ResourcesScheduleViewLevel,
 	type ScheduleEventData,
 	type ScheduleResourceData,
+	type ScheduleResourceGroup,
 } from "@mantine/schedule";
 import dayjs from "dayjs";
 import type { ReactNode } from "react";
@@ -34,6 +35,13 @@ export interface DataResourceScheduleProps<TData> {
 	 * explicitly to control labels, colors, order, or payloads.
 	 */
 	resources?: ScheduleResourceData[];
+	/**
+	 * Resource groups (a rowspan column grouping several resources, e.g. "Building A" over rooms).
+	 * Applied to all levels. Each `{ label, resourceIds }` references resource ids.
+	 */
+	groups?: ScheduleResourceGroup[];
+	/** Custom render for a group label. Applied to all levels alongside `groups`. */
+	renderGroupLabel?: (group: ScheduleResourceGroup) => ReactNode;
 	/** Override the declarative `meta.schedule` mapping; returns a Mantine event directly. */
 	toEvent?: (row: TData) => ScheduleEventData;
 	/** Fallback event length in minutes when only a start is resolvable. Default `60`. */
@@ -63,6 +71,8 @@ export interface DataResourceScheduleProps<TData> {
 export function DataResourceSchedule<TData>({
 	view,
 	resources,
+	groups,
+	renderGroupLabel,
 	toEvent,
 	defaultDuration,
 	defaultLevel = "week",
@@ -114,6 +124,21 @@ export function DataResourceSchedule<TData>({
 			}
 		: undefined;
 
+	// `groups`/`renderGroupLabel` live on each per-view props, not on ResourcesSchedule itself, so fan
+	// them out to all three. Merge over any per-view props the consumer set (consumer values win), and
+	// place these *after* the `{...resourcesProps}` spread so the merged versions aren't clobbered.
+	// Generic so each call keeps its own view-props type (day/week/month props differ).
+	const withGroups = <T extends object>(
+		viewProps: T | undefined,
+	): T | undefined => {
+		if (!groups) return viewProps;
+		return {
+			groups,
+			...(renderGroupLabel ? { renderGroupLabel } : {}),
+			...viewProps,
+		} as T;
+	};
+
 	const calendar = (
 		<ResourcesSchedule
 			resources={resolvedResources}
@@ -127,6 +152,9 @@ export function DataResourceSchedule<TData>({
 			}
 			onEventClick={makeEventClickHandler(view, onEventClick)}
 			{...resourcesProps}
+			dayViewProps={withGroups(resourcesProps?.dayViewProps)}
+			weekViewProps={withGroups(resourcesProps?.weekViewProps)}
+			monthViewProps={withGroups(resourcesProps?.monthViewProps)}
 		/>
 	);
 
