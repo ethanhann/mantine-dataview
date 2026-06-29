@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
-import { DataScheduleNav } from "./DataScheduleNav";
+import { DataAgendaNav } from "./DataAgendaNav";
 import { computeWindow } from "./dateWindow";
 import {
 	type EventClickHandler,
@@ -89,7 +89,7 @@ export function DataAgenda<TData>({
 	// AgendaView has no built-in nav, so the nav leads the header by default.
 	const header = withNav ? (
 		<>
-			<DataScheduleNav view={view} />
+			<DataAgendaNav view={view} />
 			{leftSection}
 		</>
 	) : (

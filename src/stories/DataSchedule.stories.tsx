@@ -231,7 +231,8 @@ export const IntegratedDataViewer: Story = {
 
 /**
  * Agenda — the same events as a date-grouped list. `AgendaView` has no navigation of its own, so
- * `DataAgenda` renders a `DataScheduleNav` header by default.
+ * `DataAgenda` renders a `DataAgendaNav` header by default: prev / today / next and a day/week/month
+ * range (no "year"). Change the range to list a day, a week, or a month of events.
  */
 export const AgendaOnly: Story = {
 	render: () => {

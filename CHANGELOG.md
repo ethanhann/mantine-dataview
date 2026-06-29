@@ -56,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (resource views include `ctx.resourceId`) and auto-enables the matching Mantine interaction flag.
   Pair with `patchRow`/`insertRow`/`removeRow` to persist. Handler types exported (`EventMoveHandler`,
   `RangeSelectHandler`, `SlotClickHandler`, `EventRange`, etc.).
+- `DataAgendaNav` — a purpose-built navigator for the agenda (prev / today / next and a day/week/month
+  range, no year), rendered by `DataAgenda` by default in place of the calendar's `DataScheduleNav`.
 - `scheduleInitialState` accepts a target `view`, so a viewer can open directly on agenda or
   resources as a single windowed fetch.
 - `WINDOWED_VIEWS` constant and `isWindowedView` guard exported from the package root, for custom

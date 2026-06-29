@@ -30,6 +30,10 @@ export {
 	type DataAgendaProps,
 } from "./DataAgenda";
 export {
+	DataAgendaNav,
+	type DataAgendaNavProps,
+} from "./DataAgendaNav";
+export {
 	DataResourceSchedule,
 	type DataResourceScheduleProps,
 } from "./DataResourceSchedule";

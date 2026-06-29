@@ -1051,8 +1051,9 @@ import {scheduleView, agendaView, resourcesView} from "@ethanhann/mantine-datavi
 ```
 
 - **Agenda** (`agendaView` / `DataAgenda`) — a date-grouped list over the visible window. Mantine's
-  `AgendaView` has no navigation of its own, so `DataAgenda` renders a `DataScheduleNav` header by
-  default (set `withNav={false}` to supply your own via `leftSection`).
+  `AgendaView` has no navigation of its own, so `DataAgenda` renders a `DataAgendaNav` header by
+  default (prev / today / next and a day/week/month range, no year; set `withNav={false}` to supply
+  your own via `leftSection`).
 - **Resources** (`resourcesView` / `DataResourceSchedule`) — one row per resource. The rows are
   **derived** from the `resource`-role column's filter options; pass an explicit `resources` prop
   (`ScheduleResourceData[]`) to control labels, colors, or order. Resource views have only
@@ -1289,7 +1290,7 @@ them yourself (they pair well with the reconciliation primitives). Recurrence is
 | `getViewMode`                                                          | Detect table vs cards from cell context                                                                                                                             |
 | `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`        | Column helpers                                                                                                                                                      |
 | `@ethanhann/mantine-dataview/url`                                      | `windowHistoryAdapter` + serializer utilities                                                                                                                       |
-| `@ethanhann/mantine-dataview/schedule`                                 | Opt-in calendar / agenda / resources: `scheduleView` · `agendaView` · `resourcesView` (+ `DataSchedule` / `DataAgenda` / `DataResourceSchedule`, `DataScheduleNav`) |
+| `@ethanhann/mantine-dataview/schedule`                                 | Opt-in calendar / agenda / resources: `scheduleView` · `agendaView` · `resourcesView` (and `DataSchedule` / `DataAgenda` / `DataResourceSchedule`, `DataScheduleNav` / `DataAgendaNav`) |
 
 ### Reconciliation primitives
 
