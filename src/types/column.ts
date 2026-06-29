@@ -5,6 +5,7 @@
 import type { Column, ColumnDef, RowData } from "@tanstack/react-table";
 import type { ComponentType } from "react";
 import type { ScheduleFieldMeta } from "./schedule";
+import type { ViewMode } from "./state";
 
 /**
  * The column definition consumers author. Use it with `satisfies DataColumnDef<T>[]`.
@@ -113,7 +114,7 @@ export type ColumnFilterMeta =
 declare module "@tanstack/react-table" {
 	interface TableMeta<TData extends RowData> {
 		/** Current view mode, available in cell renderers via `ctx.table.options.meta?.viewMode`. */
-		viewMode?: "table" | "cards" | "schedule";
+		viewMode?: ViewMode;
 	}
 
 	// The type parameters are required to match TanStack's declaration for merging, even

@@ -11,7 +11,6 @@ A reusable React library that renders **server-driven, paginated datasets** as e
 
 Built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack.com/table) v8.
 
-
 ## Changelog
 
 See CHANGELOG.md
@@ -1039,6 +1038,34 @@ import {DataSchedule} from "@ethanhann/mantine-dataview/schedule";
 <DataSchedule view={view}/>;
 ```
 
+### Agenda and resource views
+
+The same event data projects into two more presentations, each a registered view alongside the
+calendar. Register any subset; the switcher shows **Table / Cards / Calendar / Agenda / Resources**,
+and switching among the schedule-family views reuses the loaded window (no refetch).
+
+```tsx
+import {scheduleView, agendaView, resourcesView} from "@ethanhann/mantine-dataview/schedule";
+
+<DataViewer view={view} views={[scheduleView(), agendaView(), resourcesView()]}/>;
+```
+
+- **Agenda** (`agendaView` / `DataAgenda`) — a date-grouped list over the visible window. Mantine's
+  `AgendaView` has no navigation of its own, so `DataAgenda` renders a `DataAgendaNav` header by
+  default (prev / today / next and a day/week/month range, no year; set `withNav={false}` to supply
+  your own via `leftSection`).
+- **Resources** (`resourcesView` / `DataResourceSchedule`) — one row per resource. The rows are
+  **derived** from the `resource`-role column's filter options; pass an explicit `resources` prop
+  (`ScheduleResourceData[]`) to control labels, colors, or order. Resource views have only
+  day/week/month levels — a `year` window is clamped to `month`. When the response includes a value
+  **facet** for the resource column, each row shows a live count (e.g. "Aspen (12)"); the rows stay
+  stable as you filter, only the counts change. Opt out with `showResourceCounts={false}`. Pass a
+  `groups` prop (`ScheduleResourceGroup[]`) to render a rowspan column grouping resources (e.g. rooms
+  into wings) — it's applied across all levels.
+
+To show the agenda *inside* the calendar instead of as a separate view, enable Mantine's built-in
+toggle: `<DataSchedule scheduleProps={{withAgenda: true}}/>`.
+
 ### Locking to the schedule view
 
 There is no responsive `forceScheduleBelow` — that fallback is specific to cards (a dense table is
@@ -1070,6 +1097,23 @@ Without `scheduleInitialState`, opening on the calendar still works — the cale
 window on mount — but it costs one extra fetch (a window-less request, then a windowed one). Seeding
 the window avoids that. A `window` set while the view is not the schedule view is held but never sent
 to the fetcher, so table and card requests are never polluted by a stale range.
+
+### Week start
+
+The fetched window aligns to the same week start the calendar grid renders.
+Mantine defaults to Monday, and the schedule views read `firstDayOfWeek` from your `DatesProvider`, so
+setting it in one place keeps the grid and the request in agreement with no extra prop.
+
+```tsx
+<DatesProvider settings={{firstDayOfWeek: 0}}> {/* Sunday */}
+    <DataSchedule view={view}/>
+</DatesProvider>;
+```
+
+`scheduleInitialState` runs before render, so it cannot read the provider.
+Pass `firstDayOfWeek` to it as well when your `DatesProvider` overrides the default, otherwise the
+first seeded window is Monday-aligned until the first navigation:
+`scheduleInitialState("week", new Date(), "schedule", 0)`.
 
 ### Header sections
 
@@ -1143,6 +1187,67 @@ For event shapes that aren't column-backed, use the `toEvent` escape hatch, whic
 />;
 ```
 
+### Handling event clicks
+
+All three presentations take an `onEventClick(row, event, nativeEvent)` that hands you the typed
+original row (plus the Mantine event and the DOM event):
+
+```tsx
+<DataSchedule
+    view={view}
+    onEventClick={(booking) => openDetail(booking)} // `booking` is your row type
+/>;
+```
+
+Same prop on `DataAgenda` and `DataResourceSchedule`. By default (no handler) clicking an event
+toggles that row's selection, feeding the bulk-action bar. Providing `onEventClick` replaces that
+default; to keep selection as well, call the exported helper inside your handler:
+
+```tsx
+import {toggleEventSelection} from "@ethanhann/mantine-dataview/schedule";
+
+<DataSchedule
+    view={view}
+    onEventClick={(booking, event) => {
+        toggleEventSelection(view, event.id); // keep selection
+        openDetail(booking);                  // plus your action
+    }}
+/>;
+```
+
+For full control, a raw `onEventClick` in `scheduleProps` / `agendaProps` / `resourcesProps` still
+overrides everything.
+
+### Editing events
+
+`DataSchedule` and `DataResourceSchedule` (not the read-only agenda) accept typed editing callbacks.
+Each hands back the original row and the new `{ start, end }` as `Date`s, and **auto-enables** the
+matching Mantine interaction — you don't also set `withEventsDragAndDrop` etc.
+
+| Callback                                  | Interaction                                                    |
+|-------------------------------------------|----------------------------------------------------------------|
+| `onEventMove(row, { start, end }, ctx)`   | drag an event to a new time (resource views: `ctx.resourceId`) |
+| `onEventResize(row, { start, end }, ctx)` | drag an event's edge to resize                                 |
+| `onRangeSelect({ start, end }, ctx)`      | drag-select an empty range (to create)                         |
+| `onSlotClick({ start, end }, ctx)`        | click an empty slot (to create)                                |
+
+The library doesn't perform the write — pair these with the reconciliation primitives so you persist
+to your backend and reflect the change instantly:
+
+```tsx
+<DataSchedule
+    view={view}
+    onEventMove={(row, {start, end}) => {
+        api.update(row.id, {start, end});                 // your server
+        view.patchRow({...row, start: start.toISOString(), end: end.toISOString()});
+    }}
+    onRangeSelect={({start, end}) => openCreateModal({start, end})}
+/>;
+```
+
+`canDragEvent`, `canResizeEvent`, and external-drag handlers remain available through the
+`scheduleProps` / `resourcesProps` escape hatch.
+
 ### Fetching by date window
 
 A calendar fetches the visible date range, not a page. When a schedule view is active the core
@@ -1188,21 +1293,21 @@ them yourself (they pair well with the reconciliation primitives). Recurrence is
 
 ## API overview
 
-| Export                                                                 | Purpose                                                             |
-|------------------------------------------------------------------------|---------------------------------------------------------------------|
-| `useDataView`                                                          | Headless core, owns all feature state                               |
-| `useDataViewFetcher`                                                   | Convenience wrapper that manages the fetch                          |
-| `DataViewer` (+ `.Toolbar` / `.BulkActions` / `.Body` / `.Pagination`) | Orchestrator + compound parts                                       |
-| `DataTable`, `DataCards`                                               | The two presentations (usable standalone)                           |
-| `DataToolbar`, `DataPagination`, `DataBulkActions`                     | Standalone affordances                                              |
-| `FilterControl`                                                        | Individual filter control (place anywhere)                          |
-| `ViewSwitcher`                                                         | Table/Cards toggle (customizable labels)                            |
-| `exportCsv`                                                            | Standalone CSV export utility                                       |
-| `col`                                                                  | Fluent column builder factory                                       |
-| `getViewMode`                                                          | Detect table vs cards from cell context                             |
-| `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`        | Column helpers                                                      |
-| `@ethanhann/mantine-dataview/url`                                      | `windowHistoryAdapter` + serializer utilities                       |
-| `@ethanhann/mantine-dataview/schedule`                                 | `DataSchedule`, `scheduleView`, `DataScheduleNav` (opt-in calendar) |
+| Export                                                                 | Purpose                                                                                                                                                             |
+|------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `useDataView`                                                          | Headless core, owns all feature state                                                                                                                               |
+| `useDataViewFetcher`                                                   | Convenience wrapper that manages the fetch                                                                                                                          |
+| `DataViewer` (+ `.Toolbar` / `.BulkActions` / `.Body` / `.Pagination`) | Orchestrator + compound parts                                                                                                                                       |
+| `DataTable`, `DataCards`                                               | The two presentations (usable standalone)                                                                                                                           |
+| `DataToolbar`, `DataPagination`, `DataBulkActions`                     | Standalone affordances                                                                                                                                              |
+| `FilterControl`                                                        | Individual filter control (place anywhere)                                                                                                                          |
+| `ViewSwitcher`                                                         | Table/Cards toggle (customizable labels)                                                                                                                            |
+| `exportCsv`                                                            | Standalone CSV export utility                                                                                                                                       |
+| `col`                                                                  | Fluent column builder factory                                                                                                                                       |
+| `getViewMode`                                                          | Detect table vs cards from cell context                                                                                                                             |
+| `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`        | Column helpers                                                                                                                                                      |
+| `@ethanhann/mantine-dataview/url`                                      | `windowHistoryAdapter` + serializer utilities                                                                                                                       |
+| `@ethanhann/mantine-dataview/schedule`                                 | Opt-in calendar / agenda / resources: `scheduleView` · `agendaView` · `resourcesView` (and `DataSchedule` / `DataAgenda` / `DataResourceSchedule`, `DataScheduleNav` / `DataAgendaNav`) |
 
 ### Reconciliation primitives
 

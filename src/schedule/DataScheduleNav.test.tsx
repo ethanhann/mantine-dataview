@@ -1,7 +1,9 @@
 import { MantineProvider } from "@mantine/core";
+import { DatesProvider } from "@mantine/dates";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import dayjs from "dayjs";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { col } from "../core/colBuilder";
 import { useDataView } from "../core/useDataView";
@@ -30,12 +32,8 @@ function NavHarness() {
 	);
 }
 
-function renderNav() {
-	return render(
-		<MantineProvider>
-			<NavHarness />
-		</MantineProvider>,
-	);
+function renderNav(wrapper: (children: ReactNode) => ReactNode = (c) => c) {
+	return render(<MantineProvider>{wrapper(<NavHarness />)}</MantineProvider>);
 }
 
 function readWindow(): DataViewWindow | null {
@@ -61,7 +59,7 @@ describe("DataScheduleNav", () => {
 		await user.click(screen.getByRole("button", { name: "Today" }));
 		const w = readWindow();
 		expect(w?.level).toBe("week");
-		expect(dayjs(w?.start).isSame(dayjs(w?.start).startOf("week"))).toBe(true);
+		expect(dayjs(w?.start).day()).toBe(1); // Monday-aligned (Mantine default)
 	});
 
 	it("steps the window forward one week on Next", async () => {
@@ -82,6 +80,19 @@ describe("DataScheduleNav", () => {
 		await user.click(screen.getByRole("radio", { name: "Month" }));
 		const w = readWindow();
 		expect(w?.level).toBe("month");
-		expect(dayjs(w?.start).isSame(dayjs(w?.start).startOf("month"))).toBe(true);
+		// The month window is padded to whole Monday-weeks, so its start lands on a Monday.
+		expect(dayjs(w?.start).day()).toBe(1);
+	});
+
+	it("aligns the window to a Sunday DatesProvider firstDayOfWeek without a prop", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderNav((children) => (
+			<DatesProvider settings={{ firstDayOfWeek: 0 }}>{children}</DatesProvider>
+		));
+		// Act
+		await user.click(screen.getByRole("button", { name: "Today" }));
+		// Assert
+		expect(dayjs(readWindow()?.start).day()).toBe(0); // Sunday, matching the provider
 	});
 });

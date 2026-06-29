@@ -11,6 +11,7 @@ import {
 } from "@mantine/core";
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
+import { isWindowedView } from "../../types/state";
 import { SearchIcon } from "../icons";
 import type { RegisteredView } from "../types";
 import { FilterControls, useFilterLayout } from "./FilterControls";
@@ -61,13 +62,13 @@ export function DataToolbar<TData>({
 }: DataToolbarProps<TData>) {
 	const { table, state } = view;
 	const loading = disableWhileLoading && view.status === "loading";
-	// Sorting and column visibility are table/cards concepts; a calendar has neither. Hide both in
-	// schedule mode while keeping search, filters, and the switcher.
-	const scheduleMode = view.view === "schedule";
+	// Sorting and column visibility are table/cards concepts; a windowed view (calendar/agenda/
+	// resources) has neither. Hide both there while keeping search, filters, and the switcher.
+	const windowed = isWindowedView(view.view);
 	const searchOn = showSearch ?? table.options.enableGlobalFilter !== false;
 	const filtersOn = showFilters ?? view.filterableColumns.length > 0;
-	const sortOn = (showSort ?? view.sortableColumns.length > 0) && !scheduleMode;
-	const visibilityOn = (showVisibility ?? true) && !scheduleMode;
+	const sortOn = (showSort ?? view.sortableColumns.length > 0) && !windowed;
+	const visibilityOn = (showVisibility ?? true) && !windowed;
 	const switcherOn = showViewSwitcher ?? true;
 
 	// Inline filters are label-on-top controls, so instead of seating them next to the single-line

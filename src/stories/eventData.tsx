@@ -128,7 +128,19 @@ export function createEventFetcher(data: Booking[] = bookings, delay = 350) {
 				(b) =>
 					new Date(b.start).getTime() < we && new Date(b.end).getTime() > ws,
 			);
-			return { rows: result, rowCount: result.length };
+			// Per-room counts over the visible window, so the resource view can show live counts.
+			const roomFacet = {
+				type: "values" as const,
+				values: ROOMS.map((room) => ({
+					value: room,
+					count: result.filter((b) => b.room === room).length,
+				})),
+			};
+			return {
+				rows: result,
+				rowCount: result.length,
+				facets: { room: roomFacet },
+			};
 		}
 
 		// Table/cards mode: no window, so paginate the full filtered set like a normal list backend.

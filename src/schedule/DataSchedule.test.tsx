@@ -6,20 +6,43 @@ import { describe, expect, it, vi } from "vitest";
 import { col } from "../core/colBuilder";
 import { useDataView } from "../core/useDataView";
 import type { Status } from "../types/state";
-import { DataSchedule } from "./DataSchedule";
+import { DataSchedule, type DataScheduleProps } from "./DataSchedule";
 
 // Replace Mantine's calendar with a lightweight double so the tests assert OUR logic (event
 // composition, click → selection, state gating) without depending on the scheduler's internals.
+type DropData = {
+	eventId: string;
+	newStart: string;
+	newEnd: string;
+	event: { id: string };
+};
 vi.mock("@mantine/schedule", () => ({
 	Schedule: (props: {
 		events: { id: string | number; title: string }[];
 		view: string;
+		withEventsDragAndDrop?: boolean;
+		withEventResize?: boolean;
+		withDragSlotSelect?: boolean;
 		onEventClick?: (
 			e: { id: string | number; title: string },
 			ev: unknown,
 		) => void;
+		onEventDrop?: (data: DropData) => void;
+		onEventResize?: (data: DropData) => void;
+		onSlotDragEnd?: (rangeStart: string, rangeEnd: string) => void;
+		onTimeSlotClick?: (data: {
+			slotStart: string;
+			slotEnd: string;
+			nativeEvent: unknown;
+		}) => void;
 	}) => (
-		<div data-testid="schedule" data-view={props.view}>
+		<div
+			data-testid="schedule"
+			data-view={props.view}
+			data-dnd={String(!!props.withEventsDragAndDrop)}
+			data-resize={String(!!props.withEventResize)}
+			data-dragselect={String(!!props.withDragSlotSelect)}
+		>
 			{props.events.map((e) => (
 				<button
 					type="button"
@@ -30,6 +53,56 @@ vi.mock("@mantine/schedule", () => ({
 					{e.title}
 				</button>
 			))}
+			<button
+				type="button"
+				data-testid="drop"
+				onClick={() =>
+					props.onEventDrop?.({
+						eventId: "1",
+						newStart: "2026-06-29 10:00:00",
+						newEnd: "2026-06-29 11:00:00",
+						event: { id: "1" },
+					})
+				}
+			>
+				drop
+			</button>
+			<button
+				type="button"
+				data-testid="resize"
+				onClick={() =>
+					props.onEventResize?.({
+						eventId: "1",
+						newStart: "2026-06-29 09:00:00",
+						newEnd: "2026-06-29 12:00:00",
+						event: { id: "1" },
+					})
+				}
+			>
+				resize
+			</button>
+			<button
+				type="button"
+				data-testid="rangeselect"
+				onClick={() =>
+					props.onSlotDragEnd?.("2026-06-29 13:00:00", "2026-06-29 14:00:00")
+				}
+			>
+				range
+			</button>
+			<button
+				type="button"
+				data-testid="slotclick"
+				onClick={(ev) =>
+					props.onTimeSlotClick?.({
+						slotStart: "2026-06-29 15:00:00",
+						slotEnd: "2026-06-29 15:30:00",
+						nativeEvent: ev,
+					})
+				}
+			>
+				slot
+			</button>
 		</div>
 	),
 }));
@@ -69,6 +142,11 @@ function Harness({
 	globalFilter,
 	leftSection,
 	rightSection,
+	onEventClick,
+	onEventMove,
+	onEventResize,
+	onRangeSelect,
+	onSlotClick,
 }: {
 	rows?: Shift[];
 	status?: Status;
@@ -82,6 +160,11 @@ function Harness({
 	globalFilter?: string;
 	leftSection?: ReactNode;
 	rightSection?: ReactNode;
+	onEventClick?: (row: Shift) => void;
+	onEventMove?: DataScheduleProps<Shift>["onEventMove"];
+	onEventResize?: DataScheduleProps<Shift>["onEventResize"];
+	onRangeSelect?: DataScheduleProps<Shift>["onRangeSelect"];
+	onSlotClick?: DataScheduleProps<Shift>["onSlotClick"];
 }) {
 	const view = useDataView<Shift>({
 		columns,
@@ -100,6 +183,11 @@ function Harness({
 				toEvent={toEvent}
 				leftSection={leftSection}
 				rightSection={rightSection}
+				onEventClick={onEventClick}
+				onEventMove={onEventMove}
+				onEventResize={onEventResize}
+				onRangeSelect={onRangeSelect}
+				onSlotClick={onSlotClick}
 			/>
 		</>
 	);
@@ -141,6 +229,17 @@ describe("DataSchedule", () => {
 		expect(screen.getByTestId("selection")).toHaveTextContent("0");
 		await user.click(screen.getAllByTestId("event")[0]!);
 		expect(screen.getByTestId("selection")).toHaveTextContent("1");
+	});
+
+	it("calls a first-class onEventClick with the typed row instead of selecting", async () => {
+		const user = userEvent.setup();
+		const onEventClick = vi.fn<(row: Shift) => void>();
+		renderHarness({ onEventClick });
+		await user.click(screen.getByText("Morning"));
+		expect(onEventClick).toHaveBeenCalledTimes(1);
+		expect(onEventClick.mock.calls[0]?.[0]).toEqual(ROWS[0]);
+		// The default selection toggle is replaced by the custom handler.
+		expect(screen.getByTestId("selection")).toHaveTextContent("0");
 	});
 
 	it("shows a skeleton (not the calendar) on first load with no rows", () => {
@@ -185,5 +284,64 @@ describe("DataSchedule", () => {
 		expect(screen.getByText("Team calendar")).toBeInTheDocument();
 		expect(screen.getByText("Something went wrong.")).toBeInTheDocument();
 		expect(screen.queryByTestId("schedule")).not.toBeInTheDocument();
+	});
+
+	it("enables interaction flags only when the matching handler is given", () => {
+		renderHarness();
+		const grid = screen.getByTestId("schedule");
+		expect(grid).toHaveAttribute("data-dnd", "false");
+		expect(grid).toHaveAttribute("data-resize", "false");
+		expect(grid).toHaveAttribute("data-dragselect", "false");
+
+		renderHarness({
+			onEventMove: () => {},
+			onEventResize: () => {},
+			onRangeSelect: () => {},
+		});
+		const grids = screen.getAllByTestId("schedule");
+		const enabled = grids[grids.length - 1]!;
+		expect(enabled).toHaveAttribute("data-dnd", "true");
+		expect(enabled).toHaveAttribute("data-resize", "true");
+		expect(enabled).toHaveAttribute("data-dragselect", "true");
+	});
+
+	it("onEventMove receives the typed row and a Date range", async () => {
+		const user = userEvent.setup();
+		const onEventMove = vi.fn<
+			DataScheduleProps<Shift>["onEventMove"] & object
+		>();
+		renderHarness({ onEventMove });
+		await user.click(screen.getByTestId("drop"));
+		expect(onEventMove).toHaveBeenCalledTimes(1);
+		const [row, range] = onEventMove.mock.calls[0]!;
+		expect(row).toEqual(ROWS[0]);
+		expect(range.start).toBeInstanceOf(Date);
+		expect(range.end).toBeInstanceOf(Date);
+		expect(range.end.getTime()).toBeGreaterThan(range.start.getTime());
+	});
+
+	it("onEventResize receives the typed row and a Date range", async () => {
+		const user = userEvent.setup();
+		const onEventResize = vi.fn<
+			DataScheduleProps<Shift>["onEventResize"] & object
+		>();
+		renderHarness({ onEventResize });
+		await user.click(screen.getByTestId("resize"));
+		expect(onEventResize.mock.calls[0]?.[0]).toEqual(ROWS[0]);
+	});
+
+	it("onRangeSelect and onSlotClick receive a Date range", async () => {
+		const user = userEvent.setup();
+		const onRangeSelect = vi.fn<
+			DataScheduleProps<Shift>["onRangeSelect"] & object
+		>();
+		const onSlotClick = vi.fn<
+			DataScheduleProps<Shift>["onSlotClick"] & object
+		>();
+		renderHarness({ onRangeSelect, onSlotClick });
+		await user.click(screen.getByTestId("rangeselect"));
+		await user.click(screen.getByTestId("slotclick"));
+		expect(onRangeSelect.mock.calls[0]?.[0].start).toBeInstanceOf(Date);
+		expect(onSlotClick.mock.calls[0]?.[0].start).toBeInstanceOf(Date);
 	});
 });

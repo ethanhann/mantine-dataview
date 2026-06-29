@@ -67,7 +67,6 @@ export {
 	type UseDataViewFetcherOptions,
 	useDataViewFetcher,
 } from "./core/useDataViewFetcher";
-
 // Public types. Importing any of these loads the `ColumnMeta` augmentation.
 export type {
 	CardFieldMeta,
@@ -122,5 +121,7 @@ export type {
 	Status,
 	ViewMode,
 } from "./types/state";
+// Windowed-view helpers, for custom layouts that branch on whether a date-window view is active.
+export { isWindowedView, WINDOWED_VIEWS } from "./types/state";
 // URL sync contracts. The runtime adapter ships from the `/url` subpath.
 export type { UrlSerializer, UrlStateAdapter } from "./url/types";

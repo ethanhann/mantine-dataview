@@ -95,6 +95,11 @@ describe("getViewMode", () => {
 			expect(mode).toBe("cards");
 		});
 
+		it("reports a schedule-family mode rather than collapsing it to table", () => {
+			expect(getViewMode(renderTable("schedule"))).toBe("schedule");
+			expect(getViewMode(renderTable("agenda"))).toBe("agenda");
+		});
+
 		it("resolves the same table mode from all three shapes", () => {
 			// Arrange
 			const table = renderTable("table");

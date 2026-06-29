@@ -4,14 +4,23 @@ import { useMemo } from "react";
 import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
 import {
+	agendaView,
+	DataAgenda,
+	DataResourceSchedule,
 	DataSchedule,
 	DataScheduleNav,
+	resourcesView,
 	type ScheduleEventData,
 	scheduleInitialState,
 	scheduleView,
 } from "../schedule";
 import { windowHistoryAdapter } from "../url";
-import { type Booking, createEventFetcher, eventColumns } from "./eventData";
+import {
+	type Booking,
+	bookings,
+	createEventFetcher,
+	eventColumns,
+} from "./eventData";
 import { UrlReadout } from "./UrlReadout";
 // The schedule presentation requires Mantine's schedule styles in addition to core/dates styles.
 // @ts-expect-error CSS import has no type declarations
@@ -35,6 +44,21 @@ export default meta;
 type Story = StoryObj<typeof DataSchedule>;
 
 const getRowId = (b: Booking) => b.id;
+
+// The resource day/week views are horizontal time strips (resources × time across the period), so an
+// unbounded 24h day is very wide. Clipping to business hours keeps the demo readable.
+const resourceBusinessHours = {
+	dayViewProps: {
+		startTime: "08:00:00",
+		endTime: "18:00:00",
+		intervalMinutes: 60,
+	},
+	weekViewProps: {
+		startTime: "08:00:00",
+		endTime: "18:00:00",
+		intervalMinutes: 60,
+	},
+};
 
 /** Events mapped from declarative `meta.schedule` roles; colored by status via a `map`. */
 export const Default: Story = {
@@ -122,6 +146,44 @@ export const WithHeaderSections: Story = {
 };
 
 /**
+ * Editable: drag an event to move it and drag its edge to resize. The typed `onEventMove` /
+ * `onEventResize` callbacks hand back the row and the new `{ start, end }`; here they persist to a
+ * local copy of the data (the "server") and call `view.patchRow` for instant feedback.
+ */
+export const EditableEvents: Story = {
+	render: () => {
+		function Example() {
+			const data = useMemo(() => bookings.map((b) => ({ ...b })), []);
+			const fetcher = useMemo(() => createEventFetcher(data), [data]);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			const apply = (
+				row: Booking,
+				{ start, end }: { start: Date; end: Date },
+			) => {
+				const target = data.find((b) => b.id === row.id);
+				if (target) {
+					target.start = start.toISOString();
+					target.end = end.toISOString();
+				}
+				view.patchRow({
+					...row,
+					start: start.toISOString(),
+					end: end.toISOString(),
+				});
+			};
+			return (
+				<DataSchedule view={view} onEventMove={apply} onEventResize={apply} />
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
  * The standalone `DataScheduleNav` (prev / today / next + level) placed above the calendar. It
  * drives the same `window` slice as the calendar's built-in header.
  */
@@ -162,6 +224,135 @@ export const IntegratedDataViewer: Story = {
 				fetcher,
 			});
 			return <DataViewer view={view} views={[scheduleView<Booking>()]} />;
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Agenda — the same events as a date-grouped list. `AgendaView` has no navigation of its own, so
+ * `DataAgenda` renders a `DataAgendaNav` header by default: prev / today / next and a day/week/month
+ * range (no "year"). Change the range to list a day, a week, or a month of events.
+ */
+export const AgendaOnly: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return <DataAgenda view={view} />;
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Resources — one row per resource. The rows are derived from the `room` column's filter options
+ * (its `meta.schedule.role` is `"resource"`); pass an explicit `resources` prop to control labels,
+ * colors, or order. Because this story's mock fetcher returns a `room` **value facet** over the
+ * visible window, each row shows a live count (e.g. "Aspen (12)") — navigate the calendar and the
+ * counts update while the rows stay put.
+ */
+export const ResourcesOnly: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataResourceSchedule
+					view={view}
+					resourcesProps={resourceBusinessHours}
+				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Resource counts come from the response's value facet and are on by default. Opt out with
+ * `showResourceCounts={false}` to show plain resource labels (compare with `ResourcesOnly`).
+ */
+export const ResourcesWithoutCounts: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataResourceSchedule
+					view={view}
+					showResourceCounts={false}
+					resourcesProps={resourceBusinessHours}
+				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Resource groups: a single `groups` prop (fanned out to all view levels) renders a rowspan column
+ * grouping resources — here the three rooms into two wings. Group ids reference the resource ids.
+ */
+export const ResourcesWithGroups: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataResourceSchedule
+					view={view}
+					resourcesProps={resourceBusinessHours}
+					groups={[
+						{ label: "North Wing", resourceIds: ["Aspen", "Birch"] },
+						{ label: "South Wing", resourceIds: ["Cedar"] },
+					]}
+				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * The full switcher: one `DataViewer` registering all three schedule-family views, switchable
+ * between **Table / Cards / Calendar / Agenda / Resources** at runtime on the same event data and
+ * date window. Switching among the windowed views reuses the loaded window (no refetch).
+ */
+export const FullSwitcher: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createEventFetcher(), []);
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			return (
+				<DataViewer
+					view={view}
+					views={[
+						scheduleView<Booking>(),
+						agendaView<Booking>(),
+						resourcesView<Booking>({ resourcesProps: resourceBusinessHours }),
+					]}
+				/>
+			);
 		}
 		return <Example />;
 	},
