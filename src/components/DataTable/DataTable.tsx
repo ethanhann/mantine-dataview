@@ -146,14 +146,19 @@ export function DataTable<TData>({
 						})}
 					</>
 				);
+				const itemProps = nav.getItemProps(index, row.getIsSelected());
 				return slots?.Row ? (
-					<Slot key={row.id} render={slots.Row} ctx={{ row, cells }} />
+					<Slot
+						key={row.id}
+						render={slots.Row}
+						ctx={{ row, cells, rowProps: itemProps }}
+					/>
 				) : (
 					<Table.Tr
 						key={row.id}
 						data-selected={row.getIsSelected() || undefined}
 						data-entering={isEntering}
-						{...nav.getItemProps(index, row.getIsSelected())}
+						{...itemProps}
 					>
 						{cells}
 					</Table.Tr>

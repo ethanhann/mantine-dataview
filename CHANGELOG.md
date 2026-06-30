@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `onRowActivate` on `DataTable` and `onCardActivate` on `DataCards`: activate an item with Enter or a
   single click on its body, receiving the typed row. Clicks on the checkbox, on links or buttons in the
   item, or while selecting text, do not activate.
+- The table `Row` slot context gains `rowProps`. Spread it onto a custom row element so the custom row
+  joins the grid's roving focus, selection, and activation.
 
 ## [0.10.0] - 2026-06-28
 

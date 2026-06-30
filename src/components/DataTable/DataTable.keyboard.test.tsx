@@ -1,4 +1,4 @@
-import { MantineProvider } from "@mantine/core";
+import { MantineProvider, Table } from "@mantine/core";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -6,7 +6,7 @@ import { axe } from "vitest-axe";
 import { useDataView } from "../../core/useDataView";
 import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
-import { DataTable } from "./DataTable";
+import { DataTable, type DataTableProps } from "./DataTable";
 
 interface User {
 	id: string;
@@ -38,6 +38,7 @@ function Harness(props: {
 	keyboardNavigation?: boolean;
 	enableSelection?: boolean;
 	onRowActivate?: (row: User) => void;
+	slots?: DataTableProps<User>["slots"];
 }) {
 	const view = useDataView<User>({
 		columns,
@@ -54,6 +55,7 @@ function Harness(props: {
 				keyboardNavigation={props.keyboardNavigation}
 				enableSelection={props.enableSelection}
 				onRowActivate={props.onRowActivate}
+				slots={props.slots}
 			/>
 		</>
 	);
@@ -251,6 +253,32 @@ describe("DataTable keyboard navigation", () => {
 		await user.click(within(bodyRows()[0] as HTMLElement).getByText("Ada"));
 		// Assert: a body click neither activates nor selects.
 		expect(screen.getByTestId("count")).toHaveTextContent("0");
+	});
+
+	it("wires a custom slots.Row into the grid through rowProps", async () => {
+		// Arrange: a custom row that spreads the provided rowProps onto its element.
+		const user = userEvent.setup();
+		renderTable({
+			slots: {
+				Row: ({ cells, rowProps }) => (
+					<Table.Tr data-testid="custom-row" {...rowProps}>
+						{cells}
+					</Table.Tr>
+				),
+			},
+		});
+		expect(screen.getAllByTestId("custom-row")).toHaveLength(4);
+		expect(bodyRows()[0]).toHaveAttribute("tabindex", "0");
+		bodyRows()[0]?.focus();
+		// Act
+		await user.keyboard("{ArrowDown}");
+		// Assert: the custom row participates in roving focus.
+		expect(bodyRows()[1]).toHaveFocus();
+		// Act
+		await user.keyboard(" ");
+		// Assert: and in selection.
+		expect(screen.getByTestId("count")).toHaveTextContent("1");
+		expect(bodyRows()[1]).toHaveAttribute("aria-selected", "true");
 	});
 
 	it("has no axe violations in the grid layout", async () => {

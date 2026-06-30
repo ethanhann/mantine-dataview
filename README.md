@@ -890,6 +890,19 @@ text, do not activate, so those keep working.
 Activation is part of the keyboard layer, so it requires `keyboardNavigation` (the default). Selection
 with Space and the checkbox is independent of activation.
 
+A custom table row (the `Row` slot) joins the grid by spreading the provided `rowProps` onto its
+element, so roving focus, selection, and activation all work. The value is empty when navigation is
+off, so spreading it is always safe.
+
+```tsx
+<DataTable
+    view={view}
+    slots={{
+        Row: ({cells, rowProps}) => <Table.Tr {...rowProps}>{cells}</Table.Tr>,
+    }}
+/>;
+```
+
 ## Custom state slots
 
 Override loading, empty, and error states:

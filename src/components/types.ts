@@ -8,6 +8,7 @@ import type { Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import type { DataViewSelection, UseDataViewReturn } from "../types/options";
 import type { ViewMode } from "../types/state";
+import type { GridItemProps } from "./useGridNavigation";
 
 export interface EmptySlotContext {
 	/** True when the empty result comes from active filters or search. */
@@ -26,6 +27,12 @@ export interface RowSlotContext<TData> {
 	row: Row<TData>;
 	/** The cells for this row that the library renders by default, both selection and data. */
 	cells: ReactNode;
+	/**
+	 * Keyboard-navigation props (`role`, `tabIndex`, `aria-selected`, `ref`, focus and click handlers)
+	 * to spread onto your row element so a custom row joins the grid's roving focus, selection, and
+	 * activation. Empty when `keyboardNavigation` is off, so spreading it is always safe.
+	 */
+	rowProps: Partial<GridItemProps>;
 }
 
 /** Full per card escape hatch. It bypasses the default composition entirely. */
