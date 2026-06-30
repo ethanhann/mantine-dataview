@@ -18,6 +18,7 @@ import { SortIcon } from "../icons";
 import { Slot } from "../Slot";
 import { EmptyContent, ErrorContent } from "../StateMessage";
 import type { DataViewSlots } from "../types";
+import { useGridNavigation } from "../useGridNavigation";
 // @ts-expect-error CSS import has no type declarations
 import "./transitions.css";
 
@@ -53,6 +54,11 @@ export interface DataTableProps<TData>
 	 * per-cell focus and any cell-local component state on each sort/page/filter.
 	 */
 	animateRows?: boolean;
+	/**
+	 * Arrow-key navigation over rows with Space to select and Shift+Arrow to range-select, exposed as
+	 * a `role="grid"`. Default: true. Set false to embed the table in your own keyboard model.
+	 */
+	keyboardNavigation?: boolean;
 }
 
 export function DataTable<TData>({
@@ -62,6 +68,7 @@ export function DataTable<TData>({
 	loadingRowCount,
 	disableWhileLoading = true,
 	animateRows = false,
+	keyboardNavigation = true,
 	...tableProps
 }: DataTableProps<TData>) {
 	const { table, renderStatus } = view;
@@ -74,17 +81,28 @@ export function DataTable<TData>({
 	const skeletonRows =
 		loadingRowCount ?? Math.min(view.state.pagination.pageSize, 8);
 
+	const nav = useGridNavigation({
+		enabled: keyboardNavigation,
+		selectable: selectionEnabled,
+		ids: transition.rows.map((r) => r.id),
+		selection: view.selection,
+	});
+	const cellRole = keyboardNavigation ? "gridcell" : undefined;
+
 	const renderDataRows = (rowsToRender: typeof transition.rows): ReactNode => (
 		<Table.Tbody
 			key={transition.generation}
 			data-changed={animateRows || undefined}
 		>
-			{rowsToRender.map((row) => {
+			{rowsToRender.map((row, index) => {
 				const isEntering = transition.entering.has(row.id) || undefined;
 				const cells = (
 					<>
 						{selectionEnabled && (
-							<Table.Td style={{ width: SELECTION_COLUMN_WIDTH }}>
+							<Table.Td
+								role={cellRole}
+								style={{ width: SELECTION_COLUMN_WIDTH }}
+							>
 								<Checkbox
 									aria-label="Select row"
 									checked={row.getIsSelected()}
@@ -103,6 +121,7 @@ export function DataTable<TData>({
 							return (
 								<Table.Td
 									key={cell.id}
+									role={cellRole}
 									style={{
 										...pinningStyle(cell.column),
 										...(align ? { textAlign: align } : undefined),
@@ -121,6 +140,7 @@ export function DataTable<TData>({
 						key={row.id}
 						data-selected={row.getIsSelected() || undefined}
 						data-entering={isEntering}
+						{...nav.getItemProps(index, row.getIsSelected())}
 					>
 						{cells}
 					</Table.Tr>
@@ -183,7 +203,7 @@ export function DataTable<TData>({
 
 	return (
 		<div style={hasPinning ? { overflowX: "auto" } : undefined}>
-			<Table layout="fixed" {...tableProps}>
+			<Table layout="fixed" {...nav.containerProps} {...tableProps}>
 				<Table.Thead>
 					{table.getHeaderGroups().map((group) => (
 						<Table.Tr key={group.id}>
