@@ -13,10 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `deselect` accept a single id or an array.
 - `enableMultiRowSelection` option on `useDataView` (default `true`). When `false`, the selection
   mutators collapse to a single id for single-select tables and cards.
-- Keyboard navigation for the table view, on by default. Arrow keys move a roving focus point over the
-  rows, Home and End jump to the ends, Space toggles the active row's selection, and Shift with an
-  arrow extends a contiguous range. The table is exposed as a `role="grid"` with `aria-selected` rows.
-  Set `keyboardNavigation={false}` on `DataTable` to opt out. (Card-grid navigation follows.)
+- Keyboard navigation for the table and card views, on by default. Arrow keys move a roving focus
+  point, Home and End jump to the ends, Space toggles the active item's selection, and Shift with an
+  arrow extends a contiguous range. The table navigates row by row; the card grid navigates in two
+  dimensions, following the rendered layout (it reads the real geometry, so any responsive `cols`
+  setting works, and it degrades to left/right traversal when geometry is unavailable). Both views are
+  exposed as a `role="grid"` with `aria-selected` items. Set `keyboardNavigation={false}` on
+  `DataTable` or `DataCards` to opt out.
 
 ## [0.10.0] - 2026-06-28
 

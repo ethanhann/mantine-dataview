@@ -842,6 +842,34 @@ const isOn = view.selection.isSelected("42");
 Pass `enableMultiRowSelection={false}` to `useDataView` for single-select, where these methods collapse
 to a single id.
 
+## Keyboard navigation
+
+The table and card views support keyboard navigation, on by default.
+A roving focus point moves through the rows or cards with the arrow keys, and the body is exposed as a
+`role="grid"` with `aria-selected` items.
+
+| Key                       | Action                                             |
+| ------------------------- | -------------------------------------------------- |
+| Arrow keys                | Move the focused row or card                        |
+| Home / End                | Jump to the first or last item                      |
+| Space                     | Toggle selection on the focused item                |
+| Shift and an arrow        | Extend a contiguous selection from the anchor       |
+
+The table navigates one row at a time.
+The card grid navigates in two dimensions, following the rendered layout.
+It reads the real card geometry, so any responsive `cols` value works, and it falls back to left and
+right traversal when the layout reports no rows (for example during tests).
+
+Selection from the keyboard uses the same state as the checkboxes and the bulk-action bar.
+Set `keyboardNavigation={false}` on `DataTable` or `DataCards` to opt out, for instance when embedding a
+view inside your own keyboard model.
+
+```tsx
+<DataViewer view={view}>
+    <DataViewer.Body tableProps={{keyboardNavigation: false}}/>
+</DataViewer>;
+```
+
 ## Custom state slots
 
 Override loading, empty, and error states:

@@ -24,13 +24,19 @@ import {
 } from "../../core/cardComposition";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { UseDataViewReturn } from "../../types/options";
+import { nextCardIndex } from "../nextCardIndex";
 import { Slot } from "../Slot";
 import { EmptyContent, ErrorContent } from "../StateMessage";
 // @ts-expect-error CSS import has no type declarations
 import "../DataTable/transitions.css";
 import type { DataViewSlots } from "../types";
+import { type ResolveNext, useGridNavigation } from "../useGridNavigation";
 
 const DEFAULT_COLS: SimpleGridProps["cols"] = { base: 1, sm: 2, lg: 3 };
+
+// Two-dimensional movement over the card grid, reading the live geometry through `getRects`.
+const cardResolver: ResolveNext = (direction, active, _count, getRects) =>
+	nextCardIndex(direction, active, getRects());
 
 export interface DataCardsProps<TData>
 	extends Omit<SimpleGridProps, "children"> {
@@ -55,6 +61,11 @@ export interface DataCardsProps<TData>
 	loadingCardCount?: number;
 	/** Animate card enter/exit instead of showing skeletons. Default: false. */
 	animateRows?: boolean;
+	/**
+	 * Arrow-key navigation over cards (2D, following the rendered layout) with Space to select and
+	 * Shift+Arrow to range-select, exposed as a `role="grid"`. Default: true. Set false to opt out.
+	 */
+	keyboardNavigation?: boolean;
 }
 
 export function DataCards<TData>({
@@ -65,6 +76,7 @@ export function DataCards<TData>({
 	enableSelection,
 	loadingCardCount,
 	animateRows = false,
+	keyboardNavigation = true,
 	cols = DEFAULT_COLS,
 	...gridProps
 }: DataCardsProps<TData>) {
@@ -76,24 +88,39 @@ export function DataCards<TData>({
 	const grid = { cols, ...gridProps };
 	const transition = useRowTransition(table.getRowModel().rows, animateRows);
 
+	const nav = useGridNavigation({
+		enabled: keyboardNavigation,
+		selectable: selectionEnabled,
+		ids: transition.rows.map((r) => r.id),
+		selection: view.selection,
+		resolveNext: cardResolver,
+	});
+	// Each card is a logical grid row holding one gridcell, so the body can contain the selection
+	// checkbox (interactive content is valid inside a grid, unlike a listbox option).
+	const cellRole = keyboardNavigation ? "gridcell" : undefined;
+	const wrapCell = (node: ReactNode): ReactNode =>
+		keyboardNavigation ? <div role={cellRole}>{node}</div> : node;
+
 	const renderCards = (rowsToRender: typeof transition.rows) => {
 		const layout = composeCardLayout(table, { fallbackRole });
 		return (
 			<SimpleGrid
 				key={transition.generation}
 				data-changed={animateRows || undefined}
+				{...nav.containerProps}
 				{...grid}
 			>
-				{rowsToRender.map((row) => {
+				{rowsToRender.map((row, index) => {
 					const selected = row.getIsSelected();
 					const toggleSelected = () => row.toggleSelected();
 					const ctx = { row, data: row.original, selected, toggleSelected };
 					const entering = transition.entering.has(row.id) || undefined;
+					const itemProps = nav.getItemProps(index, selected);
 
 					if (renderCard) {
 						return (
-							<div key={row.id} data-entering={entering}>
-								<Slot render={renderCard} ctx={ctx} />
+							<div key={row.id} data-entering={entering} {...itemProps}>
+								{wrapCell(<Slot render={renderCard} ctx={ctx} />)}
 							</div>
 						);
 					}
@@ -107,8 +134,10 @@ export function DataCards<TData>({
 					);
 					if (slots?.Card) {
 						return (
-							<div key={row.id} data-entering={entering}>
-								<Slot render={slots.Card} ctx={{ ...ctx, children: body }} />
+							<div key={row.id} data-entering={entering} {...itemProps}>
+								{wrapCell(
+									<Slot render={slots.Card} ctx={{ ...ctx, children: body }} />,
+								)}
 							</div>
 						);
 					}
@@ -120,8 +149,9 @@ export function DataCards<TData>({
 							pos="relative"
 							data-selected={selected || undefined}
 							data-entering={entering}
+							{...itemProps}
 						>
-							{body}
+							{wrapCell(body)}
 						</Card>
 					);
 				})}
