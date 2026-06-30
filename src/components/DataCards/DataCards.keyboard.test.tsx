@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { useDataView } from "../../core/useDataView";
 import { createColumnHelper } from "../../index";
@@ -28,6 +28,7 @@ const ROWS: User[] = [
 function Harness(props: {
 	keyboardNavigation?: boolean;
 	enableSelection?: boolean;
+	onCardActivate?: (row: User) => void;
 }) {
 	const view = useDataView<User>({
 		columns,
@@ -43,6 +44,7 @@ function Harness(props: {
 				view={view}
 				keyboardNavigation={props.keyboardNavigation}
 				enableSelection={props.enableSelection}
+				onCardActivate={props.onCardActivate}
 			/>
 		</>
 	);
@@ -180,6 +182,43 @@ describe("DataCards keyboard navigation", () => {
 		await user.keyboard(" ");
 		// Assert
 		expect(screen.getByTestId("count")).toHaveTextContent("0");
+	});
+
+	it("activates the focused card on Enter with the typed row", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onCardActivate = vi.fn<(row: User) => void>();
+		renderCards({ onCardActivate });
+		cards()[1]?.focus();
+		// Act
+		await user.keyboard("{Enter}");
+		// Assert
+		expect(onCardActivate).toHaveBeenCalledTimes(1);
+		expect(onCardActivate.mock.calls[0]?.[0]).toEqual(ROWS[1]);
+	});
+
+	it("activates a card on a single click of its body", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onCardActivate = vi.fn<(row: User) => void>();
+		renderCards({ onCardActivate });
+		// Act
+		await user.click(within(cards()[0] as HTMLElement).getByText("Ada"));
+		// Assert
+		expect(onCardActivate).toHaveBeenCalledTimes(1);
+		expect(onCardActivate.mock.calls[0]?.[0]).toEqual(ROWS[0]);
+	});
+
+	it("does not activate when the card checkbox is clicked", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onCardActivate = vi.fn<(row: User) => void>();
+		renderCards({ onCardActivate });
+		// Act
+		await user.click(within(cards()[0] as HTMLElement).getByRole("checkbox"));
+		// Assert: the click selects the card instead of activating it.
+		expect(onCardActivate).not.toHaveBeenCalled();
+		expect(screen.getByTestId("count")).toHaveTextContent("1");
 	});
 
 	it("has no axe violations in the card grid layout", async () => {

@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   setting works, and it degrades to left/right traversal when geometry is unavailable). Both views are
   exposed as a `role="grid"` with `aria-selected` items. Set `keyboardNavigation={false}` on
   `DataTable` or `DataCards` to opt out.
+- `onRowActivate` on `DataTable` and `onCardActivate` on `DataCards`: activate an item with Enter or a
+  single click on its body, receiving the typed row. Clicks on the checkbox, on links or buttons in the
+  item, or while selecting text, do not activate.
 
 ## [0.10.0] - 2026-06-28
 

@@ -11,7 +11,7 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { type Column, flexRender, type Header } from "@tanstack/react-table";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { UseDataViewReturn } from "../../types/options";
 import { SortIcon } from "../icons";
@@ -59,6 +59,12 @@ export interface DataTableProps<TData>
 	 * a `role="grid"`. Default: true. Set false to embed the table in your own keyboard model.
 	 */
 	keyboardNavigation?: boolean;
+	/**
+	 * Activate a row with Enter or a single click on its body. Receives the typed row. Clicks on the
+	 * checkbox, links, or buttons in the row, or while selecting text, do not activate. Requires
+	 * `keyboardNavigation` (the default).
+	 */
+	onRowActivate?: (row: TData, event: SyntheticEvent) => void;
 }
 
 export function DataTable<TData>({
@@ -69,6 +75,7 @@ export function DataTable<TData>({
 	disableWhileLoading = true,
 	animateRows = false,
 	keyboardNavigation = true,
+	onRowActivate,
 	...tableProps
 }: DataTableProps<TData>) {
 	const { table, renderStatus } = view;
@@ -86,6 +93,12 @@ export function DataTable<TData>({
 		selectable: selectionEnabled,
 		ids: transition.rows.map((r) => r.id),
 		selection: view.selection,
+		onActivate: onRowActivate
+			? (index, event) => {
+					const row = transition.rows[index];
+					if (row) onRowActivate(row.original, event);
+				}
+			: undefined,
 	});
 	const cellRole = keyboardNavigation ? "gridcell" : undefined;
 

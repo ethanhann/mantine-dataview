@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { useDataView } from "../../core/useDataView";
 import { createColumnHelper } from "../../index";
@@ -16,6 +16,15 @@ interface User {
 const helper = createColumnHelper<User>();
 const columns = [
 	helper.accessor("name", { meta: { label: "Name" } }),
+	helper.display({
+		id: "action",
+		header: "Action",
+		cell: () => (
+			<button type="button" onClick={(e) => e.stopPropagation()}>
+				Open
+			</button>
+		),
+	}),
 ] satisfies DataColumnDef<User>[];
 
 const ROWS: User[] = [
@@ -28,6 +37,7 @@ const ROWS: User[] = [
 function Harness(props: {
 	keyboardNavigation?: boolean;
 	enableSelection?: boolean;
+	onRowActivate?: (row: User) => void;
 }) {
 	const view = useDataView<User>({
 		columns,
@@ -43,6 +53,7 @@ function Harness(props: {
 				view={view}
 				keyboardNavigation={props.keyboardNavigation}
 				enableSelection={props.enableSelection}
+				onRowActivate={props.onRowActivate}
 			/>
 		</>
 	);
@@ -175,6 +186,70 @@ describe("DataTable keyboard navigation", () => {
 		// Act
 		await user.keyboard(" ");
 		// Assert: ...but Space selects nothing.
+		expect(screen.getByTestId("count")).toHaveTextContent("0");
+	});
+
+	it("activates the focused row on Enter with the typed row", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onRowActivate = vi.fn<(row: User) => void>();
+		renderTable({ onRowActivate });
+		bodyRows()[1]?.focus();
+		// Act
+		await user.keyboard("{Enter}");
+		// Assert
+		expect(onRowActivate).toHaveBeenCalledTimes(1);
+		expect(onRowActivate.mock.calls[0]?.[0]).toEqual(ROWS[1]);
+	});
+
+	it("activates a row on a single click of its body", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onRowActivate = vi.fn<(row: User) => void>();
+		renderTable({ onRowActivate });
+		// Act
+		await user.click(within(bodyRows()[0] as HTMLElement).getByText("Ada"));
+		// Assert
+		expect(onRowActivate).toHaveBeenCalledTimes(1);
+		expect(onRowActivate.mock.calls[0]?.[0]).toEqual(ROWS[0]);
+	});
+
+	it("does not activate when the selection checkbox is clicked", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onRowActivate = vi.fn<(row: User) => void>();
+		renderTable({ onRowActivate });
+		// Act
+		await user.click(
+			within(bodyRows()[0] as HTMLElement).getByRole("checkbox"),
+		);
+		// Assert: the click selects the row instead of activating it.
+		expect(onRowActivate).not.toHaveBeenCalled();
+		expect(screen.getByTestId("count")).toHaveTextContent("1");
+	});
+
+	it("does not activate when an interactive cell control is clicked", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		const onRowActivate = vi.fn<(row: User) => void>();
+		renderTable({ onRowActivate });
+		// Act
+		await user.click(
+			within(bodyRows()[0] as HTMLElement).getByRole("button", {
+				name: "Open",
+			}),
+		);
+		// Assert
+		expect(onRowActivate).not.toHaveBeenCalled();
+	});
+
+	it("leaves rows non-clickable without an onRowActivate handler", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderTable();
+		// Act
+		await user.click(within(bodyRows()[0] as HTMLElement).getByText("Ada"));
+		// Assert: a body click neither activates nor selects.
 		expect(screen.getByTestId("count")).toHaveTextContent("0");
 	});
 

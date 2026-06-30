@@ -870,6 +870,26 @@ view inside your own keyboard model.
 </DataViewer>;
 ```
 
+### Row and card activation
+
+Pass `onRowActivate` to `DataTable` or `onCardActivate` to `DataCards` to handle "opening" an item.
+The handler receives the typed row and fires on Enter when the item is focused, or on a single click of
+its body.
+Clicks on the selection checkbox, on links or buttons inside the item, or while the user is selecting
+text, do not activate, so those keep working.
+
+```tsx
+<DataViewer view={view}>
+    <DataViewer.Body
+        tableProps={{onRowActivate: (booking) => openDetail(booking)}}
+        cardsProps={{onCardActivate: (booking) => openDetail(booking)}}
+    />
+</DataViewer>;
+```
+
+Activation is part of the keyboard layer, so it requires `keyboardNavigation` (the default). Selection
+with Space and the checkbox is independent of activation.
+
 ## Custom state slots
 
 Override loading, empty, and error states:

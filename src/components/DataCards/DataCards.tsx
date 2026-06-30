@@ -16,7 +16,7 @@ import {
 	Text,
 } from "@mantine/core";
 import { flexRender, type Row } from "@tanstack/react-table";
-import { Fragment, type ReactNode, useMemo } from "react";
+import { Fragment, type ReactNode, type SyntheticEvent, useMemo } from "react";
 import {
 	type CardField,
 	type ComposeCardOptions,
@@ -66,6 +66,12 @@ export interface DataCardsProps<TData>
 	 * Shift+Arrow to range-select, exposed as a `role="grid"`. Default: true. Set false to opt out.
 	 */
 	keyboardNavigation?: boolean;
+	/**
+	 * Activate a card with Enter or a single click on its body. Receives the typed row. Clicks on the
+	 * checkbox, links, or buttons in the card, or while selecting text, do not activate. Requires
+	 * `keyboardNavigation` (the default).
+	 */
+	onCardActivate?: (row: TData, event: SyntheticEvent) => void;
 }
 
 export function DataCards<TData>({
@@ -77,6 +83,7 @@ export function DataCards<TData>({
 	loadingCardCount,
 	animateRows = false,
 	keyboardNavigation = true,
+	onCardActivate,
 	cols = DEFAULT_COLS,
 	...gridProps
 }: DataCardsProps<TData>) {
@@ -94,6 +101,12 @@ export function DataCards<TData>({
 		ids: transition.rows.map((r) => r.id),
 		selection: view.selection,
 		resolveNext: cardResolver,
+		onActivate: onCardActivate
+			? (index, event) => {
+					const row = transition.rows[index];
+					if (row) onCardActivate(row.original, event);
+				}
+			: undefined,
 	});
 	// Each card is a logical grid row holding one gridcell, so the body can contain the selection
 	// checkbox (interactive content is valid inside a grid, unlike a listbox option).
