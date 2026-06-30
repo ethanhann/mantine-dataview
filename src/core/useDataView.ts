@@ -138,6 +138,7 @@ export function useDataView<TData>(
 		state: controlledState,
 		onStateChange,
 		enableRowSelection,
+		enableMultiRowSelection,
 		enableGlobalFilter = true,
 		debounce,
 		responsive,
@@ -358,6 +359,7 @@ export function useDataView<TData>(
 			typeof enableRowSelection === "function"
 				? (row) => enableRowSelection(row.original)
 				: (enableRowSelection ?? true),
+		enableMultiRowSelection: enableMultiRowSelection ?? true,
 		enableGlobalFilter,
 		state: {
 			pagination: resolvedState.pagination,
@@ -514,6 +516,67 @@ export function useDataView<TData>(
 		() => applyPatch({ rowSelection: {} }),
 		[applyPatch],
 	);
+	// Id-based mutators, keyed by `getRowId` and spanning pages like `selection.ids`. They read the
+	// live selection from `resolvedStateRef` (not a render closure) so batched calls compose, the same
+	// pattern as `onRowSelectionChange`. Single-select mode (`enableMultiRowSelection: false`) collapses
+	// to a single id. They do not consult the per-row `enableRowSelection` predicate, which cannot be
+	// evaluated for an id off the current page; gating non-selectable rows is the caller's job.
+	const isMultiSelect = useCallback(
+		() => table.options.enableMultiRowSelection !== false,
+		[table],
+	);
+	const selectIds = useCallback(
+		(id: string | string[]) => {
+			const ids = Array.isArray(id) ? id : [id];
+			if (ids.length === 0) return;
+			if (!isMultiSelect()) {
+				applyPatch({ rowSelection: { [ids[ids.length - 1] as string]: true } });
+				return;
+			}
+			const next = { ...resolvedStateRef.current.rowSelection };
+			for (const i of ids) next[i] = true;
+			applyPatch({ rowSelection: next });
+		},
+		[applyPatch, isMultiSelect],
+	);
+	const deselectIds = useCallback(
+		(id: string | string[]) => {
+			const ids = Array.isArray(id) ? id : [id];
+			if (ids.length === 0) return;
+			const next = { ...resolvedStateRef.current.rowSelection };
+			for (const i of ids) delete next[i];
+			applyPatch({ rowSelection: next });
+		},
+		[applyPatch],
+	);
+	const toggleId = useCallback(
+		(id: string) => {
+			const current = resolvedStateRef.current.rowSelection;
+			if (current[id]) {
+				const next = { ...current };
+				delete next[id];
+				applyPatch({ rowSelection: next });
+				return;
+			}
+			const next = isMultiSelect() ? { ...current } : {};
+			next[id] = true;
+			applyPatch({ rowSelection: next });
+		},
+		[applyPatch, isMultiSelect],
+	);
+	const setSelection = useCallback(
+		(ids: string[]) => {
+			const list = isMultiSelect() ? ids : ids.slice(-1);
+			const next: RowSelectionState = {};
+			for (const i of list) next[i] = true;
+			applyPatch({ rowSelection: next });
+		},
+		[applyPatch, isMultiSelect],
+	);
+	const isSelected = useCallback(
+		(id: string) => resolvedStateRef.current.rowSelection[id] === true,
+		[],
+	);
 	const selection = useMemo(() => {
 		const map = resolvedState.rowSelection;
 		// Ids span every page because they are keyed by id. Rows are only the ones currently on
@@ -527,8 +590,23 @@ export function useDataView<TData>(
 			// Deprecated alias of `pageRows`; kept for back-compat.
 			rows: selectedRows,
 			clear: clearSelection,
+			select: selectIds,
+			deselect: deselectIds,
+			toggle: toggleId,
+			set: setSelection,
+			isSelected,
 		};
-	}, [resolvedState.rowSelection, rows, getRowId, clearSelection]);
+	}, [
+		resolvedState.rowSelection,
+		rows,
+		getRowId,
+		clearSelection,
+		selectIds,
+		deselectIds,
+		toggleId,
+		setSelection,
+		isSelected,
+	]);
 
 	const exportCsv = useCallback(
 		(opts?: Parameters<typeof exportCsvFn>[1]) => exportCsvFn(table, opts),

@@ -819,8 +819,28 @@ Provide a `BulkActions` slot to add actions when rows are selected:
 />
 ```
 
-The `selection` object provides `count`, `ids` (all selected row IDs across pages),
-`rows` (selected row data on the current page), and `clear()`.
+The `selection` object exposes the current selection and methods to change it.
+
+Read the selection with `count`, `ids` (every selected row id across pages), and `pageRows` (selected
+row data on the current page).
+The older `rows` alias still works and equals `pageRows`.
+
+Change the selection programmatically with `select`, `deselect`, `toggle`, `set`, `clear`, and
+`isSelected`.
+All are keyed by `getRowId` and span pages, so you can select a row that is not on the current page.
+`select` and `deselect` accept a single id or an array.
+
+```tsx
+view.selection.select("42");
+view.selection.select(["7", "9"]);
+view.selection.toggle("3");
+view.selection.set(["1", "2"]); // replace the whole selection
+view.selection.clear();
+const isOn = view.selection.isSelected("42");
+```
+
+Pass `enableMultiRowSelection={false}` to `useDataView` for single-select, where these methods collapse
+to a single id.
 
 ## Custom state slots
 

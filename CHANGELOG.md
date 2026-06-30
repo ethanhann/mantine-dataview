@@ -3,6 +3,17 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Programmatic selection API on `view.selection`: `select`, `deselect`, `toggle`, `set`, and
+  `isSelected`, alongside the existing `count`, `ids`, `pageRows`, and `clear`. All are keyed by
+  `getRowId` and span pages, so a row that is not on the current page can still be selected. `select`
+  and `deselect` accept a single id or an array.
+- `enableMultiRowSelection` option on `useDataView` (default `true`). When `false`, the selection
+  mutators collapse to a single id for single-select tables and cards.
+
 ## [0.10.0] - 2026-06-28
 
 ### Added
