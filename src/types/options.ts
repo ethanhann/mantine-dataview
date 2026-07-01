@@ -80,6 +80,12 @@ export interface UseDataViewOptions<TData> {
 	/** Default `[10, 25, 50, 100]`. */
 	pageSizeOptions?: number[];
 	enableRowSelection?: boolean | ((row: NoInfer<TData>) => boolean);
+	/**
+	 * When `false`, only one row can be selected at a time. The selection mutators
+	 * (`selection.select`/`toggle`/`set`) and keyboard selection collapse to a single id. Default
+	 * `true`.
+	 */
+	enableMultiRowSelection?: boolean;
 	enableGlobalFilter?: boolean;
 	debounce?: DebounceOptions;
 
@@ -109,7 +115,22 @@ export interface DataViewSelection<TData> {
 	 * same value and will be removed in a future major release.
 	 */
 	rows: TData[];
+	/** Clear the entire selection. */
 	clear: () => void;
+	/**
+	 * Add one or more ids to the selection, by `getRowId`. Already-selected ids are unaffected. Ids
+	 * need not be on the current page; selection is keyed by id and spans pages. In single-select
+	 * mode (`enableMultiRowSelection: false`) the last id wins.
+	 */
+	select: (id: string | string[]) => void;
+	/** Remove one or more ids from the selection. Ids not selected are ignored. */
+	deselect: (id: string | string[]) => void;
+	/** Flip a single id's selected state. */
+	toggle: (id: string) => void;
+	/** Replace the entire selection with exactly these ids. Pass `[]` to clear. */
+	set: (ids: string[]) => void;
+	/** Whether the id is currently selected. */
+	isSelected: (id: string) => boolean;
 }
 
 export interface UseDataViewReturn<TData> {

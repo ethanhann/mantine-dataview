@@ -819,8 +819,94 @@ Provide a `BulkActions` slot to add actions when rows are selected:
 />
 ```
 
-The `selection` object provides `count`, `ids` (all selected row IDs across pages),
-`rows` (selected row data on the current page), and `clear()`.
+The `selection` object exposes the current selection and methods to change it.
+
+Read the selection with `count`, `ids` (every selected row id across pages), and `pageRows` (selected
+row data on the current page).
+The older `rows` alias still works and equals `pageRows`.
+
+Change the selection programmatically with `select`, `deselect`, `toggle`, `set`, `clear`, and
+`isSelected`.
+All are keyed by `getRowId` and span pages, so you can select a row that is not on the current page.
+`select` and `deselect` accept a single id or an array.
+
+```tsx
+view.selection.select("42");
+view.selection.select(["7", "9"]);
+view.selection.toggle("3");
+view.selection.set(["1", "2"]); // replace the whole selection
+view.selection.clear();
+const isOn = view.selection.isSelected("42");
+```
+
+Pass `enableMultiRowSelection={false}` to `useDataView` for single-select, where these methods collapse
+to a single id.
+
+## Keyboard navigation
+
+The table and card views support keyboard navigation, on by default.
+A roving focus point moves through the rows or cards with the arrow keys, and the body is exposed as a
+`role="grid"` with `aria-selected` items.
+
+| Key                       | Action                                             |
+| ------------------------- | -------------------------------------------------- |
+| Arrow keys                | Move the focused row or card                        |
+| Home / End                | Jump to the first or last item                      |
+| Space                     | Toggle selection on the focused item                |
+| Shift and an arrow        | Extend a contiguous selection from the anchor       |
+
+The table navigates one row at a time.
+The card grid navigates in two dimensions, following the rendered layout.
+It reads the real card geometry, so any responsive `cols` value works, and it falls back to left and
+right traversal when the layout reports no rows (for example during tests).
+
+Selected rows and cards get a highlighted background, and the active item shows a focus ring on both
+click and keyboard focus.
+These styles ship in the package stylesheet, so import `@ethanhann/mantine-dataview/styles.css` in your
+app entry.
+
+Selection from the keyboard uses the same state as the checkboxes and the bulk-action bar.
+Set `keyboardNavigation={false}` on `DataTable` or `DataCards` to opt out, for instance when embedding a
+view inside your own keyboard model.
+
+```tsx
+<DataViewer view={view}>
+    <DataViewer.Body tableProps={{keyboardNavigation: false}}/>
+</DataViewer>;
+```
+
+### Row and card activation
+
+Pass `onRowActivate` to `DataTable` or `onCardActivate` to `DataCards` to handle "opening" an item.
+The handler receives the typed row and fires on Enter when the item is focused, or on a single click of
+its body.
+Clicks on the selection checkbox, on links or buttons inside the item, or while the user is selecting
+text, do not activate, so those keep working.
+
+```tsx
+<DataViewer view={view}>
+    <DataViewer.Body
+        tableProps={{onRowActivate: (booking) => openDetail(booking)}}
+        cardsProps={{onCardActivate: (booking) => openDetail(booking)}}
+    />
+</DataViewer>;
+```
+
+Activation is part of the keyboard layer, so it requires `keyboardNavigation` (the default). Selection
+with Space and the checkbox is independent of activation.
+
+A custom table row (the `Row` slot) joins the grid by spreading the provided `rowProps` onto its
+element, so roving focus, selection, and activation all work. The value is empty when navigation is
+off, so spreading it is always safe.
+
+```tsx
+<DataTable
+    view={view}
+    slots={{
+        Row: ({cells, rowProps}) => <Table.Tr {...rowProps}>{cells}</Table.Tr>,
+    }}
+/>;
+```
 
 ## Custom state slots
 

@@ -3,6 +3,32 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Programmatic selection API on `view.selection`: `select`, `deselect`, `toggle`, `set`, and
+  `isSelected`, alongside the existing `count`, `ids`, `pageRows`, and `clear`. All are keyed by
+  `getRowId` and span pages, so a row that is not on the current page can still be selected. `select`
+  and `deselect` accept a single id or an array.
+- `enableMultiRowSelection` option on `useDataView` (default `true`). When `false`, the selection
+  mutators collapse to a single id for single-select tables and cards.
+- Keyboard navigation for the table and card views, on by default. Arrow keys move a roving focus
+  point, Home and End jump to the ends, Space toggles the active item's selection, and Shift with an
+  arrow extends a contiguous range. The table navigates row by row; the card grid navigates in two
+  dimensions, following the rendered layout (it reads the real geometry, so any responsive `cols`
+  setting works, and it degrades to left/right traversal when geometry is unavailable). Both views are
+  exposed as a `role="grid"` with `aria-selected` items. Set `keyboardNavigation={false}` on
+  `DataTable` or `DataCards` to opt out.
+- `onRowActivate` on `DataTable` and `onCardActivate` on `DataCards`: activate an item with Enter or a
+  single click on its body, receiving the typed row. Clicks on the checkbox, on links or buttons in the
+  item, or while selecting text, do not activate.
+- The table `Row` slot context gains `rowProps`. Spread it onto a custom row element so the custom row
+  joins the grid's roving focus, selection, and activation.
+- Selection and focus styling for both views: selected rows and cards get a highlighted background, and
+  the active item shows a focus ring on click as well as keyboard focus. The styles ship in the package
+  stylesheet (`@ethanhann/mantine-dataview/styles.css`).
+
 ## [0.10.0] - 2026-06-28
 
 ### Added

@@ -11,20 +11,26 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { type Column, flexRender, type Header } from "@tanstack/react-table";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { UseDataViewReturn } from "../../types/options";
 import { SortIcon } from "../icons";
 import { Slot } from "../Slot";
 import { EmptyContent, ErrorContent } from "../StateMessage";
 import type { DataViewSlots } from "../types";
+import { useGridNavigation } from "../useGridNavigation";
+// @ts-expect-error CSS import has no type declarations
+import "../grid.css";
 // @ts-expect-error CSS import has no type declarations
 import "./transitions.css";
 
 /** Width of the leading selection checkbox column, shared by header and body cells. */
 const SELECTION_COLUMN_WIDTH = 40;
 
-function pinningStyle<TData>(column: Column<TData>): CSSProperties | undefined {
+function pinningStyle<TData>(
+	column: Column<TData>,
+	selected?: boolean,
+): CSSProperties | undefined {
 	const pinned = column.getIsPinned();
 	if (!pinned) return undefined;
 	return {
@@ -32,7 +38,16 @@ function pinningStyle<TData>(column: Column<TData>): CSSProperties | undefined {
 		[pinned]:
 			pinned === "left" ? column.getStart("left") : column.getAfter("right"),
 		zIndex: 1,
+		// A pinned cell needs an opaque background to mask the content scrolling behind it, which would
+		// otherwise hide the selected-row tint that the stylesheet paints on ordinary cells. Layer the
+		// same tint over the opaque body color so the selected state carries across pinned cells too.
 		backgroundColor: "var(--mantine-color-body)",
+		...(selected
+			? {
+					backgroundImage:
+						"linear-gradient(var(--mantine-primary-color-light), var(--mantine-primary-color-light))",
+				}
+			: {}),
 	};
 }
 
@@ -53,6 +68,17 @@ export interface DataTableProps<TData>
 	 * per-cell focus and any cell-local component state on each sort/page/filter.
 	 */
 	animateRows?: boolean;
+	/**
+	 * Arrow-key navigation over rows with Space to select and Shift+Arrow to range-select, exposed as
+	 * a `role="grid"`. Default: true. Set false to embed the table in your own keyboard model.
+	 */
+	keyboardNavigation?: boolean;
+	/**
+	 * Activate a row with Enter or a single click on its body. Receives the typed row. Clicks on the
+	 * checkbox, links, or buttons in the row, or while selecting text, do not activate. Requires
+	 * `keyboardNavigation` (the default).
+	 */
+	onRowActivate?: (row: TData, event: SyntheticEvent) => void;
 }
 
 export function DataTable<TData>({
@@ -62,6 +88,8 @@ export function DataTable<TData>({
 	loadingRowCount,
 	disableWhileLoading = true,
 	animateRows = false,
+	keyboardNavigation = true,
+	onRowActivate,
 	...tableProps
 }: DataTableProps<TData>) {
 	const { table, renderStatus } = view;
@@ -74,17 +102,35 @@ export function DataTable<TData>({
 	const skeletonRows =
 		loadingRowCount ?? Math.min(view.state.pagination.pageSize, 8);
 
+	const nav = useGridNavigation({
+		enabled: keyboardNavigation,
+		selectable: selectionEnabled,
+		multiSelectable: table.options.enableMultiRowSelection !== false,
+		ids: transition.rows.map((r) => r.id),
+		selection: view.selection,
+		onActivate: onRowActivate
+			? (index, event) => {
+					const row = transition.rows[index];
+					if (row) onRowActivate(row.original, event);
+				}
+			: undefined,
+	});
+	const cellRole = keyboardNavigation ? "gridcell" : undefined;
+
 	const renderDataRows = (rowsToRender: typeof transition.rows): ReactNode => (
 		<Table.Tbody
 			key={transition.generation}
 			data-changed={animateRows || undefined}
 		>
-			{rowsToRender.map((row) => {
+			{rowsToRender.map((row, index) => {
 				const isEntering = transition.entering.has(row.id) || undefined;
 				const cells = (
 					<>
 						{selectionEnabled && (
-							<Table.Td style={{ width: SELECTION_COLUMN_WIDTH }}>
+							<Table.Td
+								role={cellRole}
+								style={{ width: SELECTION_COLUMN_WIDTH }}
+							>
 								<Checkbox
 									aria-label="Select row"
 									checked={row.getIsSelected()}
@@ -103,8 +149,9 @@ export function DataTable<TData>({
 							return (
 								<Table.Td
 									key={cell.id}
+									role={cellRole}
 									style={{
-										...pinningStyle(cell.column),
+										...pinningStyle(cell.column, row.getIsSelected()),
 										...(align ? { textAlign: align } : undefined),
 									}}
 								>
@@ -114,13 +161,20 @@ export function DataTable<TData>({
 						})}
 					</>
 				);
+				const itemProps = nav.getItemProps(index, row.getIsSelected());
 				return slots?.Row ? (
-					<Slot key={row.id} render={slots.Row} ctx={{ row, cells }} />
+					<Slot
+						key={row.id}
+						render={slots.Row}
+						ctx={{ row, cells, rowProps: itemProps }}
+					/>
 				) : (
 					<Table.Tr
 						key={row.id}
+						className="dataviewItem"
 						data-selected={row.getIsSelected() || undefined}
 						data-entering={isEntering}
+						{...itemProps}
 					>
 						{cells}
 					</Table.Tr>
@@ -183,7 +237,7 @@ export function DataTable<TData>({
 
 	return (
 		<div style={hasPinning ? { overflowX: "auto" } : undefined}>
-			<Table layout="fixed" {...tableProps}>
+			<Table layout="fixed" {...nav.containerProps} {...tableProps}>
 				<Table.Thead>
 					{table.getHeaderGroups().map((group) => (
 						<Table.Tr key={group.id}>
