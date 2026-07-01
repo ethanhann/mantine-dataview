@@ -103,6 +103,57 @@ describe("DataTable keyboard navigation", () => {
 		expect(fireEvent.keyDown(row, { key: "ArrowDown" })).toBe(false);
 	});
 
+	it("annotates the grid with aria-rowcount and 1-based aria-rowindex including the header", () => {
+		// Arrange: the visible page is page 2 of a 10-row set.
+		function Paged() {
+			const view = useDataView<User>({
+				columns,
+				rows: ROWS,
+				rowCount: 10,
+				status: "success",
+				getRowId: (u) => u.id,
+				initialState: { pagination: { pageIndex: 1, pageSize: 4 } },
+			});
+			return <DataTable view={view} />;
+		}
+		render(
+			<MantineProvider>
+				<Paged />
+			</MantineProvider>,
+		);
+		// Assert: the count includes the header row, and indices are 1-based from it.
+		expect(screen.getByRole("grid")).toHaveAttribute("aria-rowcount", "11");
+		const headerRow = screen
+			.getAllByRole("row")
+			.find((r) => r.closest("thead"));
+		expect(headerRow).toHaveAttribute("aria-rowindex", "1");
+		expect(bodyRows()[0]).toHaveAttribute("aria-rowindex", "6");
+		expect(bodyRows()[3]).toHaveAttribute("aria-rowindex", "9");
+	});
+
+	it("omits aria-selected on rows that cannot be selected", () => {
+		// Arrange: id "2" is not selectable.
+		function Guarded() {
+			const view = useDataView<User>({
+				columns,
+				rows: ROWS,
+				rowCount: ROWS.length,
+				status: "success",
+				getRowId: (u) => u.id,
+				enableRowSelection: (u) => u.id !== "2",
+			});
+			return <DataTable view={view} />;
+		}
+		render(
+			<MantineProvider>
+				<Guarded />
+			</MantineProvider>,
+		);
+		// Assert: a selectable row advertises its state, a non-selectable row does not.
+		expect(bodyRows()[0]).toHaveAttribute("aria-selected", "false");
+		expect(bodyRows()[1]).not.toHaveAttribute("aria-selected");
+	});
+
 	it("moves the active row with ArrowDown and ArrowUp", async () => {
 		// Arrange
 		const user = userEvent.setup();

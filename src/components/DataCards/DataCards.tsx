@@ -98,12 +98,17 @@ export function DataCards<TData>({
 		loadingCardCount ?? Math.min(view.state.pagination.pageSize, 6);
 	const grid = { cols, ...gridProps };
 	const transition = useRowTransition(table.getRowModel().rows, animateRows);
+	// aria-rowcount/aria-rowindex describe the full paginated set. Cards have no header row, so the
+	// first card on the page is offset only by the prior pages.
+	const { pageIndex, pageSize } = table.getState().pagination;
 
 	const nav = useGridNavigation({
 		enabled: keyboardNavigation,
 		selectable: selectionEnabled,
 		multiSelectable: table.options.enableMultiRowSelection !== false,
 		ids: transition.rows.map((r) => r.id),
+		rowCount: table.getRowCount(),
+		rowIndexBase: pageIndex * pageSize + 1,
 		selection: view.selection,
 		resolveNext: cardResolver,
 		onActivate: onCardActivate
@@ -133,7 +138,11 @@ export function DataCards<TData>({
 					const toggleSelected = () => row.toggleSelected();
 					const ctx = { row, data: row.original, selected, toggleSelected };
 					const entering = transition.entering.has(row.id) || undefined;
-					const itemProps = nav.getItemProps(index, selected);
+					const itemProps = nav.getItemProps(
+						index,
+						selected,
+						row.getCanSelect(),
+					);
 
 					if (renderCard) {
 						return (

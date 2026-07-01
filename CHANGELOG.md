@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Selection and focus styling for both views: selected rows and cards get a highlighted background, and
   the active item shows a focus ring on click as well as keyboard focus. The styles ship in the package
   stylesheet (`@ethanhann/mantine-dataview/styles.css`).
+- The keyboard grids expose `aria-rowcount` and `aria-rowindex`, so assistive technology announces each
+  row's position within the full paginated set (for example "row 6 of 11"). The table counts its header
+  row; the card grid has none.
 
 ### Fixed
 
@@ -49,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and ArrowRight to scroll the container, and a non-selectable grid leaves Space to scroll the page.
 - The roving tab stop now follows its item across an in-place reorder (for example a re-sort) instead
   of resetting to the first item. A page change still resets to the top.
+- Rows and cards that cannot be selected (a per-row `enableRowSelection` predicate returning false) no
+  longer report `aria-selected`, so assistive technology does not imply they are selectable.
 
 ## [0.10.0] - 2026-06-28
 

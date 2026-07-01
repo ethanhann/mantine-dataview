@@ -102,11 +102,18 @@ export function DataTable<TData>({
 	const skeletonRows =
 		loadingRowCount ?? Math.min(view.state.pagination.pageSize, 8);
 
+	// aria-rowcount/aria-rowindex describe the full paginated set. The header row is row 1, so the count
+	// includes it and the first body row on the page is offset past both the header and prior pages.
+	const headerRowCount = table.getHeaderGroups().length;
+	const { pageIndex, pageSize } = table.getState().pagination;
+
 	const nav = useGridNavigation({
 		enabled: keyboardNavigation,
 		selectable: selectionEnabled,
 		multiSelectable: table.options.enableMultiRowSelection !== false,
 		ids: transition.rows.map((r) => r.id),
+		rowCount: table.getRowCount() + headerRowCount,
+		rowIndexBase: headerRowCount + pageIndex * pageSize + 1,
 		selection: view.selection,
 		onActivate: onRowActivate
 			? (index, event) => {
@@ -161,7 +168,11 @@ export function DataTable<TData>({
 						})}
 					</>
 				);
-				const itemProps = nav.getItemProps(index, row.getIsSelected());
+				const itemProps = nav.getItemProps(
+					index,
+					row.getIsSelected(),
+					row.getCanSelect(),
+				);
 				return slots?.Row ? (
 					<Slot
 						key={row.id}
@@ -239,8 +250,11 @@ export function DataTable<TData>({
 		<div style={hasPinning ? { overflowX: "auto" } : undefined}>
 			<Table layout="fixed" {...nav.containerProps} {...tableProps}>
 				<Table.Thead>
-					{table.getHeaderGroups().map((group) => (
-						<Table.Tr key={group.id}>
+					{table.getHeaderGroups().map((group, groupIndex) => (
+						<Table.Tr
+							key={group.id}
+							aria-rowindex={keyboardNavigation ? groupIndex + 1 : undefined}
+						>
 							{selectionEnabled && (
 								<Table.Th style={{ width: SELECTION_COLUMN_WIDTH }}>
 									<Checkbox

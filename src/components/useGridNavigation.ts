@@ -93,6 +93,16 @@ export interface UseGridNavigationOptions {
 	multiSelectable?: boolean;
 	/** Ordered ids of the items currently rendered, in display order. */
 	ids: string[];
+	/**
+	 * Total number of rows across every page, surfaced as `aria-rowcount` on the grid. Include any
+	 * header row (the table does) so it agrees with the 1-based `rowIndexBase`. Omit to leave it off.
+	 */
+	rowCount?: number;
+	/**
+	 * The 1-based `aria-rowindex` of the first rendered item, accounting for the page offset and any
+	 * header rows. Item `i` reports `rowIndexBase + i`. Omit to leave `aria-rowindex` off.
+	 */
+	rowIndexBase?: number;
 	/** Selection mutators, normally `view.selection`. */
 	selection: GridSelection;
 	/**
@@ -111,6 +121,7 @@ export interface GridItemProps {
 	role: "row";
 	tabIndex: number;
 	"aria-selected": boolean | undefined;
+	"aria-rowindex"?: number;
 	ref: (el: HTMLElement | null) => void;
 	onFocus: () => void;
 	onClick?: (event: MouseEvent<HTMLElement>) => void;
@@ -119,12 +130,17 @@ export interface GridItemProps {
 export interface GridContainerProps {
 	role?: "grid";
 	"aria-multiselectable"?: boolean;
+	"aria-rowcount"?: number;
 	onKeyDown?: (event: KeyboardEvent) => void;
 }
 
 export interface GridNavigation {
 	containerProps: GridContainerProps;
-	getItemProps: (index: number, selected: boolean) => Partial<GridItemProps>;
+	getItemProps: (
+		index: number,
+		selected: boolean,
+		canSelect?: boolean,
+	) => Partial<GridItemProps>;
 	activeIndex: number;
 }
 
@@ -139,6 +155,8 @@ export function useGridNavigation({
 	selectable,
 	multiSelectable = true,
 	ids,
+	rowCount,
+	rowIndexBase,
 	selection,
 	resolveNext = verticalResolver,
 	onActivate,
@@ -242,10 +260,16 @@ export function useGridNavigation({
 		}
 	};
 
-	const getItemProps = (index: number, selected: boolean): GridItemProps => ({
+	const getItemProps = (
+		index: number,
+		selected: boolean,
+		canSelect = true,
+	): GridItemProps => ({
 		role: "row",
 		tabIndex: index === activeIndex ? 0 : -1,
-		"aria-selected": selectable ? selected : undefined,
+		// Only rows that can actually be selected advertise a selection state.
+		"aria-selected": selectable && canSelect ? selected : undefined,
+		...(rowIndexBase != null ? { "aria-rowindex": rowIndexBase + index } : {}),
 		ref: (el) => {
 			itemRefs.current[index] = el;
 		},
@@ -269,6 +293,7 @@ export function useGridNavigation({
 			...(selectable && multiSelectable
 				? { "aria-multiselectable": true }
 				: {}),
+			...(rowCount != null ? { "aria-rowcount": rowCount } : {}),
 			onKeyDown,
 		},
 		getItemProps,

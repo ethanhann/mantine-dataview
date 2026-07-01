@@ -158,6 +158,30 @@ describe("DataCards keyboard navigation", () => {
 		expect(cards()[0]).toHaveFocus();
 	});
 
+	it("annotates the card grid with aria-rowcount and aria-rowindex", () => {
+		// Arrange: page 2 of a 10-card set. Cards have no header row.
+		function Paged() {
+			const view = useDataView<User>({
+				columns,
+				rows: ROWS,
+				rowCount: 10,
+				status: "success",
+				getRowId: (u) => u.id,
+				initialState: { pagination: { pageIndex: 1, pageSize: 4 } },
+			});
+			return <DataCards view={view} />;
+		}
+		render(
+			<MantineProvider>
+				<Paged />
+			</MantineProvider>,
+		);
+		// Assert
+		expect(screen.getByRole("grid")).toHaveAttribute("aria-rowcount", "10");
+		expect(cards()[0]).toHaveAttribute("aria-rowindex", "5");
+		expect(cards()[3]).toHaveAttribute("aria-rowindex", "8");
+	});
+
 	it("leaves Space unclaimed when selection is disabled so the page can scroll", () => {
 		// Arrange
 		renderCards({ enableSelection: false });
