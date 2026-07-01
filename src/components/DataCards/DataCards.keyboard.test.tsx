@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -156,6 +156,49 @@ describe("DataCards keyboard navigation", () => {
 		await user.keyboard("{ArrowUp}");
 		// Assert
 		expect(cards()[0]).toHaveFocus();
+	});
+
+	it("leaves Space unclaimed when selection is disabled so the page can scroll", () => {
+		// Arrange
+		renderCards({ enableSelection: false });
+		const card = cards()[0] as HTMLElement;
+		card.focus();
+		// Act
+		const notCancelled = fireEvent.keyDown(card, { key: " " });
+		// Assert: Space is not cancelled, leaving the browser free to scroll.
+		expect(notCancelled).toBe(true);
+	});
+
+	it("keeps the roving tab stop on the same card when the rows reorder in place", async () => {
+		// Arrange: focus a middle card, then reorder the same ids so it moves to the end.
+		const user = userEvent.setup();
+		function ReorderHarness({ rows }: { rows: User[] }) {
+			const view = useDataView<User>({
+				columns,
+				rows,
+				rowCount: rows.length,
+				status: "success",
+				getRowId: (u) => u.id,
+			});
+			return <DataCards view={view} />;
+		}
+		const { rerender } = render(
+			<MantineProvider>
+				<ReorderHarness rows={ROWS} />
+			</MantineProvider>,
+		);
+		cards()[0]?.focus();
+		await user.keyboard("{ArrowRight}");
+		// Act: reorder so Linus (the active card) moves from index 1 to index 3.
+		rerender(
+			<MantineProvider>
+				<ReorderHarness rows={[ROWS[2], ROWS[3], ROWS[0], ROWS[1]] as User[]} />
+			</MantineProvider>,
+		);
+		// Assert: the tab stop follows Linus to its new position instead of resetting to the top.
+		const linus = cards().find((c) => within(c).queryByText("Linus"));
+		expect(linus).toHaveAttribute("tabindex", "0");
+		expect(cards()[0]).toHaveAttribute("tabindex", "-1");
 	});
 
 	it("keeps roving focus when the page shrinks and leaves stale card refs", async () => {

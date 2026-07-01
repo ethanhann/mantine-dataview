@@ -37,6 +37,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   window has events, so navigating to a legitimately empty window renders the presentation's own empty
   grid instead of blanking. Only reproduced with a latency-bearing fetcher and sparse data. The genuine
   first-load skeleton and the post-error retry skeleton are unchanged.
+- Card keyboard navigation no longer loses its roving tab stop after the page shrinks (a shorter final
+  page or a filter that reduces results). Stale refs from unmounted cards are no longer treated as
+  phantom grid positions that an arrow key could land on.
+- Programmatic selection mutators (`select`, `deselect`, `toggle`) now compose when several are called
+  in the same tick. They read the synchronously-advanced state rather than the render snapshot, so an
+  earlier call in the batch is no longer overwritten by a later one.
+- Removed a stray NUL byte from `useGridNavigation` that made the module register as a binary file to
+  git and content-based tooling. Runtime behavior is unchanged.
+- Keyboard grids no longer swallow keys they do not act on. The row-navigation table leaves ArrowLeft
+  and ArrowRight to scroll the container, and a non-selectable grid leaves Space to scroll the page.
+- The roving tab stop now follows its item across an in-place reorder (for example a re-sort) instead
+  of resetting to the first item. A page change still resets to the top.
 
 ## [0.10.0] - 2026-06-28
 

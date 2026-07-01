@@ -150,12 +150,21 @@ export function useGridNavigation({
 	// (which would clobber the anchor mid range extension).
 	const suppressFocusSync = useRef(false);
 
-	// Reset to the top when the rendered set changes, e.g. a page change, without stealing focus.
+	// Keep the roving position on the same item across id-set changes. On a page change the previously
+	// active id is gone, so this falls back to the top; on an in-place reorder the id is found and the
+	// tab stop follows it to its new index. Only the tab stop moves, never DOM focus.
+	const activeIndexRef = useRef(activeIndex);
+	activeIndexRef.current = activeIndex;
 	const idsKey = ids.join("\u0000");
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the id signature changes
+	const prevIdsRef = useRef(ids);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: remap only when the id signature changes
 	useEffect(() => {
-		setActiveIndex(0);
-		anchorRef.current = 0;
+		const activeId = prevIdsRef.current[activeIndexRef.current];
+		const remapped = activeId == null ? -1 : ids.indexOf(activeId);
+		const target = remapped >= 0 ? remapped : 0;
+		setActiveIndex(target);
+		anchorRef.current = target;
+		prevIdsRef.current = ids;
 	}, [idsKey]);
 
 	const focusItem = useCallback((index: number) => {
@@ -201,8 +210,10 @@ export function useGridNavigation({
 		if (!itemRefs.current.includes(event.target as HTMLElement)) return;
 
 		if (event.key === " " || event.key === "Spacebar") {
-			event.preventDefault();
+			// Only claim Space when it toggles selection, so a row in a non-selectable grid can still
+			// scroll the page.
 			if (selectable) {
+				event.preventDefault();
 				selection.toggle(ids[activeIndex] as string);
 				anchorRef.current = activeIndex;
 			}
@@ -222,9 +233,13 @@ export function useGridNavigation({
 		}
 		const direction = KEY_TO_DIRECTION[event.key];
 		if (!direction) return;
-		event.preventDefault();
 		const next = resolveNext(direction, activeIndex, ids.length, getRects);
-		if (next !== activeIndex) move(next, event.shiftKey);
+		// Only claim the key when it actually moves, so a non-moving arrow (e.g. Left/Right in the
+		// row-navigation table) leaves the container free to scroll natively.
+		if (next !== activeIndex) {
+			event.preventDefault();
+			move(next, event.shiftKey);
+		}
 	};
 
 	const getItemProps = (index: number, selected: boolean): GridItemProps => ({

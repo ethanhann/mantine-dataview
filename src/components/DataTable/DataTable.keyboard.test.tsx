@@ -1,5 +1,5 @@
 import { MantineProvider, Table } from "@mantine/core";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -89,6 +89,18 @@ describe("DataTable keyboard navigation", () => {
 		expect(rows).toHaveLength(4);
 		expect(rows[0]).toHaveAttribute("tabindex", "0");
 		expect(rows[1]).toHaveAttribute("tabindex", "-1");
+	});
+
+	it("leaves Left/Right arrows unclaimed so the container can scroll", () => {
+		// Arrange: the table navigates row by row, so horizontal arrows do not move.
+		renderTable();
+		const row = bodyRows()[0] as HTMLElement;
+		row.focus();
+		// Act
+		const notCancelled = fireEvent.keyDown(row, { key: "ArrowRight" });
+		// Assert: the event is not cancelled, and a moving arrow still is.
+		expect(notCancelled).toBe(true);
+		expect(fireEvent.keyDown(row, { key: "ArrowDown" })).toBe(false);
 	});
 
 	it("moves the active row with ArrowDown and ArrowUp", async () => {
