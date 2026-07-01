@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
 import { statSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import dts from "unplugin-dts/vite";
 import { defineConfig } from "vite";
@@ -16,8 +16,15 @@ export default defineConfig({
 			// emitted `.d.ts` paths line up with package.json `exports`.
 			beforeWriteFile(filePath, content) {
 				const flattened = filePath.replace(/([\\/]dist[\\/])src[\\/]/, "$1");
+				// Resolve the directory-vs-file check against the source tree, which always exists. The
+				// dist tree is unreliable here: its files may not be written yet when this runs, and
+				// unplugin-dts may emit under `dist/` directly rather than `dist/src/`.
 				const srcDir = dirname(
-					filePath.replace(/([\\/])dist[\\/]src[\\/]/, "$1src/"),
+					resolve(
+						__dirname,
+						"src",
+						relative(resolve(__dirname, "dist"), flattened),
+					),
 				);
 				const rewritten = content.replace(
 					/(from\s+['"])(\.[^'"]+)(['"])/g,
