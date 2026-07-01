@@ -31,3 +31,9 @@ tr.dataviewItem[data-selected] > td {
 	background-color: var(--mantine-primary-color-light);
 	box-shadow: 0 0 0 2px var(--mantine-primary-color-filled);
 }
+
+/* When a selected card is also focused, the focus outline already draws a ring, so drop the selection
+   box-shadow to avoid a doubled ring. The tint still marks it as selected. */
+.dataviewItem[data-selected]:not(tr):focus {
+	box-shadow: none;
+}

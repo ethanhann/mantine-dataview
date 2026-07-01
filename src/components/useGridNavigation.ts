@@ -164,6 +164,8 @@ export function useGridNavigation({
 	const [activeIndex, setActiveIndex] = useState(0);
 	const anchorRef = useRef(0);
 	const itemRefs = useRef<(HTMLElement | null)[]>([]);
+	// One stable ref callback per index, so an item is not detached and reattached on every render.
+	const refCallbacks = useRef<((el: HTMLElement | null) => void)[]>([]);
 	// Set while we move focus programmatically so the resulting focus event does not re-sync state
 	// (which would clobber the anchor mid range extension).
 	const suppressFocusSync = useRef(false);
@@ -260,6 +262,16 @@ export function useGridNavigation({
 		}
 	};
 
+	const getItemRef = (index: number): ((el: HTMLElement | null) => void) => {
+		const existing = refCallbacks.current[index];
+		if (existing) return existing;
+		const cb = (el: HTMLElement | null) => {
+			itemRefs.current[index] = el;
+		};
+		refCallbacks.current[index] = cb;
+		return cb;
+	};
+
 	const getItemProps = (
 		index: number,
 		selected: boolean,
@@ -270,9 +282,7 @@ export function useGridNavigation({
 		// Only rows that can actually be selected advertise a selection state.
 		"aria-selected": selectable && canSelect ? selected : undefined,
 		...(rowIndexBase != null ? { "aria-rowindex": rowIndexBase + index } : {}),
-		ref: (el) => {
-			itemRefs.current[index] = el;
-		},
+		ref: getItemRef(index),
 		onFocus: () => {
 			if (suppressFocusSync.current) return;
 			setActiveIndex(index);

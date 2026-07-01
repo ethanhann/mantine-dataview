@@ -54,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of resetting to the first item. A page change still resets to the top.
 - Rows and cards that cannot be selected (a per-row `enableRowSelection` predicate returning false) no
   longer report `aria-selected`, so assistive technology does not imply they are selectable.
+- A selected card that is also focused no longer draws a doubled ring; the focus outline shows and the
+  selection tint remains.
+- The grid item `ref` callback is now stable per position, so an item is no longer detached and
+  reattached on every render.
 
 ## [0.10.0] - 2026-06-28
 
