@@ -91,6 +91,7 @@ export function DataTable<TData>({
 	const nav = useGridNavigation({
 		enabled: keyboardNavigation,
 		selectable: selectionEnabled,
+		multiSelectable: table.options.enableMultiRowSelection !== false,
 		ids: transition.rows.map((r) => r.id),
 		selection: view.selection,
 		onActivate: onRowActivate
