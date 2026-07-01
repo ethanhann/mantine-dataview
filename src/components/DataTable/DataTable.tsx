@@ -27,7 +27,10 @@ import "./transitions.css";
 /** Width of the leading selection checkbox column, shared by header and body cells. */
 const SELECTION_COLUMN_WIDTH = 40;
 
-function pinningStyle<TData>(column: Column<TData>): CSSProperties | undefined {
+function pinningStyle<TData>(
+	column: Column<TData>,
+	selected?: boolean,
+): CSSProperties | undefined {
 	const pinned = column.getIsPinned();
 	if (!pinned) return undefined;
 	return {
@@ -35,7 +38,16 @@ function pinningStyle<TData>(column: Column<TData>): CSSProperties | undefined {
 		[pinned]:
 			pinned === "left" ? column.getStart("left") : column.getAfter("right"),
 		zIndex: 1,
+		// A pinned cell needs an opaque background to mask the content scrolling behind it, which would
+		// otherwise hide the selected-row tint that the stylesheet paints on ordinary cells. Layer the
+		// same tint over the opaque body color so the selected state carries across pinned cells too.
 		backgroundColor: "var(--mantine-color-body)",
+		...(selected
+			? {
+					backgroundImage:
+						"linear-gradient(var(--mantine-primary-color-light), var(--mantine-primary-color-light))",
+				}
+			: {}),
 	};
 }
 
@@ -139,7 +151,7 @@ export function DataTable<TData>({
 									key={cell.id}
 									role={cellRole}
 									style={{
-										...pinningStyle(cell.column),
+										...pinningStyle(cell.column, row.getIsSelected()),
 										...(align ? { textAlign: align } : undefined),
 									}}
 								>

@@ -860,6 +860,11 @@ The card grid navigates in two dimensions, following the rendered layout.
 It reads the real card geometry, so any responsive `cols` value works, and it falls back to left and
 right traversal when the layout reports no rows (for example during tests).
 
+Selected rows and cards get a highlighted background, and the active item shows a focus ring on both
+click and keyboard focus.
+These styles ship in the package stylesheet, so import `@ethanhann/mantine-dataview/styles.css` in your
+app entry.
+
 Selection from the keyboard uses the same state as the checkboxes and the bulk-action bar.
 Set `keyboardNavigation={false}` on `DataTable` or `DataCards` to opt out, for instance when embedding a
 view inside your own keyboard model.

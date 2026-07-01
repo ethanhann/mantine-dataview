@@ -39,6 +39,7 @@ function Harness(props: {
 	enableSelection?: boolean;
 	onRowActivate?: (row: User) => void;
 	slots?: DataTableProps<User>["slots"];
+	pinnedLeft?: string[];
 }) {
 	const view = useDataView<User>({
 		columns,
@@ -46,6 +47,9 @@ function Harness(props: {
 		rowCount: ROWS.length,
 		status: "success",
 		getRowId: (u) => u.id,
+		...(props.pinnedLeft
+			? { initialState: { columnPinning: { left: props.pinnedLeft } } }
+			: {}),
 	});
 	return (
 		<>
@@ -294,6 +298,24 @@ describe("DataTable keyboard navigation", () => {
 		// Assert
 		expect(bodyRows()[0]).toHaveAttribute("data-selected", "true");
 		expect(bodyRows()[1]).not.toHaveAttribute("data-selected");
+	});
+
+	it("keeps the selection tint on a pinned cell of a selected row", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderTable({ pinnedLeft: ["name"] });
+		const pinnedCell = () =>
+			within(bodyRows()[0] as HTMLElement)
+				.getByText("Ada")
+				.closest("td") as HTMLElement;
+		expect(pinnedCell().style.position).toBe("sticky"); // the cell is pinned
+		expect(pinnedCell().style.backgroundImage).toBe(""); // no tint before selecting
+		// Act
+		bodyRows()[0]?.focus();
+		await user.keyboard(" ");
+		// Assert: the pinned cell carries the selection tint over its opaque background, not just the
+		// plain body color that would otherwise hide the selected state.
+		expect(pinnedCell().style.backgroundImage).toContain("linear-gradient");
 	});
 
 	it("has no axe violations in the grid layout", async () => {

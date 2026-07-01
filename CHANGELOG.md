@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   item, or while selecting text, do not activate.
 - The table `Row` slot context gains `rowProps`. Spread it onto a custom row element so the custom row
   joins the grid's roving focus, selection, and activation.
+- Selection and focus styling for both views: selected rows and cards get a highlighted background, and
+  the active item shows a focus ring on click as well as keyboard focus. The styles ship in the package
+  stylesheet (`@ethanhann/mantine-dataview/styles.css`).
 
 ## [0.10.0] - 2026-06-28
 
