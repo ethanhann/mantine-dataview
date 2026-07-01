@@ -26,7 +26,7 @@ const FIRST = [
 	"Linus",
 	"Grace",
 	"Edsger",
-	"Margaret",
+	"Marge",
 	"Alan",
 	"Barbara",
 	"Dennis",
