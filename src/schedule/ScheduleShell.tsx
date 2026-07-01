@@ -6,7 +6,7 @@
 // affordance only appears when filters are active.
 
 import { Center, Group, Skeleton, Stack } from "@mantine/core";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { EmptyContent, ErrorContent } from "../components/StateMessage";
 import type { DataViewSlots } from "../components/types";
 import type { UseDataViewReturn } from "../types/options";
@@ -16,7 +16,7 @@ export interface ScheduleShellProps<TData> {
 	slots?: Pick<DataViewSlots<TData>, "Empty" | "ErrorState">;
 	leftSection?: ReactNode;
 	rightSection?: ReactNode;
-	/** Whether any events resolved — gates the first-load skeleton and the filtered-empty message. */
+	/** Whether any events resolved — gates the filtered-empty message. */
 	hasEvents: boolean;
 	/** The presentation node, rendered in the ready state. */
 	children: ReactNode;
@@ -32,6 +32,17 @@ export function ScheduleShell<TData>({
 }: ScheduleShellProps<TData>) {
 	const { renderStatus } = view;
 
+	// Track whether any fetch has ever settled. Error is deliberately excluded so a first-load retry
+	// after an error still shows the skeleton.
+	const settledOnce = useRef(false);
+	if (
+		renderStatus.phase === "ready" ||
+		renderStatus.phase === "empty" ||
+		renderStatus.phase === "empty-filtered"
+	) {
+		settledOnce.current = true;
+	}
+
 	const renderBody = (): ReactNode => {
 		if (renderStatus.phase === "error") {
 			return (
@@ -40,9 +51,10 @@ export function ScheduleShell<TData>({
 				</Center>
 			);
 		}
-		// First load with nothing to show yet: a skeleton. Once events exist the presentation stays
-		// mounted across window changes so navigation never flashes a skeleton over it.
-		if (renderStatus.phase === "loading" && !hasEvents) {
+		// First load only: a skeleton until the first fetch settles. After that the presentation stays
+		// mounted across window changes, so navigating to an empty window renders its own empty grid
+		// rather than flashing a skeleton over the whole calendar.
+		if (renderStatus.phase === "loading" && !settledOnce.current) {
 			return <Skeleton height={480} radius="sm" />;
 		}
 		if (renderStatus.phase === "empty-filtered" && !hasEvents) {

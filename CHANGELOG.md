@@ -29,6 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the active item shows a focus ring on click as well as keyboard focus. The styles ship in the package
   stylesheet (`@ethanhann/mantine-dataview/styles.css`).
 
+### Fixed
+
+- Schedule views (calendar, agenda, resources) no longer flash a full-height skeleton over the whole
+  presentation when toggling the level (day/week/month/year) or navigating between periods. The
+  first-load skeleton is now gated on whether any fetch has settled rather than on whether the current
+  window has events, so navigating to a legitimately empty window renders the presentation's own empty
+  grid instead of blanking. Only reproduced with a latency-bearing fetcher and sparse data. The genuine
+  first-load skeleton and the post-error retry skeleton are unchanged.
+
 ## [0.10.0] - 2026-06-28
 
 ### Added
