@@ -129,6 +129,19 @@ describe("useDataView selection API", () => {
 		expect(result.current.selection.count).toBe(1);
 	});
 
+	it("composes multiple mutator calls issued in the same tick", () => {
+		// Arrange
+		const result = setup();
+		// Act
+		act(() => {
+			result.current.selection.select("1");
+			result.current.selection.select("2");
+		});
+		// Assert: the second call must not overwrite the first.
+		expect(result.current.selection.ids.sort()).toEqual(["1", "2"]);
+		expect(result.current.selection.count).toBe(2);
+	});
+
 	it("set keeps only the last id in single-select mode", () => {
 		// Arrange
 		const result = setup({ enableMultiRowSelection: false });

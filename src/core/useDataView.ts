@@ -517,10 +517,17 @@ export function useDataView<TData>(
 		[applyPatch],
 	);
 	// Id-based mutators, keyed by `getRowId` and spanning pages like `selection.ids`. They read the
-	// live selection from `resolvedStateRef` (not a render closure) so batched calls compose, the same
-	// pattern as `onRowSelectionChange`. Single-select mode (`enableMultiRowSelection: false`) collapses
-	// to a single id. They do not consult the per-row `enableRowSelection` predicate, which cannot be
-	// evaluated for an id off the current page; gating non-selectable rows is the caller's job.
+	// live selection from the synchronously-advanced refs (not the render snapshot) so several calls in
+	// one tick compose instead of overwriting each other. Single-select mode
+	// (`enableMultiRowSelection: false`) collapses to a single id. They do not consult the per-row
+	// `enableRowSelection` predicate, which cannot be evaluated for an id off the current page; gating
+	// non-selectable rows is the caller's job.
+	const liveRowSelection = useCallback(
+		(): RowSelectionState =>
+			({ ...internalStateRef.current, ...controlledStateRef.current })
+				.rowSelection,
+		[],
+	);
 	const isMultiSelect = useCallback(
 		() => table.options.enableMultiRowSelection !== false,
 		[table],
@@ -533,25 +540,25 @@ export function useDataView<TData>(
 				applyPatch({ rowSelection: { [ids[ids.length - 1] as string]: true } });
 				return;
 			}
-			const next = { ...resolvedStateRef.current.rowSelection };
+			const next = { ...liveRowSelection() };
 			for (const i of ids) next[i] = true;
 			applyPatch({ rowSelection: next });
 		},
-		[applyPatch, isMultiSelect],
+		[applyPatch, isMultiSelect, liveRowSelection],
 	);
 	const deselectIds = useCallback(
 		(id: string | string[]) => {
 			const ids = Array.isArray(id) ? id : [id];
 			if (ids.length === 0) return;
-			const next = { ...resolvedStateRef.current.rowSelection };
+			const next = { ...liveRowSelection() };
 			for (const i of ids) delete next[i];
 			applyPatch({ rowSelection: next });
 		},
-		[applyPatch],
+		[applyPatch, liveRowSelection],
 	);
 	const toggleId = useCallback(
 		(id: string) => {
-			const current = resolvedStateRef.current.rowSelection;
+			const current = liveRowSelection();
 			if (current[id]) {
 				const next = { ...current };
 				delete next[id];
@@ -562,7 +569,7 @@ export function useDataView<TData>(
 			next[id] = true;
 			applyPatch({ rowSelection: next });
 		},
-		[applyPatch, isMultiSelect],
+		[applyPatch, isMultiSelect, liveRowSelection],
 	);
 	const setSelection = useCallback(
 		(ids: string[]) => {

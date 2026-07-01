@@ -158,6 +158,38 @@ describe("DataCards keyboard navigation", () => {
 		expect(cards()[0]).toHaveFocus();
 	});
 
+	it("keeps roving focus when the page shrinks and leaves stale card refs", async () => {
+		// Arrange: render a full page, then shrink it so the unmounted cards leave null refs behind.
+		const user = userEvent.setup();
+		function ShrinkHarness({ rows }: { rows: User[] }) {
+			const view = useDataView<User>({
+				columns,
+				rows,
+				rowCount: rows.length,
+				status: "success",
+				getRowId: (u) => u.id,
+			});
+			return <DataCards view={view} />;
+		}
+		const { rerender } = render(
+			<MantineProvider>
+				<ShrinkHarness rows={ROWS} />
+			</MantineProvider>,
+		);
+		rerender(
+			<MantineProvider>
+				<ShrinkHarness rows={ROWS.slice(0, 2)} />
+			</MantineProvider>,
+		);
+		cards()[0]?.focus();
+		// Act: move onto the last real card, then try to move past it into the stale ref slots.
+		await user.keyboard("{ArrowRight}{ArrowRight}");
+		// Assert: movement clamps to the last card and the roving tabstop stays on it.
+		expect(cards()).toHaveLength(2);
+		expect(cards()[1]).toHaveAttribute("tabindex", "0");
+		expect(cards()[0]).toHaveAttribute("tabindex", "-1");
+	});
+
 	it("adds no grid roles or tabstops when disabled", () => {
 		// Arrange / Act
 		renderCards({ keyboardNavigation: false });

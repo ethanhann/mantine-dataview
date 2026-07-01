@@ -36,9 +36,11 @@ import { type ResolveNext, useGridNavigation } from "../useGridNavigation";
 
 const DEFAULT_COLS: SimpleGridProps["cols"] = { base: 1, sm: 2, lg: 3 };
 
-// Two-dimensional movement over the card grid, reading the live geometry through `getRects`.
-const cardResolver: ResolveNext = (direction, active, _count, getRects) =>
-	nextCardIndex(direction, active, getRects());
+// Two-dimensional movement over the card grid, reading the live geometry through `getRects`. Slice to
+// `count` so stale refs from a shrunk page (null slots left behind by unmounted cards) never appear as
+// phantom rects that navigation could land on.
+const cardResolver: ResolveNext = (direction, active, count, getRects) =>
+	nextCardIndex(direction, active, getRects().slice(0, count));
 
 export interface DataCardsProps<TData>
 	extends Omit<SimpleGridProps, "children"> {
