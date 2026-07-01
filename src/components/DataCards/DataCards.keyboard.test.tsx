@@ -221,6 +221,20 @@ describe("DataCards keyboard navigation", () => {
 		expect(screen.getByTestId("count")).toHaveTextContent("1");
 	});
 
+	it("marks cards for selection and focus styling", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderCards();
+		// Assert: the styling class the stylesheet targets is present on every card.
+		expect(cards()[0]).toHaveClass("dataviewItem");
+		// Act: selecting the card flags it for the selected style.
+		cards()[0]?.focus();
+		await user.keyboard(" ");
+		// Assert
+		expect(cards()[0]).toHaveAttribute("data-selected", "true");
+		expect(cards()[1]).not.toHaveAttribute("data-selected");
+	});
+
 	it("has no axe violations in the card grid layout", async () => {
 		// Arrange
 		const { container } = renderCards();

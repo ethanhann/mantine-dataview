@@ -29,6 +29,8 @@ import { Slot } from "../Slot";
 import { EmptyContent, ErrorContent } from "../StateMessage";
 // @ts-expect-error CSS import has no type declarations
 import "../DataTable/transitions.css";
+// @ts-expect-error CSS import has no type declarations
+import "../grid.css";
 import type { DataViewSlots } from "../types";
 import { type ResolveNext, useGridNavigation } from "../useGridNavigation";
 
@@ -133,7 +135,13 @@ export function DataCards<TData>({
 
 					if (renderCard) {
 						return (
-							<div key={row.id} data-entering={entering} {...itemProps}>
+							<div
+								key={row.id}
+								className="dataviewItem"
+								data-selected={selected || undefined}
+								data-entering={entering}
+								{...itemProps}
+							>
 								{wrapCell(<Slot render={renderCard} ctx={ctx} />)}
 							</div>
 						);
@@ -148,7 +156,13 @@ export function DataCards<TData>({
 					);
 					if (slots?.Card) {
 						return (
-							<div key={row.id} data-entering={entering} {...itemProps}>
+							<div
+								key={row.id}
+								className="dataviewItem"
+								data-selected={selected || undefined}
+								data-entering={entering}
+								{...itemProps}
+							>
 								{wrapCell(
 									<Slot render={slots.Card} ctx={{ ...ctx, children: body }} />,
 								)}
@@ -158,6 +172,7 @@ export function DataCards<TData>({
 					return (
 						<Card
 							key={row.id}
+							className="dataviewItem"
 							withBorder
 							padding="lg"
 							pos="relative"

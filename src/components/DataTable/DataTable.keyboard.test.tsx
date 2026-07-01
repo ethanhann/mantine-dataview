@@ -281,6 +281,21 @@ describe("DataTable keyboard navigation", () => {
 		expect(bodyRows()[1]).toHaveAttribute("aria-selected", "true");
 	});
 
+	it("marks rows for selection and focus styling", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderTable();
+		const rows = bodyRows();
+		// Assert: the styling class the stylesheet targets is present on every row.
+		expect(rows[0]).toHaveClass("dataviewItem");
+		// Act: selecting the row flags it for the selected style.
+		rows[0]?.focus();
+		await user.keyboard(" ");
+		// Assert
+		expect(bodyRows()[0]).toHaveAttribute("data-selected", "true");
+		expect(bodyRows()[1]).not.toHaveAttribute("data-selected");
+	});
+
 	it("has no axe violations in the grid layout", async () => {
 		// Arrange
 		const { container } = renderTable();

@@ -1,0 +1,22 @@
+/* Selection and roving-focus styling for the keyboard-navigable table and card grids. The `.dataviewItem`
+   class marks a row or card so these rules never leak to other elements. Colors follow the theme
+   primary. */
+
+/* The active (focused) item. `:focus`, not `:focus-visible`, so the ring shows on a click too, not only
+   on keyboard focus. */
+.dataviewItem:focus {
+	outline: 2px solid var(--mantine-primary-color-filled);
+	outline-offset: -2px;
+}
+
+/* Selected table rows: the cells carry the tint since they paint over the row background. */
+tr.dataviewItem[data-selected] > td {
+	background-color: var(--mantine-primary-color-light);
+}
+
+/* Selected cards (and any non-row item): a tinted background and a primary ring that does not fight the
+   card's own border. */
+.dataviewItem[data-selected]:not(tr) {
+	background-color: var(--mantine-primary-color-light);
+	box-shadow: 0 0 0 2px var(--mantine-primary-color-filled);
+}

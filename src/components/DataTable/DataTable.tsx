@@ -20,6 +20,8 @@ import { EmptyContent, ErrorContent } from "../StateMessage";
 import type { DataViewSlots } from "../types";
 import { useGridNavigation } from "../useGridNavigation";
 // @ts-expect-error CSS import has no type declarations
+import "../grid.css";
+// @ts-expect-error CSS import has no type declarations
 import "./transitions.css";
 
 /** Width of the leading selection checkbox column, shared by header and body cells. */
@@ -157,6 +159,7 @@ export function DataTable<TData>({
 				) : (
 					<Table.Tr
 						key={row.id}
+						className="dataviewItem"
 						data-selected={row.getIsSelected() || undefined}
 						data-entering={isEntering}
 						{...itemProps}
