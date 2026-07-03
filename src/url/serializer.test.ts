@@ -29,6 +29,7 @@ const base: DataViewState = {
 	rowSelection: {},
 	columnVisibility: {},
 	columnPinning: { left: [], right: [] },
+	columnSizing: {},
 	view: "table",
 };
 

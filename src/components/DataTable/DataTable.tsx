@@ -331,11 +331,17 @@ function HeaderCell<TData>({
 			? column.columnDef.header
 			: column.id;
 
-	const colSize = column.columnDef.size;
+	// With resizing enabled every column carries its live size (drag feedback happens through the
+	// width), otherwise only explicitly sized columns get a width and the rest share space.
+	const resizable = column.getCanResize();
+	const colSize = resizable ? header.getSize() : column.columnDef.size;
 
 	return (
 		<Table.Th
 			style={{
+				// The handle is positioned against the header cell. Pinned cells are already sticky
+				// (a positioned ancestor); static ones need the explicit `relative`.
+				position: "relative",
 				...pinningStyle(column),
 				...(align ? { textAlign: align } : undefined),
 				...(colSize != null ? { width: colSize } : undefined),
@@ -384,6 +390,21 @@ function HeaderCell<TData>({
 					{content}
 					{sorted && <SortIcon direction={sorted} />}
 				</span>
+			)}
+			{resizable && (
+				// biome-ignore lint/a11y/useFocusableInteractive: pointer-only affordance; keyboard resizing is not offered, so keeping it out of the tab order beats a focusable control that arrow keys do nothing with.
+				// biome-ignore lint/a11y/useSemanticElements: an <hr> cannot host the drag handlers; `separator` on a div is the established pattern for a column resize handle.
+				<div
+					role="separator"
+					aria-orientation="vertical"
+					aria-label={labels.resizeColumn(headerText)}
+					aria-valuenow={Math.round(header.getSize())}
+					className="dataviewResizeHandle"
+					data-resizing={column.getIsResizing() || undefined}
+					onMouseDown={header.getResizeHandler()}
+					onTouchStart={header.getResizeHandler()}
+					onDoubleClick={() => column.resetSize()}
+				/>
 			)}
 		</Table.Th>
 	);

@@ -88,6 +88,12 @@ export interface UseDataViewOptions<TData> {
 	 */
 	enableMultiRowSelection?: boolean;
 	enableGlobalFilter?: boolean;
+	/**
+	 * When true, table columns get drag handles on their header edges and user widths are tracked
+	 * in `state.columnSizing` (seed persisted widths via `initialState`). Opt columns out
+	 * individually with `enableResizing: false` on the column def. Default `false`.
+	 */
+	enableColumnResizing?: boolean;
 	debounce?: DebounceOptions;
 
 	responsive?: ResponsiveOptions;
@@ -203,4 +209,10 @@ export interface UseDataViewReturn<TData> {
 	 * The UI can show a subtle sync indicator without replacing content with skeletons.
 	 */
 	isRevalidating: boolean;
+	/**
+	 * True while any fetch is in flight. Unlike `status: "loading"` it also covers fetches that
+	 * keep the previous rows on screen (`keepPreviousData`) and background revalidation. On the
+	 * bare `useDataView` hook it mirrors `status === "loading"`.
+	 */
+	isFetching: boolean;
 }

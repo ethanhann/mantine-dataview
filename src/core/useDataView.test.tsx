@@ -496,6 +496,41 @@ describe("useDataView", () => {
 		expect(snapshot?.globalFilter).toBe("ada");
 	});
 
+	it("keeps columns non-resizable by default", () => {
+		// Arrange / Act
+		const { result } = setup();
+
+		// Assert
+		expect(result.current.table.getColumn("name")?.getCanResize()).toBe(false);
+	});
+
+	it("tracks column sizing state when resizing is enabled", () => {
+		// Arrange
+		const { result } = renderHook(
+			() =>
+				useDataView({
+					columns,
+					rows: [],
+					rowCount: 0,
+					status: "success",
+					getRowId: (u: User) => u.id,
+					enableColumnResizing: true,
+					initialState: { columnSizing: { name: 200 } },
+				}),
+			{ wrapper },
+		);
+		expect(result.current.table.getColumn("name")?.getCanResize()).toBe(true);
+		expect(result.current.state.columnSizing).toEqual({ name: 200 });
+		expect(result.current.table.getColumn("name")?.getSize()).toBe(200);
+
+		// Act
+		act(() => result.current.table.setColumnSizing({ name: 250 }));
+
+		// Assert
+		expect(result.current.state.columnSizing).toEqual({ name: 250 });
+		expect(result.current.table.getColumn("name")?.getSize()).toBe(250);
+	});
+
 	it("honors initialState and controlled state", () => {
 		const onStateChange = vi.fn<StateFn>();
 		const { result } = renderHook(

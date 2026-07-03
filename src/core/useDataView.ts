@@ -5,6 +5,7 @@
 import {
 	type ColumnFiltersState,
 	type ColumnPinningState,
+	type ColumnSizingState,
 	functionalUpdate,
 	getCoreRowModel,
 	type OnChangeFn,
@@ -120,6 +121,7 @@ function buildDefaultState<TData>(
 		rowSelection: {},
 		columnVisibility: {},
 		columnPinning: { left: [], right: [] },
+		columnSizing: {},
 		view: options.defaultView ?? "table",
 		...options.initialState,
 	};
@@ -141,6 +143,7 @@ export function useDataView<TData>(
 		enableRowSelection,
 		enableMultiRowSelection,
 		enableGlobalFilter = true,
+		enableColumnResizing = false,
 		debounce,
 		responsive,
 		formatDefaults,
@@ -347,6 +350,18 @@ export function useDataView<TData>(
 		[applyPatch],
 	);
 
+	const onColumnSizingChange = useCallback<OnChangeFn<ColumnSizingState>>(
+		(updater) => {
+			applyPatch({
+				columnSizing: functionalUpdate(
+					updater,
+					resolvedStateRef.current.columnSizing,
+				),
+			});
+		},
+		[applyPatch],
+	);
+
 	const isMobileForced = useForceCards(responsive);
 	const view: ViewMode = isMobileForced ? "cards" : resolvedState.view;
 
@@ -376,6 +391,10 @@ export function useDataView<TData>(
 				: (enableRowSelection ?? true),
 		enableMultiRowSelection: enableMultiRowSelection ?? true,
 		enableGlobalFilter,
+		// TanStack defaults column resizability to true; this library gates it behind an explicit
+		// opt-in so the presentation only renders handles (and per-column widths) when asked.
+		enableColumnResizing,
+		columnResizeMode: "onChange",
 		state: {
 			pagination: resolvedState.pagination,
 			sorting: resolvedState.sorting,
@@ -384,6 +403,7 @@ export function useDataView<TData>(
 			rowSelection: resolvedState.rowSelection,
 			columnVisibility: resolvedState.columnVisibility,
 			columnPinning: resolvedState.columnPinning,
+			columnSizing: resolvedState.columnSizing,
 		},
 		onPaginationChange,
 		onSortingChange,
@@ -392,6 +412,7 @@ export function useDataView<TData>(
 		onRowSelectionChange,
 		onColumnVisibilityChange,
 		onColumnPinningChange,
+		onColumnSizingChange,
 	});
 
 	// The normalized request holds only the slices the server cares about. View, selection, and
@@ -721,5 +742,6 @@ export function useDataView<TData>(
 		insertRow,
 		removeRow,
 		isRevalidating: false,
+		isFetching: status === "loading",
 	};
 }

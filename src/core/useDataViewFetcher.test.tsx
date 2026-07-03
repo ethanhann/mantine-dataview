@@ -113,6 +113,164 @@ describe("useDataViewFetcher", () => {
 	});
 });
 
+describe("keepPreviousData", () => {
+	function KeepHarness({
+		fetcher,
+	}: {
+		fetcher: (r: DataViewRequest) => Promise<DataViewResponse<User>>;
+	}) {
+		const view = useDataViewFetcher<User>({
+			columns,
+			getRowId: (u) => u.id,
+			fetcher,
+			keepPreviousData: true,
+		});
+		captured = view;
+		return <DataTable view={view} />;
+	}
+
+	function pagedFetcher(gate: { release?: () => void }) {
+		return vi.fn((r: DataViewRequest) => {
+			if (r.pagination.pageIndex === 0) {
+				return Promise.resolve({
+					rows: [{ id: "1", name: "Ada" }],
+					rowCount: 20,
+				});
+			}
+			return new Promise<DataViewResponse<User>>((resolve) => {
+				gate.release = () =>
+					resolve({ rows: [{ id: "11", name: "Grace" }], rowCount: 20 });
+			});
+		});
+	}
+
+	it("keeps the previous rows and status during a refetch", async () => {
+		// Arrange: page 1 loaded, page 2 hangs until released.
+		const gate: { release?: () => void } = {};
+		render(<KeepHarness fetcher={pagedFetcher(gate)} />, { wrapper });
+		await waitFor(() => expect(screen.getByText("Ada")).toBeVisible());
+
+		// Act
+		act(() => captured?.table.setPageIndex(1));
+
+		// Assert: no skeleton swap; the old page stays visible while fetching.
+		expect(captured?.status).toBe("success");
+		expect(captured?.isFetching).toBe(true);
+		expect(screen.getByText("Ada")).toBeVisible();
+
+		// Act: the fetch settles.
+		await act(async () => gate.release?.());
+
+		// Assert
+		await waitFor(() => expect(screen.getByText("Grace")).toBeVisible());
+		expect(captured?.isFetching).toBe(false);
+	});
+
+	it("still shows the loading state on the first fetch", async () => {
+		// Arrange: nothing has loaded yet, so there is nothing to keep.
+		const gate: { release?: () => void } = {};
+		const fetcher = vi.fn(
+			() =>
+				new Promise<DataViewResponse<User>>((resolve) => {
+					gate.release = () =>
+						resolve({ rows: [{ id: "1", name: "Ada" }], rowCount: 1 });
+				}),
+		);
+
+		// Act
+		render(<KeepHarness fetcher={fetcher} />, { wrapper });
+
+		// Assert
+		expect(captured?.status).toBe("loading");
+		expect(captured?.isFetching).toBe(true);
+		await act(async () => gate.release?.());
+		await waitFor(() => expect(captured?.status).toBe("success"));
+	});
+
+	it("surfaces an error from a keep-previous refetch", async () => {
+		// Arrange
+		let fetchCount = 0;
+		const fetcher = vi.fn(async () => {
+			fetchCount++;
+			if (fetchCount === 1) {
+				return { rows: [{ id: "1", name: "Ada" }], rowCount: 20 };
+			}
+			throw new Error("boom");
+		});
+		render(<KeepHarness fetcher={fetcher} />, { wrapper });
+		await waitFor(() => expect(captured?.status).toBe("success"));
+
+		// Act
+		act(() => captured?.table.setPageIndex(1));
+
+		// Assert
+		await waitFor(() => expect(captured?.status).toBe("error"));
+		expect(captured?.isFetching).toBe(false);
+	});
+});
+
+describe("fetch cancellation", () => {
+	it("passes an AbortSignal and aborts a superseded fetch", async () => {
+		// Arrange: capture each call's signal; the first fetch never resolves.
+		const signals: AbortSignal[] = [];
+		let call = 0;
+		const fetcher = vi.fn(
+			(_r: DataViewRequest, ctx?: { signal: AbortSignal }) => {
+				if (ctx) signals.push(ctx.signal);
+				call++;
+				if (call === 1) {
+					return new Promise<DataViewResponse<User>>(() => {});
+				}
+				return Promise.resolve({
+					rows: [{ id: "2", name: "Fresh" }],
+					rowCount: 1,
+				});
+			},
+		);
+		render(<Harness fetcher={fetcher} />, { wrapper });
+		expect(signals[0]?.aborted).toBe(false);
+
+		// Act: a second request supersedes the hung first one.
+		act(() => captured?.table.setPageIndex(1));
+
+		// Assert
+		expect(signals).toHaveLength(2);
+		expect(signals[0]?.aborted).toBe(true);
+		expect(signals[1]?.aborted).toBe(false);
+		await waitFor(() => expect(screen.getByText("Fresh")).toBeVisible());
+	});
+
+	it("does not surface an abort as an error", async () => {
+		// Arrange: the first fetch rejects with an AbortError when its signal fires.
+		let call = 0;
+		const fetcher = vi.fn(
+			(_r: DataViewRequest, ctx?: { signal: AbortSignal }) => {
+				call++;
+				if (call === 1) {
+					return new Promise<DataViewResponse<User>>((_resolve, reject) => {
+						ctx?.signal.addEventListener("abort", () =>
+							reject(new DOMException("Aborted", "AbortError")),
+						);
+					});
+				}
+				return Promise.resolve({
+					rows: [{ id: "2", name: "Fresh" }],
+					rowCount: 1,
+				});
+			},
+		);
+		render(<Harness fetcher={fetcher} />, { wrapper });
+
+		// Act
+		act(() => captured?.table.setPageIndex(1));
+
+		// Assert
+		await waitFor(() => expect(screen.getByText("Fresh")).toBeVisible());
+		expect(captured?.status).toBe("success");
+		expect(captured?.error).toBeUndefined();
+	});
+});
+
 describe("optimistic reconciliation", () => {
 	const initialRows: User[] = [
 		{ id: "1", name: "Ada" },

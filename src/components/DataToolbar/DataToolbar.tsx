@@ -6,6 +6,7 @@ import {
 	CloseButton,
 	Group,
 	type GroupProps,
+	Loader,
 	Stack,
 	TextInput,
 } from "@mantine/core";
@@ -36,6 +37,11 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 	showViewSwitcher?: boolean;
 	/** Disable search, filter, and sort controls while data is loading. Default: true. */
 	disableWhileLoading?: boolean;
+	/**
+	 * Show a small loader while a background fetch is in flight with data still on screen
+	 * (`isRevalidating`, or `isFetching` under `keepPreviousData`). Default: true.
+	 */
+	showSyncIndicator?: boolean;
 	/** Content injected at the start of the left control group (before search). */
 	leftSection?: ReactNode;
 	/** Content injected at the end of the right control group (after view switcher). */
@@ -55,6 +61,7 @@ export function DataToolbar<TData>({
 	showVisibility,
 	showViewSwitcher,
 	disableWhileLoading = true,
+	showSyncIndicator = true,
 	leftSection,
 	rightSection,
 	views,
@@ -113,6 +120,11 @@ export function DataToolbar<TData>({
 				{sortOn && <SortControl view={view} disabled={loading} />}
 			</Group>
 			<Group wrap="wrap" gap="sm">
+				{showSyncIndicator &&
+					(view.isRevalidating ||
+						(view.isFetching && view.status === "success")) && (
+						<Loader size="xs" aria-label={labels.refreshing} />
+					)}
 				{visibilityOn && <VisibilityMenu view={view} disabled={loading} />}
 				{switcherOn && (
 					<ViewSwitcher

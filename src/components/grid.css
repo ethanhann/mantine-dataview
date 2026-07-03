@@ -37,3 +37,30 @@ tr.dataviewItem[data-selected] > td {
 .dataviewItem[data-selected]:not(tr):focus {
 	box-shadow: none;
 }
+
+/* Column resize handle: a hit area straddling the header's right edge. The visible indicator is the
+   centered 2px bar, shown on hover and while dragging, in the theme primary. */
+.dataviewResizeHandle {
+	position: absolute;
+	top: 0;
+	right: calc(-0.25rem);
+	width: 0.5rem;
+	height: 100%;
+	cursor: col-resize;
+	user-select: none;
+	touch-action: none;
+	z-index: 1;
+}
+.dataviewResizeHandle::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: calc(50% - 1px);
+	width: 2px;
+	background: transparent;
+}
+.dataviewResizeHandle:hover::after,
+.dataviewResizeHandle[data-resizing]::after {
+	background: var(--mantine-primary-color-filled);
+}

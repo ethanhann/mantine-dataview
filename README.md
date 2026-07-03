@@ -532,6 +532,28 @@ import {exportCsv} from "@ethanhann/mantine-dataview";
 exportCsv(view.table, {filename: "report.csv"});
 ```
 
+## Column resizing
+
+Enable drag handles on the table's header edges with `enableColumnResizing`:
+
+```tsx
+const view = useDataViewFetcher<User>({
+    columns,
+    getRowId,
+    fetcher,
+    enableColumnResizing: true,
+});
+```
+
+- Drag a header's right edge to resize; double-click the handle to reset that column.
+- User widths live in `state.columnSizing` keyed by column id. Persist and restore them via
+  `initialState: { columnSizing: savedWidths }`.
+- With resizing enabled every column carries a concrete width (TanStack's default is 150px);
+  set `width` on columns that should start wider or narrower.
+- Opt a column out with TanStack's `enableResizing: false` on its def.
+- Resizing is pointer-driven (mouse and touch). The handles are not in the tab order.
+- Column widths are intentionally not URL-synced, like visibility and pinning.
+
 ## Column pinning
 
 Pin columns to the left or right edge so they stay visible while scrolling horizontally.
@@ -1079,6 +1101,42 @@ Opt out per component:
 <DataToolbar view={view} disableWhileLoading={false}/>
 ```
 
+### Keep previous data during refetch
+
+By default every request change swaps the content for loading skeletons. With
+`keepPreviousData`, a refetch keeps the previous rows on screen (`status` stays `"success"`)
+while the new page loads, and `view.isFetching` signals the fetch in flight:
+
+```tsx
+const view = useDataViewFetcher<User>({
+    columns,
+    getRowId,
+    fetcher,
+    keepPreviousData: true,
+});
+```
+
+The first fetch still shows skeletons (there is nothing to keep), and a failed refetch still
+shows the error state. The toolbar automatically shows a small loader while a background fetch
+is in flight with data on screen; opt out with `showSyncIndicator={false}` on the toolbar.
+`view.isFetching` is true during any fetch, unlike `status: "loading"`, which only covers
+fetches that replace the content.
+
+### Aborting stale fetches
+
+The fetcher receives an `AbortSignal` that fires when the request is superseded by a newer one,
+by an optimistic mutation, or by unmount. Pass it to `fetch` to cancel the wire request:
+
+```tsx
+fetcher: async (request, {signal}) => {
+    const res = await fetch(`/api/users?${toParams(request)}`, {signal});
+    return toResponse(await res.json());
+},
+```
+
+Ignoring the signal is safe. Stale responses are discarded either way, so this only saves
+bandwidth and server work.
+
 ### Animated row transitions
 
 Instead of skeleton loading, rows can animate in and out with CSS transitions. New rows
@@ -1431,6 +1489,7 @@ Returned by `useDataViewFetcher` (fall back to `refetch()` on raw `useDataView`)
 | `insertRow(record)` | Prepend a new row, increment `rowCount`, then revalidate        |
 | `removeRow(id)`     | Remove a row, decrement `rowCount`, then revalidate             |
 | `isRevalidating`    | `true` while the background revalidation fetch is in flight     |
+| `isFetching`        | `true` while any fetch is in flight (incl. `keepPreviousData`)  |
 
 ### Customization slots
 

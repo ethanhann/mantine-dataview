@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -37,6 +37,7 @@ interface HarnessProps {
 	onRequestChange?: (request: DataViewRequest) => void;
 	slots?: DataViewSlots<User>;
 	enableSelection?: boolean;
+	enableColumnResizing?: boolean;
 }
 
 function Harness(props: HarnessProps) {
@@ -48,15 +49,21 @@ function Harness(props: HarnessProps) {
 		getRowId: (u) => u.id,
 		onRequestChange: props.onRequestChange,
 		initialState: props.initialState,
+		enableColumnResizing: props.enableColumnResizing,
 		debounce: 0,
 	});
 	return (
-		<DataTable
-			view={view}
-			slots={props.slots}
-			enableSelection={props.enableSelection}
-			data-testid="dt"
-		/>
+		<>
+			<span data-testid="sizing">
+				{JSON.stringify(view.state.columnSizing)}
+			</span>
+			<DataTable
+				view={view}
+				slots={props.slots}
+				enableSelection={props.enableSelection}
+				data-testid="dt"
+			/>
+		</>
 	);
 }
 
@@ -172,6 +179,45 @@ describe("DataTable", () => {
 	it("forwards extra props to the Mantine table", () => {
 		renderTable();
 		expect(screen.getByTestId("dt").tagName).toBe("TABLE");
+	});
+
+	it("renders no resize handles by default", () => {
+		// Arrange / Act
+		renderTable();
+
+		// Assert
+		expect(screen.queryByLabelText(/Resize/)).toBeNull();
+	});
+
+	it("resizes a column by dragging its handle", () => {
+		// Arrange
+		renderTable({ enableColumnResizing: true });
+		const handle = screen.getByLabelText("Resize Name");
+
+		// Act: drag the handle 50px to the right from the default 150px width.
+		fireEvent.mouseDown(handle, { clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 150 });
+		fireEvent.mouseUp(document);
+
+		// Assert
+		expect(screen.getByTestId("sizing")).toHaveTextContent('{"name":200}');
+		const header = screen.getByRole("columnheader", { name: /Name/ });
+		expect(header.style.width).toBe("200px");
+	});
+
+	it("resets a column to its default size on handle double-click", () => {
+		// Arrange
+		renderTable({
+			enableColumnResizing: true,
+			initialState: { columnSizing: { name: 300 } },
+		});
+		const handle = screen.getByLabelText("Resize Name");
+
+		// Act
+		fireEvent.doubleClick(handle);
+
+		// Assert
+		expect(screen.getByTestId("sizing")).toHaveTextContent("{}");
 	});
 
 	it("has no accessibility violations in the ready state", async () => {

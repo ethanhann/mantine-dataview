@@ -56,12 +56,15 @@ function Harness({
 	cols = columns,
 	onRequestChange,
 	toolbar,
+	backgroundFetch,
 }: {
 	cols?: DataColumnDef<User>[];
 	onRequestChange?: ReqSpy;
 	toolbar?: Partial<DataToolbarProps<User>>;
+	/** Simulate a background fetch (revalidation) while data is on screen. */
+	backgroundFetch?: boolean;
 }) {
-	const view = useDataView<User>({
+	const base = useDataView<User>({
 		columns: cols,
 		rows: sampleRows,
 		rowCount: sampleRows.length,
@@ -70,6 +73,9 @@ function Harness({
 		onRequestChange,
 		debounce: 0,
 	});
+	const view = backgroundFetch
+		? { ...base, isFetching: true, isRevalidating: true }
+		: base;
 	return (
 		<>
 			<DataToolbar view={view} {...toolbar} />
@@ -99,6 +105,33 @@ function selectOption(comboboxName: string, optionName: string) {
 }
 
 describe("DataToolbar", () => {
+	it("shows a sync indicator during a background fetch", () => {
+		// Arrange / Act
+		renderToolbar({ backgroundFetch: true });
+
+		// Assert
+		expect(screen.getByLabelText("Refreshing")).toBeInTheDocument();
+	});
+
+	it("shows no sync indicator when idle", () => {
+		// Arrange / Act
+		renderToolbar();
+
+		// Assert
+		expect(screen.queryByLabelText("Refreshing")).toBeNull();
+	});
+
+	it("can opt out of the sync indicator", () => {
+		// Arrange / Act
+		renderToolbar({
+			backgroundFetch: true,
+			toolbar: { showSyncIndicator: false },
+		});
+
+		// Assert
+		expect(screen.queryByLabelText("Refreshing")).toBeNull();
+	});
+
 	it("drives global search", async () => {
 		const onRequestChange = reqSpy();
 		renderToolbar({ onRequestChange });

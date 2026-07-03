@@ -117,6 +117,8 @@ export interface DataViewState {
 	rowSelection: Record<string, boolean>;
 	columnVisibility: Record<string, boolean>;
 	columnPinning: DataViewColumnPinning;
+	/** Pixel widths of user-resized columns, keyed by column id. Empty until a column is resized. */
+	columnSizing: Record<string, number>;
 	view: ViewMode;
 	/** Visible date range. Set only while a schedule presentation is mounted; otherwise absent. */
 	window?: DataViewWindow;

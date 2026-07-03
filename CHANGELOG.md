@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Column resizing: `enableColumnResizing` on `useDataView`/`useDataViewFetcher` adds drag handles
+  to the table's header edges (live resize, double-click to reset a column, per-column opt-out via
+  TanStack's `enableResizing: false`). Widths are tracked in `state.columnSizing` and can be
+  seeded through `initialState` for persistence. The handle's accessible name comes from
+  `labels.resizeColumn`. Default off.
+
+- `keepPreviousData` option on `useDataViewFetcher`: a refetch keeps the previous rows on screen
+  (`status` stays `"success"`) instead of swapping to skeletons. The first fetch and errors behave
+  as before.
+- `view.isFetching`: true while any fetch is in flight, covering keep-previous-data refetches and
+  background revalidation. On the bare `useDataView` hook it mirrors `status === "loading"`.
+- The fetcher now receives `{ signal: AbortSignal }` as a second argument. The signal aborts when
+  the request is superseded (newer request, optimistic mutation, or unmount), so a `fetch` that
+  passes it through cancels the wire request. Ignoring it stays safe.
+- The toolbar shows a small loader while a background fetch is in flight with data on screen
+  (revalidation, or `isFetching` under `keepPreviousData`). Opt out with
+  `showSyncIndicator={false}`; the accessible name is `labels.refreshing`.
 - Localization: a `labels` option on `useDataView`/`useDataViewFetcher` overrides any of the
   built-in UI strings (toolbar, filter controls, sort and column menus, view switcher, selection,
   bulk actions, state messages, pagination, and the schedule navigators), merged over the English

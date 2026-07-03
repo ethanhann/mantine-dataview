@@ -20,9 +20,15 @@ export interface UseDataViewFetcherOptions<TData>
 		UseDataViewOptions<TData>,
 		"rows" | "rowCount" | "status" | "error" | "onRequestChange"
 	> {
-	/** Maps a request to a response, using any transport or data layer. */
+	/**
+	 * Maps a request to a response, using any transport or data layer. The context's `signal`
+	 * aborts when the request is superseded (a newer request, an optimistic mutation, or unmount);
+	 * pass it to `fetch` to cancel the wire request. Ignoring it is safe — stale responses are
+	 * discarded either way.
+	 */
 	fetcher: (
 		request: DataViewRequest,
+		context: { signal: AbortSignal },
 	) => Promise<DataViewResponse<NoInfer<TData>>>;
 	/** External dependencies that should trigger a refetch when they change. */
 	deps?: unknown[];
@@ -31,12 +37,19 @@ export interface UseDataViewFetcherOptions<TData>
 	 * mutation. Multiple rapid mutations coalesce into one fetch. Default `1000`.
 	 */
 	revalidateDelay?: number;
+	/**
+	 * When true, a refetch keeps the previous rows on screen (`status` stays `"success"`) instead
+	 * of swapping to the loading skeletons, and `isFetching` signals the fetch in flight. The first
+	 * fetch (nothing to keep) and errors behave as usual. Default `false`.
+	 */
+	keepPreviousData?: boolean;
 }
 
 export function useDataViewFetcher<TData>({
 	fetcher,
 	deps,
 	revalidateDelay = DEFAULT_REVALIDATE_DELAY_MS,
+	keepPreviousData = false,
 	...options
 }: UseDataViewFetcherOptions<TData>): UseDataViewReturn<TData> {
 	const [response, setResponse] = useState<DataViewResponse<TData>>({
@@ -46,37 +59,65 @@ export function useDataViewFetcher<TData>({
 	const [status, setStatus] = useState<Status>("idle");
 	const [error, setError] = useState<unknown>(undefined);
 	const [isRevalidating, setIsRevalidating] = useState(false);
+	const [isFetching, setIsFetching] = useState(false);
 
 	const fetcherRef = useRef(fetcher);
 	fetcherRef.current = fetcher;
 	// An id that only ever increases. It keeps a slow earlier request from overwriting a newer one.
 	const requestIdRef = useRef(0);
+	// Aborts the in-flight fetch when a newer one supersedes it (or on unmount), so ignored-anyway
+	// responses stop consuming the wire.
+	const abortRef = useRef<AbortController | null>(null);
+	// Whether a successful response has landed, i.e. there is something to keep on screen.
+	const hasDataRef = useRef(false);
+	const keepPreviousDataRef = useRef(keepPreviousData);
+	keepPreviousDataRef.current = keepPreviousData;
 
 	const lastRequestRef = useRef<DataViewRequest | null>(null);
 	const revalidateTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
 	);
 
-	const onRequestChange = useCallback(async (request: DataViewRequest) => {
-		lastRequestRef.current = request;
-		const id = ++requestIdRef.current;
-		setStatus("loading");
-		try {
-			const data = await fetcherRef.current(request);
-			if (id === requestIdRef.current) {
-				setResponse(data);
-				setError(undefined);
-				setStatus("success");
-				setIsRevalidating(false);
-			}
-		} catch (err) {
-			if (id === requestIdRef.current) {
-				setError(err);
-				setStatus("error");
-				setIsRevalidating(false);
-			}
-		}
+	const nextAbortSignal = useCallback(() => {
+		abortRef.current?.abort();
+		const controller = new AbortController();
+		abortRef.current = controller;
+		return controller.signal;
 	}, []);
+
+	const onRequestChange = useCallback(
+		async (request: DataViewRequest) => {
+			lastRequestRef.current = request;
+			const signal = nextAbortSignal();
+			const id = ++requestIdRef.current;
+			setIsFetching(true);
+			// With `keepPreviousData` the previous rows stay rendered during the refetch; the first
+			// fetch has nothing to keep, so it still shows the loading state.
+			if (!(keepPreviousDataRef.current && hasDataRef.current)) {
+				setStatus("loading");
+			}
+			try {
+				const data = await fetcherRef.current(request, { signal });
+				if (id === requestIdRef.current) {
+					hasDataRef.current = true;
+					setResponse(data);
+					setError(undefined);
+					setStatus("success");
+					setIsFetching(false);
+					setIsRevalidating(false);
+				}
+			} catch (err) {
+				// An abort means this request was superseded; the newer one owns the state.
+				if (id === requestIdRef.current && !signal.aborted) {
+					setError(err);
+					setStatus("error");
+					setIsFetching(false);
+					setIsRevalidating(false);
+				}
+			}
+		},
+		[nextAbortSignal],
+	);
 
 	const depsKey = deps ? JSON.stringify(deps) : "";
 	const prevDepsKeyRef = useRef(depsKey);
@@ -99,9 +140,11 @@ export function useDataViewFetcher<TData>({
 	);
 
 	// Invalidate any in-flight primary fetch so its (stale) response cannot
-	// overwrite an optimistic mutation that the user just applied.
+	// overwrite an optimistic mutation that the user just applied. The abort
+	// stops the wire request too; the response would be discarded anyway.
 	const invalidateInFlight = useCallback(() => {
 		requestIdRef.current++;
+		abortRef.current?.abort();
 	}, []);
 
 	const scheduleRevalidate = useCallback(() => {
@@ -109,20 +152,26 @@ export function useDataViewFetcher<TData>({
 		setIsRevalidating(true);
 		revalidateTimerRef.current = setTimeout(async () => {
 			if (lastRequestRef.current) {
+				const signal = nextAbortSignal();
 				const id = ++requestIdRef.current;
+				setIsFetching(true);
 				try {
-					const data = await fetcherRef.current(lastRequestRef.current);
+					const data = await fetcherRef.current(lastRequestRef.current, {
+						signal,
+					});
 					if (id === requestIdRef.current) {
+						hasDataRef.current = true;
 						setResponse(data);
 						setError(undefined);
 						// The mutation may have invalidated an in-flight fetch that would
 						// have settled the status, so restore it here or the UI stays
 						// stranded on the skeleton or error state over fresh data.
 						setStatus("success");
+						setIsFetching(false);
 						setIsRevalidating(false);
 					}
 				} catch (err) {
-					if (id === requestIdRef.current) {
+					if (id === requestIdRef.current && !signal.aborted) {
 						// Revalidation failure does not mean the user's write failed —
 						// it means we could not re-confirm it. Keep the optimistic data
 						// (stale-while-revalidate) rather than setting an `error` that
@@ -141,6 +190,7 @@ export function useDataViewFetcher<TData>({
 						// would otherwise have settled it.
 						setStatus("success");
 						setError(undefined);
+						setIsFetching(false);
 						setIsRevalidating(false);
 					}
 				}
@@ -148,7 +198,7 @@ export function useDataViewFetcher<TData>({
 				setIsRevalidating(false);
 			}
 		}, revalidateDelay);
-	}, [revalidateDelay]);
+	}, [revalidateDelay, nextAbortSignal]);
 
 	const patchRow = useCallback(
 		(record: TData) => {
@@ -199,9 +249,12 @@ export function useDataViewFetcher<TData>({
 		[scheduleRevalidate, invalidateInFlight],
 	);
 
-	// Clean up revalidation timer on unmount.
+	// Clean up the revalidation timer and abort any in-flight fetch on unmount.
 	useEffect(() => {
-		return () => clearTimeout(revalidateTimerRef.current);
+		return () => {
+			clearTimeout(revalidateTimerRef.current);
+			abortRef.current?.abort();
+		};
 	}, []);
 
 	const result = useDataView<TData>({
@@ -221,5 +274,6 @@ export function useDataViewFetcher<TData>({
 		insertRow,
 		removeRow,
 		isRevalidating,
+		isFetching,
 	};
 }

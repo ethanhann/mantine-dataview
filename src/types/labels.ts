@@ -46,6 +46,8 @@ export interface DataViewLabels {
 	selectCard: string;
 	/** Accessible name of a sortable column header button. */
 	sortByColumn: (column: string) => string;
+	/** Accessible name of a column's resize handle. */
+	resizeColumn: (column: string) => string;
 	/** Accessible name of the multi-sort priority badge. */
 	sortPriority: (priority: number) => string;
 	/** Accessible name of the bulk actions bar. */
@@ -59,6 +61,8 @@ export interface DataViewLabels {
 	noResults: string;
 	noMatches: string;
 	clearFilters: string;
+	/** Accessible name of the toolbar's background-fetch indicator. */
+	refreshing: string;
 	/** Accessible name of the page-size select. */
 	rowsPerPage: string;
 	paginationRange: (start: number, end: number, total: number) => string;
@@ -105,6 +109,7 @@ export const DEFAULT_LABELS: DataViewLabels = {
 	selectAllRows: "Select all rows on this page",
 	selectCard: "Select card",
 	sortByColumn: (column) => `Sort by ${column}`,
+	resizeColumn: (column) => `Resize ${column}`,
 	sortPriority: (priority) => `sort priority ${priority}`,
 	bulkActions: "Bulk actions",
 	selectedCount: (count) => `${count} selected`,
@@ -114,6 +119,7 @@ export const DEFAULT_LABELS: DataViewLabels = {
 	noResults: "No results.",
 	noMatches: "No matches.",
 	clearFilters: "Clear filters",
+	refreshing: "Refreshing",
 	rowsPerPage: "Rows per page",
 	paginationRange: (start, end, total) => `${start}–${end} of ${total}`,
 	paginationControl: (control) => `${control} page`,
