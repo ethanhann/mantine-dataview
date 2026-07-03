@@ -3,6 +3,53 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Fully controlled state now works: `onStateChange` reports the proposed next state (the patch
+  composes last) instead of echoing the stale controlled value, which left a controlled slice
+  permanently stuck on its first value.
+- CSV export no longer corrupts negative numbers. Formula sanitization applies only to string
+  values, since a number's leading minus (raw or formatted) is data, not a formula trigger.
+- Background revalidation now restores `status` to `success` on both its outcomes. Previously an
+  optimistic mutation that invalidated an in-flight fetch could strand the UI on skeletons, and a
+  revalidation after a failed fetch left the error state rendered over fresh data.
+- Keyboard range selection (Shift with an arrow, Home, or End) extends the existing selection
+  instead of replacing it, so selections on other pages survive. Shrinking the range still
+  deselects the rows that leave it.
+- Space and range selection now respect the per-row `enableRowSelection` predicate. A row whose
+  checkbox is disabled can no longer be selected from the keyboard.
+- Registered views (schedule, agenda, resources) render through the slot wrapper, keyed by view id.
+  A registration whose render uses hooks no longer risks rules-of-hooks violations, and two
+  registered views no longer share component state when switching between them.
+- `removeRow` clears the removed id from the cross-page selection, as documented, so bulk actions
+  no longer submit deleted rows.
+- The schedule nav's level switch anchors on the window midpoint. Switching from a padded month
+  window (for example January whose grid starts in December) no longer jumps to the wrong month or
+  year.
+- Date-only strings (`YYYY-MM-DD`) in schedule role columns parse as local midnight instead of UTC,
+  so all-day rows no longer render on the previous day west of UTC.
+- Clicking, selecting, moving, or resizing a generated recurring occurrence now resolves to its
+  series row. Mantine suffixes instance ids with `::recurrenceId`, which previously matched no row
+  and made every interaction a silent no-op.
+- A `params` change now emits exactly one request, already reset to the first page. Previously it
+  double-fetched: once with the stale page (possibly out of range), then again with page 0.
+- URL sync in push mode no longer corrupts history: the mount write to a clean URL is gone, a
+  back/forward to an entry without the size or view param restores the defaults instead of
+  freezing the last-picked values, and search/filter bursts coalesce (300ms) into one entry.
+- The main entry no longer force-imports `@mantine/dates/styles.css`, which crashed plain Node ESM
+  and contradicted the install instructions. Import it in your app alongside Mantine's styles as
+  the README describes.
+
+### Changed
+
+- The `view` URL param is omitted while it equals the default view, and the size/view defaults for
+  URL cleanliness now honor `initialState`, so an app defaulting to 25 rows or the cards view keeps
+  those out of every URL.
+- The README's stale "v1 scope" section is gone. It denied shipped features: event move/resize,
+  range select, slot click, and the resources view are all wired and documented.
+
 ## [0.11.0] - 2026-06-30
 
 ### Added
