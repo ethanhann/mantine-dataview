@@ -82,15 +82,18 @@ export function exportCsv<TData>(
 	const rows = table.getRowModel().rows.map((row) =>
 		columns.map((col) => {
 			const raw = row.getValue(col.id);
+			// Only strings can carry a formula payload. A number's leading minus (raw
+			// or Intl-formatted) is data, and prefixing it would corrupt the export.
+			const sanitize = sanitizeFormulas && typeof raw === "string";
 			if (formatted && col.columnDef.meta?.dataType) {
 				const formatter = resolveFormatter(
 					col.columnDef.meta.dataType,
 					col.columnDef.meta.format,
 					formatDefaults,
 				);
-				return escapeCsv(formatter(raw), separator, sanitizeFormulas);
+				return escapeCsv(formatter(raw), separator, sanitize);
 			}
-			return escapeCsv(raw, separator, sanitizeFormulas);
+			return escapeCsv(raw, separator, sanitize);
 		}),
 	);
 
