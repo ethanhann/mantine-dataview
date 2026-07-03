@@ -181,6 +181,14 @@ describe("DataTable", () => {
 		expect(screen.getByTestId("dt").tagName).toBe("TABLE");
 	});
 
+	it("gives the keyboard grid a default accessible name", () => {
+		// Arrange / Act
+		renderTable();
+
+		// Assert
+		expect(screen.getByRole("grid", { name: "Data grid" })).toBeInTheDocument();
+	});
+
 	it("renders no resize handles by default", () => {
 		// Arrange / Act
 		renderTable();

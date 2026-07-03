@@ -32,6 +32,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Selection changes are now announced to assistive technology. The bulk-actions bar keeps a
+  visually-hidden live region mounted at all times; previously the region mounted together with
+  its first message, which screen readers do not announce.
+- The Columns dropdown is a labeled checkbox group inside a popover instead of an ARIA menu.
+  A `role="menu"` may only contain menu items, so the previous markup was invalid and its
+  checkboxes were unreachable through menu navigation. The trigger now reports
+  `aria-haspopup`/`aria-expanded`.
+- Row and card enter/crossfade animations respect `prefers-reduced-motion: reduce`.
+- The keyboard-navigable table and card grids now have a default accessible name
+  (`labels.dataGrid`, "Data grid"), overridable per component via a native `aria-label` in
+  `tableProps`/grid props.
 - Fully controlled state now works: `onStateChange` reports the proposed next state (the patch
   composes last) instead of echoing the stale controlled value, which left a controlled slice
   permanently stuck on its first value.

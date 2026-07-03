@@ -1,14 +1,17 @@
 // Column visibility and pinning menu. Toggling a column hides both its table column and its
 // card field. Pin controls let users freeze columns to the left or right edge of the table.
+// A Popover with a labeled checkbox group, not a Mantine Menu: `role="menu"` may only contain
+// menu items, and these are checkboxes and pin buttons.
 
 import {
 	ActionIcon,
 	Button,
 	Checkbox,
 	Group,
-	Menu,
+	Popover,
 	Stack,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import type { Column } from "@tanstack/react-table";
 import { resolveColumnLabel } from "../../core/cardComposition";
 import type { DataViewLabels } from "../../types/labels";
@@ -56,22 +59,32 @@ export function VisibilityMenu<TData>({
 	disabled?: boolean;
 }) {
 	const { labels } = view;
+	const [opened, { open, close }] = useDisclosure(false);
 	const columns = view.table.getAllLeafColumns().filter((c) => c.getCanHide());
 	if (columns.length === 0) return null;
 
 	return (
-		<Menu closeOnItemClick={false} withinPortal position="bottom-end">
-			<Menu.Target>
+		<Popover
+			position="bottom-end"
+			opened={opened}
+			onChange={(o) => (o ? open() : close())}
+			trapFocus
+			withinPortal
+		>
+			<Popover.Target>
 				<Button
 					variant="default"
 					rightSection={<ChevronDownIcon />}
 					disabled={disabled}
+					aria-haspopup="dialog"
+					aria-expanded={opened}
+					onClick={() => (opened ? close() : open())}
 				>
 					{labels.columns}
 				</Button>
-			</Menu.Target>
-			<Menu.Dropdown>
-				<Stack gap="xs" p="xs">
+			</Popover.Target>
+			<Popover.Dropdown>
+				<Stack gap="xs" role="group" aria-label={labels.columns}>
 					{columns.map((column) => (
 						<Group
 							key={column.id}
@@ -90,7 +103,7 @@ export function VisibilityMenu<TData>({
 						</Group>
 					))}
 				</Stack>
-			</Menu.Dropdown>
-		</Menu>
+			</Popover.Dropdown>
+		</Popover>
 	);
 }

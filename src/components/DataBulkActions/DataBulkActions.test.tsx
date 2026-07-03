@@ -1,5 +1,5 @@
 import { Button, MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { useDataView } from "../../core/useDataView";
@@ -61,8 +61,9 @@ describe("DataBulkActions", () => {
 		await userEvent.click(
 			screen.getAllByLabelText("Select row")[0] as HTMLElement,
 		);
-		expect(screen.getByRole("region", { name: "Bulk actions" })).toBeVisible();
-		expect(screen.getByText("1 selected")).toBeVisible();
+		const region = screen.getByRole("region", { name: "Bulk actions" });
+		expect(region).toBeVisible();
+		expect(within(region).getByText("1 selected")).toBeVisible();
 	});
 
 	it("clears the selection from the bar", async () => {
@@ -72,6 +73,24 @@ describe("DataBulkActions", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Clear" }));
 		expect(screen.queryByRole("region", { name: "Bulk actions" })).toBeNull();
 		expect(checkbox).not.toBeChecked();
+	});
+
+	it("keeps a live region mounted before any selection so announcements work", async () => {
+		// Arrange: a live region must exist in the DOM before its content changes,
+		// or assistive technology never announces the first selection.
+		const { container } = renderStandalone();
+		const region = container.querySelector('[aria-live="polite"]');
+		expect(region).not.toBeNull();
+		expect(region).toHaveTextContent("");
+
+		// Act
+		await userEvent.click(
+			screen.getAllByLabelText("Select row")[0] as HTMLElement,
+		);
+
+		// Assert: the same, already-mounted region now carries the announcement.
+		expect(container.querySelector('[aria-live="polite"]')).toBe(region);
+		expect(region).toHaveTextContent("1 selected");
 	});
 
 	it("renders consumer actions with the selection (ids across pages)", async () => {
@@ -111,11 +130,15 @@ describe("bulk bar parity across views", () => {
 		await userEvent.click(
 			screen.getAllByLabelText("Select row")[0] as HTMLElement,
 		);
-		expect(screen.getByText("1 selected")).toBeVisible();
+		const barText = () =>
+			within(screen.getByRole("region", { name: "Bulk actions" })).getByText(
+				"1 selected",
+			);
+		expect(barText()).toBeVisible();
 
 		// Switch to cards. The bar and its count persist because the selection state is shared.
 		await userEvent.click(screen.getByRole("radio", { name: "Cards" }));
-		expect(screen.getByText("1 selected")).toBeVisible();
+		expect(barText()).toBeVisible();
 		expect(screen.getAllByLabelText("Select card")[0]).toBeChecked();
 	});
 });

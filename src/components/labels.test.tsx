@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useDataView } from "../core/useDataView";
 import { createColumnHelper } from "../index";
@@ -80,7 +80,11 @@ describe("labels dictionary", () => {
 		// Assert: a sample across the component families.
 		expect(screen.getByPlaceholderText("Search…")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Columns" })).toBeInTheDocument();
-		expect(screen.getByText("1 selected")).toBeInTheDocument();
+		expect(
+			within(screen.getByRole("region", { name: "Bulk actions" })).getByText(
+				"1 selected",
+			),
+		).toBeInTheDocument();
 		expect(screen.getByText(/1–2 of 2/)).toBeInTheDocument();
 	});
 
@@ -101,7 +105,11 @@ describe("labels dictionary", () => {
 		expect(
 			screen.getAllByRole("checkbox", { name: "Zeile auswählen" }).length,
 		).toBeGreaterThan(0);
-		expect(screen.getByText("1 ausgewählt")).toBeInTheDocument();
+		expect(
+			within(screen.getByRole("region", { name: "Bulk actions" })).getByText(
+				"1 ausgewählt",
+			),
+		).toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: "Aufheben" }),
 		).toBeInTheDocument();

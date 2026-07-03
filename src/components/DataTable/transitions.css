@@ -27,3 +27,14 @@ tbody[data-changed],
 div[data-changed] {
 	animation: dataview-body-crossfade 250ms ease-out;
 }
+
+/* Rows sliding in on every sort, page, or filter change is exactly the class of motion this
+   preference exists for. The content updates identically; only the animation is dropped. */
+@media (prefers-reduced-motion: reduce) {
+	tr[data-entering],
+	div[data-entering],
+	tbody[data-changed],
+	div[data-changed] {
+		animation: none;
+	}
+}

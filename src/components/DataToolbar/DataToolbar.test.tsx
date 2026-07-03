@@ -132,6 +132,29 @@ describe("DataToolbar", () => {
 		expect(screen.queryByLabelText("Refreshing")).toBeNull();
 	});
 
+	it("exposes the columns dropdown as a labeled group, not an ARIA menu", async () => {
+		// Arrange: a role="menu" may only contain menu items; a checkbox list needs
+		// a labeled group inside a dialog instead.
+		renderToolbar();
+		const trigger = screen.getByRole("button", { name: "Columns" });
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+		// Act
+		await userEvent.click(trigger);
+
+		// Assert. `hidden: true` because jsdom never settles Mantine's mount transition,
+		// so the (really visible) dropdown reports as display: none after the open.
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+		expect(screen.queryByRole("menu", { hidden: true })).toBeNull();
+		const checkbox = await screen.findByRole("checkbox", {
+			name: "Name",
+			hidden: true,
+		});
+		const group = checkbox.closest('[role="group"]');
+		expect(group).not.toBeNull();
+		expect(group).toHaveAccessibleName("Columns");
+	});
+
 	it("drives global search", async () => {
 		const onRequestChange = reqSpy();
 		renderToolbar({ onRequestChange });

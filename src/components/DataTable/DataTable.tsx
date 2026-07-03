@@ -250,7 +250,13 @@ export function DataTable<TData>({
 
 	return (
 		<div style={hasPinning ? { overflowX: "auto" } : undefined}>
-			<Table layout="fixed" {...nav.containerProps} {...tableProps}>
+			{/* The keyboard grid needs an accessible name; consumer tableProps can override it. */}
+			<Table
+				layout="fixed"
+				{...(keyboardNavigation ? { "aria-label": view.labels.dataGrid } : {})}
+				{...nav.containerProps}
+				{...tableProps}
+			>
 				<Table.Thead>
 					{table.getHeaderGroups().map((group, groupIndex) => (
 						<Table.Tr

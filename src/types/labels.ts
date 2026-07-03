@@ -40,6 +40,8 @@ export interface DataViewLabels {
 	filterMax: string;
 	/** A label with a facet or filter count, e.g. `Yes (5)`. */
 	withCount: (label: string, count: number) => string;
+	/** Accessible name of the keyboard-navigable table and card grids. */
+	dataGrid: string;
 	/** Selection checkbox accessible names. */
 	selectRow: string;
 	selectAllRows: string;
@@ -105,6 +107,7 @@ export const DEFAULT_LABELS: DataViewLabels = {
 	filterMin: "Min",
 	filterMax: "Max",
 	withCount: (label, count) => `${label} (${count})`,
+	dataGrid: "Data grid",
 	selectRow: "Select row",
 	selectAllRows: "Select all rows on this page",
 	selectCard: "Select card",

@@ -132,6 +132,8 @@ export function DataCards<TData>({
 			<SimpleGrid
 				key={transition.generation}
 				data-changed={animateRows || undefined}
+				// The keyboard grid needs an accessible name; consumer gridProps can override it.
+				{...(keyboardNavigation ? { "aria-label": view.labels.dataGrid } : {})}
 				{...nav.containerProps}
 				{...grid}
 			>

@@ -75,6 +75,14 @@ const renderCards = (props: HarnessProps = {}) =>
 	);
 
 describe("DataCards", () => {
+	it("gives the keyboard grid a default accessible name", () => {
+		// Arrange / Act
+		renderCards();
+
+		// Assert
+		expect(screen.getByRole("grid", { name: "Data grid" })).toBeInTheDocument();
+	});
+
 	it("composes cards from card roles", () => {
 		renderCards();
 		expect(screen.getByText("Ada")).toBeVisible(); // title
