@@ -5,7 +5,7 @@
 import { Button, Group, SegmentedControl } from "@mantine/core";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
-import { computeWindow, shiftWindow } from "./dateWindow";
+import { computeWindow, shiftWindow, windowMidpoint } from "./dateWindow";
 import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
 
 export interface WindowNavProps<TData> {
@@ -41,7 +41,9 @@ export function WindowNav<TData>({
 	const goToday = () =>
 		view.setWindow(computeWindow(new Date(), level, firstDayOfWeek));
 	const setLevel = (next: ScheduleLevel) => {
-		const anchor = window ? new Date(window.start) : new Date();
+		// Anchor on the midpoint: a padded month window starts in the previous month's
+		// weeks, and anchoring there would land the new level on the wrong period.
+		const anchor = window ? windowMidpoint(window) : new Date();
 		view.setWindow(computeWindow(anchor, next, firstDayOfWeek));
 	};
 

@@ -1,7 +1,7 @@
 // Derives the resource list for the resource view from the column tagged `meta.schedule.role ===
 // "resource"`, using its filter `options` as the rows. This is the ergonomic default — resources
 // "just work" from the column; an explicit `resources` prop on `DataResourceSchedule` overrides it
-// (to add colors, order, or payloads). Server-facet-derived resources with counts are a follow-up.
+// (to add colors, order, or payloads). `buildResourceCounts` below overlays server facet counts.
 
 import type { ScheduleResourceData } from "@mantine/schedule";
 import type { DataColumnDef } from "../types/column";

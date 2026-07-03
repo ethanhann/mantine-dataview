@@ -7,7 +7,7 @@
 import { useEffect } from "react";
 import type { UseDataViewReturn } from "../types/options";
 import type { DataViewWindow, ScheduleLevel, ViewMode } from "../types/state";
-import { computeWindow } from "./dateWindow";
+import { computeWindow, windowMidpoint } from "./dateWindow";
 import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
 
 export interface WindowedView {
@@ -38,12 +38,7 @@ export function useWindowedView<TData>(
 		// Anchor the calendar on the window's midpoint, not its start: a month window is padded into
 		// the adjacent months' weeks, so its start can sit in the previous month — the midpoint always
 		// lands inside the logical period, so the calendar displays the right day/week/month/year.
-		date: window
-			? new Date(
-					(new Date(window.start).getTime() + new Date(window.end).getTime()) /
-						2,
-				)
-			: new Date(),
+		date: window ? windowMidpoint(window) : new Date(),
 		window,
 		firstDayOfWeek,
 	};

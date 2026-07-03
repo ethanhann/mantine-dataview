@@ -43,9 +43,19 @@ function readValue<TData>(col: DataColumnDef<TData>, row: TData): unknown {
 	return cur;
 }
 
-/** Coerces a `Date`, epoch ms number, or date string into a valid `Date`, or `null` if invalid. */
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Coerces a `Date`, epoch ms number, or date string into a valid `Date`, or `null` if invalid.
+ * Date-only strings (`YYYY-MM-DD`) are parsed as local midnight rather than UTC, matching the
+ * core's value formatting, so an all-day row does not land on the previous day west of UTC.
+ */
 function toDate(value: unknown): Date | null {
 	if (value == null) return null;
+	if (typeof value === "string" && DATE_ONLY_RE.test(value)) {
+		const [y, mo, d] = value.split("-");
+		return new Date(Number(y), Number(mo) - 1, Number(d));
+	}
 	const date =
 		value instanceof Date ? value : new Date(value as string | number);
 	return Number.isNaN(date.getTime()) ? null : date;

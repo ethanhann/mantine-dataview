@@ -58,6 +58,25 @@ describe("composeEvent", () => {
 		expect(event?.row).toBe(baseRow);
 	});
 
+	it("parses date-only start and end strings in local time (no off-by-one day)", () => {
+		// Arrange: date-only strings are typical for all-day event data. Parsing
+		// them as UTC midnight would shift them a day for users west of UTC.
+		const row = { ...baseRow, startsAt: "2026-07-02", endsAt: "2026-07-03" };
+
+		// Act
+		const event = composeEvent(row, {
+			columns: cols(startCol, {
+				accessorKey: "endsAt",
+				meta: { schedule: { role: "end" } },
+			}),
+			getRowId,
+		});
+
+		// Assert: local midnight of the named day, whatever the machine timezone.
+		expect(event?.start.getTime()).toBe(new Date(2026, 6, 2).getTime());
+		expect(event?.end.getTime()).toBe(new Date(2026, 6, 3).getTime());
+	});
+
 	it("derives end from a numeric (minutes) duration", () => {
 		const event = composeEvent(baseRow, {
 			columns: cols(startCol, {
