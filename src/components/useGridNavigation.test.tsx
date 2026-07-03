@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { useGridNavigation } from "./useGridNavigation";
 
-const selection = { toggle: () => {}, set: () => {} };
+const selection = { toggle: () => {}, select: () => {}, deselect: () => {} };
 
 describe("useGridNavigation", () => {
 	it("returns a stable ref callback per index across renders", () => {

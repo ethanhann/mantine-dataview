@@ -70,7 +70,8 @@ function isActivationBlocked(event: MouseEvent<HTMLElement>): boolean {
 /** The selection mutators the hook needs, satisfied by `view.selection`. */
 export interface GridSelection {
 	toggle: (id: string) => void;
-	set: (ids: string[]) => void;
+	select: (ids: string[]) => void;
+	deselect: (ids: string[]) => void;
 }
 
 export type ResolveNext = (
@@ -105,6 +106,11 @@ export interface UseGridNavigationOptions {
 	rowIndexBase?: number;
 	/** Selection mutators, normally `view.selection`. */
 	selection: GridSelection;
+	/**
+	 * Whether the item at `index` can be selected, mirroring the per-row `enableRowSelection`
+	 * predicate. Space and range extension skip items it rejects. Default: every item.
+	 */
+	canSelectItem?: (index: number) => boolean;
 	/**
 	 * Maps a direction to the next index. Defaults to one-dimensional vertical movement: Down and Up
 	 * step by one and clamp, Left and Right are ignored. The card grid supplies a 2D resolver.
@@ -158,11 +164,16 @@ export function useGridNavigation({
 	rowCount,
 	rowIndexBase,
 	selection,
+	canSelectItem = () => true,
 	resolveNext = verticalResolver,
 	onActivate,
 }: UseGridNavigationOptions): GridNavigation {
 	const [activeIndex, setActiveIndex] = useState(0);
 	const anchorRef = useRef(0);
+	// The index range the current Shift extension has applied, so growing or shrinking it
+	// only touches the delta. Selections outside the range (other pages, other items on this
+	// page) are never rewritten.
+	const rangeRef = useRef<[number, number] | null>(null);
 	const itemRefs = useRef<(HTMLElement | null)[]>([]);
 	// One stable ref callback per index, so an item is not detached and reattached on every render.
 	const refCallbacks = useRef<((el: HTMLElement | null) => void)[]>([]);
@@ -184,6 +195,7 @@ export function useGridNavigation({
 		const target = remapped >= 0 ? remapped : 0;
 		setActiveIndex(target);
 		anchorRef.current = target;
+		rangeRef.current = null;
 		prevIdsRef.current = ids;
 	}, [idsKey]);
 
@@ -218,9 +230,25 @@ export function useGridNavigation({
 				anchorRef.current <= next
 					? [anchorRef.current, next]
 					: [next, anchorRef.current];
-			selection.set(ids.slice(lo, hi + 1));
+			const previous = rangeRef.current;
+			if (previous) {
+				const leaving: string[] = [];
+				for (let i = previous[0]; i <= previous[1]; i++) {
+					const id = ids[i];
+					if (id != null && (i < lo || i > hi)) leaving.push(id);
+				}
+				if (leaving.length > 0) selection.deselect(leaving);
+			}
+			const entering: string[] = [];
+			for (let i = lo; i <= hi; i++) {
+				const id = ids[i];
+				if (id != null && canSelectItem(i)) entering.push(id);
+			}
+			if (entering.length > 0) selection.select(entering);
+			rangeRef.current = [lo, hi];
 		} else {
 			anchorRef.current = next;
+			rangeRef.current = null;
 		}
 	};
 
@@ -230,12 +258,13 @@ export function useGridNavigation({
 		if (!itemRefs.current.includes(event.target as HTMLElement)) return;
 
 		if (event.key === " " || event.key === "Spacebar") {
-			// Only claim Space when it toggles selection, so a row in a non-selectable grid can still
-			// scroll the page.
-			if (selectable) {
+			// Only claim Space when it toggles selection, so a row in a non-selectable grid (or a
+			// row the per-row predicate rejects) can still scroll the page.
+			if (selectable && canSelectItem(activeIndex)) {
 				event.preventDefault();
 				selection.toggle(ids[activeIndex] as string);
 				anchorRef.current = activeIndex;
+				rangeRef.current = null;
 			}
 			return;
 		}
@@ -287,6 +316,7 @@ export function useGridNavigation({
 			if (suppressFocusSync.current) return;
 			setActiveIndex(index);
 			anchorRef.current = index;
+			rangeRef.current = null;
 		},
 		...(onActivate
 			? {
