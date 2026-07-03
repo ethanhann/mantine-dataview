@@ -115,6 +115,7 @@ export function DataTable<TData>({
 		rowCount: table.getRowCount() + headerRowCount,
 		rowIndexBase: headerRowCount + pageIndex * pageSize + 1,
 		selection: view.selection,
+		canSelectItem: (index) => transition.rows[index]?.getCanSelect() ?? false,
 		onActivate: onRowActivate
 			? (index, event) => {
 					const row = transition.rows[index];
