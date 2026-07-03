@@ -72,12 +72,15 @@ export function hydrateFromUrl(
 ): Partial<DataViewState> {
 	if (!config) return {};
 	try {
+		// `current` is the default state at hydrate time, so its values double as the defaults for
+		// params the URL omits.
 		return deserializeParams(config.adapter.read(), {
 			serializer: config.serializer,
 			include: config.include,
 			getFilterMeta,
 			current,
 			defaultPageSize: current.pagination.pageSize,
+			defaultView: current.view,
 		});
 	} catch (err) {
 		// An adapter that touches `window` on the server or first render must not crash this. SSR
@@ -101,7 +104,16 @@ interface UseUrlSyncArgs {
 	getFilterMeta: FilterMetaLookup;
 	/** The default page size, so an untouched size is omitted from the URL. */
 	defaultPageSize: number;
+	/** The default view, so an untouched view is omitted from the URL. */
+	defaultView: DataViewState["view"];
 }
+
+/**
+ * In push mode, search and filter changes arrive per keystroke; pushing each one would fill the
+ * history with a typing burst. Writes for those slices settle for this long before one entry is
+ * pushed. Matches the core's fetch debounce default.
+ */
+const PUSH_WRITE_DEBOUNCE_MS = 300;
 
 export function useUrlSync({
 	config,
@@ -109,6 +121,7 @@ export function useUrlSync({
 	applyPatch,
 	getFilterMeta,
 	defaultPageSize,
+	defaultView,
 }: UseUrlSyncArgs): void {
 	// Keep the latest closures in refs so the effects do not bind again on every render. This
 	// matters because a consumer may pass a freshly built adapter or urlSync object each render.
@@ -130,12 +143,16 @@ export function useUrlSync({
 				include: config.include,
 				getFilterMeta,
 				defaultPageSize,
+				defaultView,
 			})
 		: null;
 	// `paramsKey` is the only trigger. Writes happen only when the managed params actually change,
 	// no matter how often `config` or `params` are created again. Sort the entries so a different
 	// insertion order (e.g. reordered column filters) with the same logical params doesn't churn.
 	const paramsKey = params ? stableParamsKey(params) : "";
+	const writeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+		undefined,
+	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: paramsKey is the intended trigger; params/config are read via closure/ref
 	useEffect(() => {
@@ -148,7 +165,15 @@ export function useUrlSync({
 		// navigation that applies a patch would trigger a write that rewrites the current history
 		// entry — corrupting it whenever serialization isn't a perfect inverse of the read.
 		if (sameParams(current, next)) return;
-		cfg.adapter.write(next, { replace: cfg.replace });
+		const write = () => cfg.adapter.write(next, { replace: cfg.replace });
+		if (cfg.replace || !isSearchOrFilterChange(current, next, cfg.serializer)) {
+			write();
+			return;
+		}
+		// Push mode, search/filter change: coalesce the burst into one history entry. A newer change
+		// re-runs this effect, whose cleanup cancels the pending write before the next is scheduled.
+		writeTimerRef.current = setTimeout(write, PUSH_WRITE_DEBOUNCE_MS);
+		return () => clearTimeout(writeTimerRef.current);
 	}, [paramsKey]);
 
 	// On back, forward, or any external navigation, read the URL again and apply it. Subscribe only
@@ -156,6 +181,8 @@ export function useUrlSync({
 	// freshly built adapter/urlSync object each render does not tear down and re-add the listener
 	// every render (which would drop any navigation firing in the gap).
 	const enabled = config != null;
+	const defaultsRef = useRef({ defaultPageSize, defaultView });
+	defaultsRef.current = { defaultPageSize, defaultView };
 	useEffect(() => {
 		if (!enabled) return;
 		const cfg = configRef.current;
@@ -163,11 +190,14 @@ export function useUrlSync({
 		return cfg.adapter.subscribe?.(() => {
 			const live = configRef.current;
 			if (!live) return;
+			// Pass the defaults so a back/forward to an entry without the size or view param restores
+			// the default rather than freezing whatever the user last picked.
 			const patch = deserializeParams(live.adapter.read(), {
 				serializer: live.serializer,
 				include: live.include,
 				getFilterMeta: getFilterMetaRef.current,
 				current: stateRef.current,
+				...defaultsRef.current,
 			});
 			applyPatchRef.current(patch);
 		});
@@ -193,4 +223,24 @@ function sameParams(
 		if (a[key] !== b[key]) return false;
 	}
 	return true;
+}
+
+/**
+ * Whether the search or a filter param differs between the two param maps. These are the slices
+ * that change per keystroke (a search or filter change drags the page param along with it, so
+ * accompanying pagination diffs do not make the change discrete).
+ */
+function isSearchOrFilterChange(
+	current: Record<string, string>,
+	next: Record<string, string>,
+	serializer: UrlSerializer,
+): boolean {
+	const keys = new Set([...Object.keys(current), ...Object.keys(next)]);
+	for (const key of keys) {
+		if (current[key] === next[key]) continue;
+		if (key === serializer.search || key.startsWith(serializer.filterPrefix)) {
+			return true;
+		}
+	}
+	return false;
 }

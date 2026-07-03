@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDataView } from "../core/useDataView";
 import { createColumnHelper } from "../index";
 import type { DataColumnDef } from "../types/column";
@@ -127,6 +127,99 @@ describe("useDataView + URL sync", () => {
 
 		expect(result.current.state.globalFilter).toBe("grace");
 		expect(result.current.view).toBe("cards");
+	});
+
+	it("does not write any params for the default state on mount", () => {
+		// Arrange / Act: mounting with a clean URL and untouched state.
+		render();
+
+		// Assert: the URL stays clean; in push mode a mount write would also make
+		// the first Back press appear dead.
+		expect(window.location.search).toBe("");
+	});
+
+	it("writes the view only when it differs from the default", () => {
+		// Arrange
+		const { result } = render();
+
+		// Act
+		act(() => result.current.setView("cards"));
+
+		// Assert
+		expect(new URLSearchParams(window.location.search).get("view")).toBe(
+			"cards",
+		);
+	});
+
+	it("restores the defaults when size and view leave the URL on popstate", () => {
+		// Arrange: the user changes the page size and view, then navigates back to
+		// the clean entry that carried neither param.
+		const { result } = render();
+		act(() => result.current.table.setPageSize(50));
+		act(() => result.current.setView("cards"));
+
+		// Act
+		act(() => {
+			window.history.replaceState(null, "", "/");
+			window.dispatchEvent(new PopStateEvent("popstate"));
+		});
+
+		// Assert: absent params mean the defaults, mirroring how they are written.
+		expect(result.current.state.pagination.pageSize).toBe(10);
+		expect(result.current.view).toBe("table");
+	});
+});
+
+describe("useDataView + URL sync (push mode)", () => {
+	const pushSync = { adapter, historyMode: "push" as const };
+
+	function renderPush() {
+		return renderHook(
+			() =>
+				useDataView({
+					columns,
+					rows: [],
+					rowCount: 0,
+					status: "success",
+					getRowId: (u: User) => u.id,
+					urlSync: pushSync,
+				}),
+			{ wrapper },
+		);
+	}
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("pushes a pagination change immediately", () => {
+		// Arrange
+		const { result } = renderPush();
+
+		// Act
+		act(() => result.current.table.setPageIndex(2));
+
+		// Assert
+		expect(new URLSearchParams(window.location.search).get("page")).toBe("3");
+	});
+
+	it("coalesces rapid search changes into one pushed history entry", () => {
+		// Arrange: each keystroke updates state; pushing per keystroke would make
+		// the back button replay the typing burst entry by entry.
+		vi.useFakeTimers();
+		const { result } = renderPush();
+		const lengthBefore = window.history.length;
+
+		// Act
+		act(() => result.current.table.setGlobalFilter("g"));
+		act(() => result.current.table.setGlobalFilter("gr"));
+		act(() => result.current.table.setGlobalFilter("grace"));
+
+		// Assert: nothing written until the burst settles, then a single entry.
+		expect(new URLSearchParams(window.location.search).get("q")).toBeNull();
+		act(() => vi.advanceTimersByTime(300));
+		expect(new URLSearchParams(window.location.search).get("q")).toBe("grace");
+		expect(window.history.length - lengthBefore).toBe(1);
 	});
 });
 
