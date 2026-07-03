@@ -13,7 +13,7 @@
  *                Derives the end from the start. Mutually exclusive with `end`.
  * - `title`    — event label.
  * - `color`    — a Mantine theme color or CSS color.
- * - `resource` — resource/group id (reserved; resource views are a follow-up).
+ * - `resource` — resource/group id, used by the resources view to place events in rows.
  * - `allDay`   — boolean flag marking an all-day event.
  */
 export type ScheduleRole =
@@ -50,7 +50,7 @@ export interface DataViewEvent<TData = unknown> {
 	end: Date;
 	color?: string;
 	allDay?: boolean;
-	/** Resource/group id (reserved for resource views). */
+	/** Resource/group id, matching a row of the resources view. */
 	resourceId?: string;
 	/** The originating row, for custom renderers and interaction handlers. */
 	row: TData;
