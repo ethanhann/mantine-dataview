@@ -110,6 +110,7 @@ export function DataCards<TData>({
 		rowCount: table.getRowCount(),
 		rowIndexBase: pageIndex * pageSize + 1,
 		selection: view.selection,
+		canSelectItem: (index) => transition.rows[index]?.getCanSelect() ?? false,
 		resolveNext: cardResolver,
 		onActivate: onCardActivate
 			? (index, event) => {
