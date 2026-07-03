@@ -240,7 +240,7 @@ Or drive the view programmatically:
 
 ```tsx
 view.setView("cards"); // switch to cards
-view.view;             // current view: "table" | "cards"
+view.view;             // current view: "table" | "cards" (plus any registered views, e.g. "schedule")
 ```
 
 ## Controlled (bring your own data layer)
@@ -580,38 +580,16 @@ Define filters declaratively on column meta. Seven variants are built in:
 
 ```tsx
 // Boolean, renders as a segmented control
-meta: {
-    filter: {
-        variant: "boolean"
-    }
-}
+meta: {filter: {variant: "boolean"}}
 
 // Number range with slider
-meta: {
-    filter: {
-        variant: "numberRange", min
-    :
-        0, max
-    :
-        1000, step
-    :
-        10
-    }
-}
+meta: {filter: {variant: "numberRange", min: 0, max: 1000, step: 10}}
 
 // Number range without bounds (falls back to two number inputs)
-meta: {
-    filter: {
-        variant: "numberRange"
-    }
-}
+meta: {filter: {variant: "numberRange"}}
 
 // Date range
-meta: {
-    filter: {
-        variant: "dateRange"
-    }
-}
+meta: {filter: {variant: "dateRange"}}
 ```
 
 ### Custom filter component
@@ -971,6 +949,10 @@ interface UrlStateAdapter {
 
 > Always memoize the adapter so the sync effects don't re-bind every render.
 
+> Without `subscribe`, back and forward navigation changes the URL but the view never re-reads it,
+> so the table silently desyncs. Implement it (a `popstate` listener suffices) unless your app never
+> relies on history navigation.
+
 ### React Router
 
 ```tsx
@@ -978,13 +960,17 @@ import {useSearchParams} from "react-router-dom";
 import type {UrlStateAdapter} from "@ethanhann/mantine-dataview/url";
 
 function useReactRouterAdapter(): UrlStateAdapter {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [, setSearchParams] = useSearchParams();
     return useMemo<UrlStateAdapter>(
         () => ({
             read: () => Object.fromEntries(new URLSearchParams(window.location.search)),
             write: (next, opts) => setSearchParams(next, {replace: opts?.replace}),
+            subscribe: (onChange) => {
+                window.addEventListener("popstate", onChange);
+                return () => window.removeEventListener("popstate", onChange);
+            },
         }),
-        [searchParams, setSearchParams],
+        [setSearchParams],
     );
 }
 ```
@@ -1001,6 +987,10 @@ function useTanStackRouterAdapter(): UrlStateAdapter {
         () => ({
             read: () => Object.fromEntries(new URLSearchParams(window.location.search)),
             write: (next, opts) => navigate({search: () => next, replace: opts?.replace}),
+            subscribe: (onChange) => {
+                window.addEventListener("popstate", onChange);
+                return () => window.removeEventListener("popstate", onChange);
+            },
         }),
         [navigate],
     );
@@ -1013,9 +1003,10 @@ function useTanStackRouterAdapter(): UrlStateAdapter {
 - Override param names or codecs with `urlSync.serialize`.
 - Choose how writes affect history with `urlSync.historyMode`: `"replace"` (default) keeps a clean
   history so the back button doesn't replay each filter/sort/page change; `"push"` creates a new
-  entry per change so back/forward steps through them.
-- URLs are kept clean: the page param is omitted on page 1, and the size param is omitted while it
-  equals the default page size.
+  entry per change so back/forward steps through them. In push mode, search and filter changes are
+  coalesced (300ms) so a typing burst lands as one history entry.
+- URLs are kept clean: the page param is omitted on page 1, and the size and view params are
+  omitted while they equal their defaults (honoring `initialState`).
 - Selection, column visibility, and column pinning are not URL-synced by design.
 
 ## Responsive behavior
@@ -1237,8 +1228,8 @@ Rows become calendar events the same way columns become card fields — declarat
 | `duration` | event length — minutes (number) or ISO-8601 (`"PT1H30M"`). Derives `end`. |
 | `title`    | event label.                                                              |
 | `color`    | a Mantine color or CSS color.                                             |
-| `resource` | resource/group id (reserved; resource views are a follow-up).             |
-| `allDay`   | boolean all-day flag.                                                     |
+| `resource` | resource/group id, used by the resources view to place events in rows.    |
+| `allDay`   | boolean all-day flag, carried on the event payload. Mantine's event shape has no all-day lane, so it has no visual effect unless a custom `renderEventBody` reads `payload.allDay`. |
 
 ```tsx
 import {col} from "@ethanhann/mantine-dataview";
@@ -1258,7 +1249,9 @@ The `map` transform handles values that aren't the event value directly — a st
 color, or an epoch number mapped to a `Date`.
 
 For event shapes that aren't column-backed, use the `toEvent` escape hatch, which returns a
-`@mantine/schedule` event directly and bypasses role composition:
+`@mantine/schedule` event directly and bypasses role composition. The event `id` must match the
+row's `getRowId` output, or click-to-select, `onEventClick`, and the editing callbacks cannot
+resolve the row:
 
 ```tsx
 <DataSchedule
@@ -1349,6 +1342,10 @@ fetcher: async (request) => {
 };
 ```
 
+The backend query must return events that **overlap** the window, not only those that start inside
+it. A `start >= from` query silently drops an event that begins before the visible week and extends
+into it.
+
 In schedule mode the pager is replaced by the calendar's own date navigation, and the toolbar
 drops the sort and column controls (a calendar has neither) while keeping search and filters.
 `DataScheduleNav` is exported if you want a standalone prev/today/next + level control.
@@ -1362,20 +1359,15 @@ The visible window round-trips through the query string
 ```tsx
 urlSync: {
     adapter,
-        include
-:
-    ["pagination", "sorting", "columnFilters", "globalFilter", "view", "window"],
+    include: ["pagination", "sorting", "columnFilters", "globalFilter", "view", "window"],
 }
 ```
 
-### v1 scope
+### Scope notes
 
-The schedule presentation is **read-only apart from click-to-select** (clicking an event toggles
-its row selection, feeding bulk actions). Drag-to-create, move, and resize are not wired in v1 —
-forward Mantine's `onEventDrop`/`onEventResize`/`onTimeSlotClick` through `scheduleProps` to handle
-them yourself (they pair well with the reconciliation primitives). Recurrence is pass-through only
-(emit an `rrule` from `toEvent` and Mantine expands it), and resource views are a follow-up (the
-`resource` role is reserved).
+Recurrence is pass-through only: emit a `recurrence: { rrule }` object from `toEvent` and Mantine
+expands it into occurrences (there is no recurrence-authoring UI). Interactions on a generated
+occurrence resolve back to the series row.
 
 ## API overview
 
@@ -1416,7 +1408,7 @@ Passed via the `slots` prop on `DataViewer` or the presentation components:
 | `ErrorState`   | `{ retry }`                         | Error with retry action    |
 | `LoadingTable` | —                                   | Table skeleton replacement |
 | `LoadingCards` | —                                   | Card skeleton replacement  |
-| `Row`          | `{ row, children }`                 | Wrap each table row        |
+| `Row`          | `{ row, cells, rowProps }`          | Wrap each table row        |
 | `Card`         | `{ row, data, selected, children }` | Wrap each card             |
 | `BulkActions`  | `{ count, ids, pageRows, clear }`   | Bulk action bar content    |
 
