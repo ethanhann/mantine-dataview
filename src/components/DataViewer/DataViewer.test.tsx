@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { useDataView } from "../../core/useDataView";
@@ -154,6 +154,60 @@ describe("DataViewer orchestrator", () => {
 			expect(screen.getByLabelText("Search")).toBeVisible();
 			expect(screen.queryByLabelText("Sort by")).toBeNull();
 			expect(screen.queryByRole("button", { name: "Columns" })).toBeNull();
+		});
+
+		it("renders a registered view as a component so its render can use hooks", async () => {
+			// Arrange: a registered view whose render function calls a hook, with the
+			// table active first so switching adds the slot's hooks to the tree.
+			const hooked: RegisteredView<User> = {
+				id: "schedule",
+				label: "Schedule",
+				render: () => {
+					const [label] = useState("hooked calendar");
+					return <div>{label}</div>;
+				},
+			};
+			renderView({ views: [hooked] });
+			expect(screen.getByRole("columnheader", { name: /Name/ })).toBeVisible();
+
+			// Act
+			await userEvent.click(screen.getByRole("radio", { name: "Schedule" }));
+
+			// Assert: no rules-of-hooks crash, and the slot rendered with its own state.
+			expect(screen.getByText("hooked calendar")).toBeVisible();
+		});
+
+		it("keeps hook state separate between two registered views", async () => {
+			// Arrange: two hooked views. If they shared one component position, the
+			// second would render with the first one's state.
+			const scheduleHooked: RegisteredView<User> = {
+				id: "schedule",
+				label: "Schedule",
+				render: () => {
+					const [label] = useState("calendar body");
+					return <div>{label}</div>;
+				},
+			};
+			const agendaHooked: RegisteredView<User> = {
+				id: "agenda",
+				label: "Agenda",
+				render: () => {
+					const [label] = useState("agenda body");
+					return <div>{label}</div>;
+				},
+			};
+			renderView({
+				views: [scheduleHooked, agendaHooked],
+				initialState: { view: "schedule" },
+			});
+			expect(screen.getByText("calendar body")).toBeVisible();
+
+			// Act
+			await userEvent.click(screen.getByRole("radio", { name: "Agenda" }));
+
+			// Assert
+			expect(screen.getByText("agenda body")).toBeVisible();
+			expect(screen.queryByText("calendar body")).toBeNull();
 		});
 
 		it("falls back to the table body for an unregistered active view", () => {
