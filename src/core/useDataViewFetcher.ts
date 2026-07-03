@@ -92,6 +92,12 @@ export function useDataViewFetcher<TData>({
 	const getRowIdRef = useRef(options.getRowId);
 	getRowIdRef.current = options.getRowId;
 
+	// The selection mutators live on the hook result below; the mutation callbacks are created
+	// first, so they reach the current selection through a ref.
+	const selectionRef = useRef<UseDataViewReturn<TData>["selection"] | null>(
+		null,
+	);
+
 	// Invalidate any in-flight primary fetch so its (stale) response cannot
 	// overwrite an optimistic mutation that the user just applied.
 	const invalidateInFlight = useCallback(() => {
@@ -109,6 +115,10 @@ export function useDataViewFetcher<TData>({
 					if (id === requestIdRef.current) {
 						setResponse(data);
 						setError(undefined);
+						// The mutation may have invalidated an in-flight fetch that would
+						// have settled the status, so restore it here or the UI stays
+						// stranded on the skeleton or error state over fresh data.
+						setStatus("success");
 						setIsRevalidating(false);
 					}
 				} catch (err) {
@@ -126,6 +136,11 @@ export function useDataViewFetcher<TData>({
 								err,
 							);
 						}
+						// The optimistic data stays on screen, so the status must agree
+						// even when the mutation invalidated an in-flight fetch that
+						// would otherwise have settled it.
+						setStatus("success");
+						setError(undefined);
 						setIsRevalidating(false);
 					}
 				}
@@ -176,6 +191,9 @@ export function useDataViewFetcher<TData>({
 				if (nextRows.length === prev.rows.length) return prev;
 				return { ...prev, rows: nextRows, rowCount: prev.rowCount - 1 };
 			});
+			// A removed row must not linger in the id-keyed selection, where a bulk
+			// action would still submit it.
+			selectionRef.current?.deselect(id);
 			scheduleRevalidate();
 		},
 		[scheduleRevalidate, invalidateInFlight],
@@ -195,6 +213,7 @@ export function useDataViewFetcher<TData>({
 		error,
 		onRequestChange,
 	});
+	selectionRef.current = result.selection;
 
 	return {
 		...result,

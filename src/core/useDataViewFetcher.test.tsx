@@ -212,6 +212,24 @@ describe("optimistic reconciliation", () => {
 			expect(captured?.table.getRowCount()).toBe(1);
 		});
 
+		it("clears the removed row's selection", async () => {
+			// Arrange
+			const fetcher = makeFetcher();
+			render(<Harness fetcher={fetcher} revalidateDelay={50} />, { wrapper });
+			await waitFor(() => expect(captured?.status).toBe("success"));
+			act(() => captured?.selection.select("1"));
+			expect(captured?.selection.count).toBe(1);
+
+			// Act
+			await act(async () => {
+				captured?.removeRow("1");
+			});
+
+			// Assert
+			expect(captured?.selection.ids).not.toContain("1");
+			expect(captured?.selection.count).toBe(0);
+		});
+
 		it("is a no-op for unknown IDs", async () => {
 			const fetcher = makeFetcher();
 			render(<Harness fetcher={fetcher} revalidateDelay={5000} />, {
@@ -308,6 +326,99 @@ describe("optimistic reconciliation", () => {
 			});
 
 			expect(fetcher.mock.calls.length - callsAfterMount).toBe(1);
+		});
+
+		it("restores status to success when revalidation completes after invalidating an in-flight fetch", async () => {
+			// Arrange: mount resolves, the page-change fetch hangs, revalidation resolves.
+			let fetchCount = 0;
+			const fetcher = vi.fn((_r: DataViewRequest) => {
+				fetchCount++;
+				if (fetchCount === 1) {
+					return Promise.resolve({ rows: initialRows, rowCount: 20 });
+				}
+				if (fetchCount === 2) {
+					return new Promise<DataViewResponse<User>>(() => {});
+				}
+				return Promise.resolve({
+					rows: [{ id: "3", name: "Marie (server)" }],
+					rowCount: 20,
+				});
+			});
+			render(<Harness fetcher={fetcher} revalidateDelay={50} />, { wrapper });
+			await waitFor(() => expect(captured?.status).toBe("success"));
+			act(() => captured?.table.setPageIndex(1));
+			await waitFor(() => expect(captured?.status).toBe("loading"));
+
+			// Act: the optimistic mutation invalidates the hung fetch, then revalidation lands.
+			await act(async () => {
+				captured?.patchRow({ id: "1", name: "Ada (optimistic)" });
+			});
+			await waitFor(() => expect(captured?.isRevalidating).toBe(false), {
+				timeout: 3000,
+			});
+
+			// Assert
+			expect(captured?.status).toBe("success");
+			expect(screen.getByText("Marie (server)")).toBeVisible();
+		});
+
+		it("restores status to success when revalidation succeeds after an error", async () => {
+			// Arrange: the mount fetch fails, then revalidation succeeds.
+			let fetchCount = 0;
+			const fetcher = vi.fn(async () => {
+				fetchCount++;
+				if (fetchCount === 1) throw new Error("boom");
+				return { rows: [{ id: "3", name: "Marie" }], rowCount: 1 };
+			});
+			render(<Harness fetcher={fetcher} revalidateDelay={50} />, { wrapper });
+			await waitFor(() => expect(captured?.status).toBe("error"));
+
+			// Act
+			await act(async () => {
+				captured?.insertRow({ id: "9", name: "Optimist" });
+			});
+			await waitFor(() => expect(captured?.isRevalidating).toBe(false), {
+				timeout: 3000,
+			});
+
+			// Assert
+			expect(captured?.status).toBe("success");
+			expect(captured?.error).toBeUndefined();
+			expect(screen.getByText("Marie")).toBeVisible();
+		});
+
+		it("restores status to success when revalidation fails after invalidating an in-flight fetch", async () => {
+			// Arrange: mount resolves, the page-change fetch hangs, revalidation fails.
+			const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+			let fetchCount = 0;
+			const fetcher = vi.fn((_r: DataViewRequest) => {
+				fetchCount++;
+				if (fetchCount === 1) {
+					return Promise.resolve({ rows: initialRows, rowCount: 20 });
+				}
+				if (fetchCount === 2) {
+					return new Promise<DataViewResponse<User>>(() => {});
+				}
+				return Promise.reject(new Error("revalidation failed"));
+			});
+			render(<Harness fetcher={fetcher} revalidateDelay={50} />, { wrapper });
+			await waitFor(() => expect(captured?.status).toBe("success"));
+			act(() => captured?.table.setPageIndex(1));
+			await waitFor(() => expect(captured?.status).toBe("loading"));
+
+			// Act
+			await act(async () => {
+				captured?.patchRow({ id: "1", name: "Ada (optimistic)" });
+			});
+			await waitFor(() => expect(captured?.isRevalidating).toBe(false), {
+				timeout: 3000,
+			});
+
+			// Assert: the optimistic data is displayed, so the status must say so.
+			expect(captured?.status).toBe("success");
+			expect(captured?.error).toBeUndefined();
+			expect(screen.getByText("Ada (optimistic)")).toBeVisible();
+			warn.mockRestore();
 		});
 
 		it("keeps optimistic data when revalidation fails (stale-while-revalidate)", async () => {

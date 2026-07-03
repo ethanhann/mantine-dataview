@@ -51,6 +51,7 @@ interface SetupOverrides {
 	rowCount?: number;
 	status?: Status;
 	onRequestChange?: Mock<RequestFn>;
+	params?: Record<string, string>;
 }
 
 function setup(overrides: SetupOverrides = {}) {
@@ -65,6 +66,7 @@ function setup(overrides: SetupOverrides = {}) {
 		status: overrides.status ?? ("success" as Status),
 		getRowId: (u: User) => u.id,
 		onRequestChange,
+		params: overrides.params,
 	};
 	const utils = renderHook((props) => useDataView(props), {
 		initialProps,
@@ -142,6 +144,37 @@ describe("useDataView", () => {
 		// The pending search timer was cleared by the immediate emit, so nothing fires later.
 		act(() => vi.advanceTimersByTime(300));
 		expect(onRequestChange).toHaveBeenCalledTimes(2);
+	});
+
+	it("emits exactly once, already reset to the first page, when params change", () => {
+		// Arrange: the user is several pages in when an external param changes.
+		const onRequestChange = requestSpy();
+		const { result, rerender, initialProps } = setup({ onRequestChange });
+		act(() => result.current.table.setPageIndex(5));
+		const callsBefore = onRequestChange.mock.calls.length;
+
+		// Act
+		rerender({ ...initialProps, params: { tenant: "acme" } });
+
+		// Assert: no transient request for page 5 of the new result set.
+		expect(onRequestChange.mock.calls.length).toBe(callsBefore + 1);
+		const last = lastRequest(onRequestChange);
+		expect(last.params).toEqual({ tenant: "acme" });
+		expect(last.pagination.pageIndex).toBe(0);
+	});
+
+	it("emits exactly once when params change on the first page", () => {
+		// Arrange
+		const onRequestChange = requestSpy();
+		const { rerender, initialProps } = setup({ onRequestChange });
+		const callsBefore = onRequestChange.mock.calls.length;
+
+		// Act
+		rerender({ ...initialProps, params: { tenant: "acme" } });
+
+		// Assert: the reset render must not re-emit an identical request.
+		expect(onRequestChange.mock.calls.length).toBe(callsBefore + 1);
+		expect(lastRequest(onRequestChange).params).toEqual({ tenant: "acme" });
 	});
 
 	it("debounces column filter changes", () => {
@@ -391,9 +424,76 @@ describe("useDataView", () => {
 		expect(onRequestChange.mock.calls.length).toBe(callsBefore + 1);
 	});
 
+	it("clears the removed row's selection on the base hook", () => {
+		// Arrange
+		const { result } = setup();
+		act(() => result.current.selection.select("1"));
+		expect(result.current.selection.count).toBe(1);
+
+		// Act
+		act(() => result.current.removeRow("1"));
+
+		// Assert
+		expect(result.current.selection.count).toBe(0);
+	});
+
 	it("isRevalidating is always false on the base hook", () => {
 		const { result } = setup();
 		expect(result.current.isRevalidating).toBe(false);
+	});
+
+	it("notifies onStateChange with the proposed value for a controlled slice", () => {
+		// Arrange
+		const onStateChange = vi.fn<StateFn>();
+		const { result } = renderHook(
+			() =>
+				useDataView({
+					columns,
+					rows: [],
+					rowCount: 0,
+					status: "success",
+					getRowId: (u: User) => u.id,
+					state: { pagination: { pageIndex: 0, pageSize: 10 } },
+					onStateChange,
+				}),
+			{ wrapper },
+		);
+
+		// Act
+		act(() => result.current.table.setPageIndex(2));
+
+		// Assert
+		expect(onStateChange).toHaveBeenCalled();
+		expect(onStateChange.mock.calls.at(-1)?.[0].pagination.pageIndex).toBe(2);
+	});
+
+	it("keeps other controlled slices authoritative in the onStateChange snapshot", () => {
+		// Arrange
+		const onStateChange = vi.fn<StateFn>();
+		const { result } = renderHook(
+			() =>
+				useDataView({
+					columns,
+					rows: [],
+					rowCount: 0,
+					status: "success",
+					getRowId: (u: User) => u.id,
+					state: {
+						pagination: { pageIndex: 4, pageSize: 25 },
+						globalFilter: "ada",
+					},
+					onStateChange,
+				}),
+			{ wrapper },
+		);
+
+		// Act
+		act(() => result.current.table.setPageIndex(2));
+
+		// Assert
+		const snapshot = onStateChange.mock.calls.at(-1)?.[0];
+		expect(snapshot?.pagination).toEqual({ pageIndex: 2, pageSize: 25 });
+		expect(snapshot?.globalFilter).toBe("ada");
 	});
 
 	it("honors initialState and controlled state", () => {

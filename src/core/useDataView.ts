@@ -214,20 +214,32 @@ export function useDataView<TData>(
 			const nextInternal = { ...internalStateRef.current, ...patch };
 			internalStateRef.current = nextInternal;
 			setInternalState(nextInternal);
-			// Controlled slices always win over internal ones, so the emitted snapshot mirrors how
-			// `resolvedState` is composed.
-			onStateChange?.({ ...nextInternal, ...controlledStateRef.current });
+			// The notification reports the proposed next state: controlled slices stay
+			// authoritative for everything they own, except the slice this patch changes.
+			// The patch must compose last or a controlled consumer never sees the change
+			// it is being asked to commit.
+			onStateChange?.({
+				...nextInternal,
+				...controlledStateRef.current,
+				...patch,
+			});
 		},
 		[onStateChange],
 	);
 
 	// Ongoing URL writes plus the back and forward subscription. Hydration already happened above.
+	// The defaults honor `initialState`, so an app defaulting to e.g. 25 rows or the cards view
+	// keeps those out of every URL.
 	useUrlSync({
 		config: urlConfig,
 		state: resolvedState,
 		applyPatch,
 		getFilterMeta,
-		defaultPageSize: resolvePageSizeOptions(options)[0] ?? DEFAULT_PAGE_SIZE,
+		defaultPageSize:
+			options.initialState?.pagination?.pageSize ??
+			resolvePageSizeOptions(options)[0] ??
+			DEFAULT_PAGE_SIZE,
+		defaultView: options.initialState?.view ?? options.defaultView ?? "table",
 	});
 
 	// Changing what the server sees (sort, filter, or search) resets to the first page. This
@@ -422,7 +434,14 @@ export function useDataView<TData>(
 		const searchChanged = !!prev && prev.globalFilter !== request.globalFilter;
 		const filtersChanged = !!prev && prev.filters !== request.filters;
 		const windowChanged = !!prev && prev.window !== request.window;
-		const paginationChanged = !!prev && prev.pagination !== request.pagination;
+		// Pagination compares by value: the params-reset effect rebuilds the pagination object even
+		// when it already sits on the first page, and that identity change alone is not a new request.
+		const paginationChanged =
+			!!prev &&
+			(prev.pagination.pageIndex !== request.pagination.pageIndex ||
+				prev.pagination.pageSize !== request.pagination.pageSize);
+		const paramsChanged = !!prev && prev.params !== request.params;
+		const sortingChanged = !!prev && prev.sorting !== request.sorting;
 		const windowActive = request.window != null;
 		prevRequestRef.current = request;
 
@@ -459,8 +478,26 @@ export function useDataView<TData>(
 			prev.params === request.params;
 		const suppressed = !isFirst && windowActive && onlyPaginationChanged;
 
+		// A params change resets to the first page via an effect that has already run in this same
+		// flush. Emitting the in-between request would send the new params with the old page (possibly
+		// out of range) and then again with page 0. Skip it; the reset render emits.
+		const awaitingParamsReset =
+			paramsChanged && request.pagination.pageIndex !== 0;
+
+		// The request object is rebuilt whenever a slice's identity changes, but an identity change
+		// with equal values (the params-reset effect rebuilding an already-reset pagination) is not a
+		// new request. Without this guard that render would re-emit a duplicate fetch.
+		const nothingChanged =
+			!isFirst &&
+			!searchChanged &&
+			!filtersChanged &&
+			!windowChanged &&
+			!paginationChanged &&
+			!paramsChanged &&
+			!sortingChanged;
+
 		clearTimeout(timerRef.current);
-		if (suppressed) {
+		if (suppressed || awaitingParamsReset || nothingChanged) {
 			// Intentionally emit nothing.
 		} else if (shouldDebounce) {
 			timerRef.current = setTimeout(emit, delay);
@@ -647,10 +684,13 @@ export function useDataView<TData>(
 		[refetch],
 	);
 	const removeRow = useCallback(
-		(_id: string) => {
+		(id: string) => {
+			// A removed row must not linger in the id-keyed selection, where a bulk
+			// action would still submit it.
+			deselectIds(id);
 			refetch();
 		},
-		[refetch],
+		[deselectIds, refetch],
 	);
 
 	return {
