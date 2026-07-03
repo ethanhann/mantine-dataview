@@ -27,8 +27,9 @@ import { resolveFormatter } from "../../core/formatValue";
 import type { FacetData, ValueFacet } from "../../types/facets";
 import { FacetBuckets } from "./FacetBuckets";
 
-// @ts-expect-error CSS import has no type declarations
-import "@mantine/dates/styles.css";
+// Deliberately no `import "@mantine/dates/styles.css"` here: a bare CSS import in library code
+// would be forced on every consumer (and crash plain Node ESM). The README instructs apps to
+// import it alongside Mantine's other styles.
 
 type NumOrNull = number | null;
 
