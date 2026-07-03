@@ -23,7 +23,7 @@ export function DataBulkActions<TData>({
 	slots,
 	...paperProps
 }: DataBulkActionsProps<TData>) {
-	const { selection } = view;
+	const { selection, labels } = view;
 	if (selection.count === 0) return null;
 
 	return (
@@ -32,16 +32,16 @@ export function DataBulkActions<TData>({
 			p="xs"
 			radius="sm"
 			role="region"
-			aria-label="Bulk actions"
+			aria-label={labels.bulkActions}
 			{...paperProps}
 		>
 			<Group justify="space-between" wrap="wrap" gap="sm">
 				<Group gap="sm">
 					<Text size="sm" fw={500} aria-live="polite">
-						{selection.count} selected
+						{labels.selectedCount(selection.count)}
 					</Text>
 					<Button variant="subtle" size="xs" onClick={selection.clear}>
-						Clear
+						{labels.clearSelection}
 					</Button>
 				</Group>
 				{slots?.BulkActions && (

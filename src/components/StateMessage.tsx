@@ -40,14 +40,14 @@ export function ErrorContent<TData>({ view, slots }: StateProps<TData>) {
 			: null;
 	return (
 		<Stack align="center" gap="xs">
-			<Text c="red">Something went wrong.</Text>
+			<Text c="red">{view.labels.errorMessage}</Text>
 			{devMessage && (
 				<Text c="dimmed" size="xs" ta="center">
 					{devMessage}
 				</Text>
 			)}
 			<Button variant="light" size="xs" onClick={view.refetch}>
-				Retry
+				{view.labels.retry}
 			</Button>
 		</Stack>
 	);
@@ -62,12 +62,12 @@ export function EmptyContent<TData>({ view, slots }: StateProps<TData>) {
 	if (filtered) {
 		return (
 			<Stack align="center" gap="xs">
-				<Text c="dimmed">No matches.</Text>
+				<Text c="dimmed">{view.labels.noMatches}</Text>
 				<Button variant="subtle" size="xs" onClick={clearFilters}>
-					Clear filters
+					{view.labels.clearFilters}
 				</Button>
 			</Stack>
 		);
 	}
-	return <Text c="dimmed">No results.</Text>;
+	return <Text c="dimmed">{view.labels.noResults}</Text>;
 }

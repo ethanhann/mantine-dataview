@@ -3,10 +3,23 @@
 // with their own defaults and labels.
 
 import { Button, Group, SegmentedControl } from "@mantine/core";
+import type { DataViewLabels } from "../types/labels";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
 import { computeWindow, shiftWindow, windowMidpoint } from "./dateWindow";
 import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
+
+/** Maps the view's string dictionary to the per-level display labels the navs render. */
+export function levelLabels(
+	labels: DataViewLabels,
+): Record<ScheduleLevel, string> {
+	return {
+		day: labels.levelDay,
+		week: labels.levelWeek,
+		month: labels.levelMonth,
+		year: labels.levelYear,
+	};
+}
 
 export interface WindowNavProps<TData> {
 	view: UseDataViewReturn<TData>;
@@ -30,6 +43,7 @@ export function WindowNav<TData>({
 	selectorLabel,
 	disabled,
 }: WindowNavProps<TData>) {
+	const viewLabels = view.labels;
 	const window = view.state.window;
 	const level: ScheduleLevel = window?.level ?? defaultLevel;
 	const firstDayOfWeek = useFirstDayOfWeek();
@@ -55,7 +69,7 @@ export function WindowNav<TData>({
 					size="xs"
 					onClick={() => step(-1)}
 					disabled={disabled}
-					aria-label="Previous"
+					aria-label={viewLabels.previous}
 				>
 					‹
 				</Button>
@@ -65,14 +79,14 @@ export function WindowNav<TData>({
 					onClick={goToday}
 					disabled={disabled}
 				>
-					Today
+					{viewLabels.today}
 				</Button>
 				<Button
 					variant="default"
 					size="xs"
 					onClick={() => step(1)}
 					disabled={disabled}
-					aria-label="Next"
+					aria-label={viewLabels.next}
 				>
 					›
 				</Button>

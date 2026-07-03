@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Localization: a `labels` option on `useDataView`/`useDataViewFetcher` overrides any of the
+  built-in UI strings (toolbar, filter controls, sort and column menus, view switcher, selection,
+  bulk actions, state messages, pagination, and the schedule navigators), merged over the English
+  defaults and exposed as `view.labels`. `DataViewLabels` and `DEFAULT_LABELS` are exported.
+  Explicit per-component string props keep precedence.
+
 ### Fixed
 
 - Fully controlled state now works: `onStateChange` reports the proposed next state (the patch

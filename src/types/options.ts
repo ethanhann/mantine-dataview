@@ -12,6 +12,7 @@ import type {
 	DataColumnDef,
 } from "./column";
 import type { FacetData } from "./facets";
+import type { DataViewLabels } from "./labels";
 import type { DataViewRequest, FilterParam } from "./request";
 import type {
 	DataViewState,
@@ -97,6 +98,12 @@ export interface UseDataViewOptions<TData> {
 	facets?: Record<string, FacetData>;
 	/** External parameters included in every request. Changes trigger a refetch and reset pagination. */
 	params?: Record<string, FilterParam>;
+	/**
+	 * Overrides for the built-in UI strings, merged over the English defaults. The resolved
+	 * dictionary is exposed as `view.labels` and read by every component. Explicit per-component
+	 * string props still win over the dictionary.
+	 */
+	labels?: Partial<DataViewLabels>;
 }
 
 /** Current selection, derived from `rowSelection` keyed by `getRowId`. */
@@ -148,6 +155,8 @@ export interface UseDataViewReturn<TData> {
 	setWindow: (next: DataViewWindow) => void;
 	/** True when the responsive rule forces cards. */
 	isMobileForced: boolean;
+	/** The resolved UI string dictionary (consumer overrides merged over the English defaults). */
+	labels: DataViewLabels;
 	// The echoed inputs plus a derived render status let presentations stay thin projections.
 	status: Status;
 	error: unknown;

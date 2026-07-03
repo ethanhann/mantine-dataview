@@ -13,6 +13,7 @@ import {
 import { type Column, flexRender, type Header } from "@tanstack/react-table";
 import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
 import { useRowTransition } from "../../core/useRowTransition";
+import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
 import { SortIcon } from "../icons";
 import { Slot } from "../Slot";
@@ -140,7 +141,7 @@ export function DataTable<TData>({
 								style={{ width: SELECTION_COLUMN_WIDTH }}
 							>
 								<Checkbox
-									aria-label="Select row"
+									aria-label={view.labels.selectRow}
 									checked={row.getIsSelected()}
 									disabled={!row.getCanSelect()}
 									// Only sub-row-bearing rows can be partially selected; a leaf row that
@@ -259,7 +260,7 @@ export function DataTable<TData>({
 							{selectionEnabled && (
 								<Table.Th style={{ width: SELECTION_COLUMN_WIDTH }}>
 									<Checkbox
-										aria-label="Select all rows on this page"
+										aria-label={view.labels.selectAllRows}
 										checked={table.getIsAllPageRowsSelected()}
 										indeterminate={
 											table.getIsSomePageRowsSelected() &&
@@ -274,6 +275,7 @@ export function DataTable<TData>({
 									key={header.id}
 									header={header}
 									disabled={interactionDisabled}
+									labels={view.labels}
 								/>
 							))}
 						</Table.Tr>
@@ -309,9 +311,11 @@ function MessageBody({
 function HeaderCell<TData>({
 	header,
 	disabled,
+	labels,
 }: {
 	header: Header<TData, unknown>;
 	disabled?: boolean;
+	labels: DataViewLabels;
 }) {
 	const { column } = header;
 	const align = column.columnDef.meta?.align;
@@ -347,7 +351,7 @@ function HeaderCell<TData>({
 			{sortable ? (
 				<UnstyledButton
 					type="button"
-					aria-label={`Sort by ${headerText}`}
+					aria-label={labels.sortByColumn(headerText)}
 					onClick={column.getToggleSortingHandler()}
 					style={{
 						display: "inline-flex",
@@ -362,7 +366,7 @@ function HeaderCell<TData>({
 						<span
 							role="img"
 							style={{ fontSize: "0.7em", opacity: 0.6 }}
-							aria-label={`sort priority ${sortIndex + 1}`}
+							aria-label={labels.sortPriority(sortIndex + 1)}
 						>
 							{sortIndex + 1}
 						</span>

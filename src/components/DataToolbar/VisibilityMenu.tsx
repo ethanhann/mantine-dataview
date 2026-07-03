@@ -11,10 +11,17 @@ import {
 } from "@mantine/core";
 import type { Column } from "@tanstack/react-table";
 import { resolveColumnLabel } from "../../core/cardComposition";
+import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
 import { ChevronDownIcon, PinLeftIcon, PinRightIcon } from "../icons";
 
-function PinControls<TData>({ column }: { column: Column<TData> }) {
+function PinControls<TData>({
+	column,
+	labels,
+}: {
+	column: Column<TData>;
+	labels: DataViewLabels;
+}) {
 	if (!column.getCanPin()) return null;
 	const pinned = column.getIsPinned();
 	return (
@@ -23,7 +30,7 @@ function PinControls<TData>({ column }: { column: Column<TData> }) {
 				size="xs"
 				variant={pinned === "left" ? "filled" : "subtle"}
 				color={pinned === "left" ? "blue" : "gray"}
-				aria-label={`Pin ${resolveColumnLabel(column)} left`}
+				aria-label={labels.pinColumnLeft(resolveColumnLabel(column))}
 				onClick={() => column.pin(pinned === "left" ? false : "left")}
 			>
 				<PinLeftIcon />
@@ -32,7 +39,7 @@ function PinControls<TData>({ column }: { column: Column<TData> }) {
 				size="xs"
 				variant={pinned === "right" ? "filled" : "subtle"}
 				color={pinned === "right" ? "blue" : "gray"}
-				aria-label={`Pin ${resolveColumnLabel(column)} right`}
+				aria-label={labels.pinColumnRight(resolveColumnLabel(column))}
 				onClick={() => column.pin(pinned === "right" ? false : "right")}
 			>
 				<PinRightIcon />
@@ -48,6 +55,7 @@ export function VisibilityMenu<TData>({
 	view: UseDataViewReturn<TData>;
 	disabled?: boolean;
 }) {
+	const { labels } = view;
 	const columns = view.table.getAllLeafColumns().filter((c) => c.getCanHide());
 	if (columns.length === 0) return null;
 
@@ -59,7 +67,7 @@ export function VisibilityMenu<TData>({
 					rightSection={<ChevronDownIcon />}
 					disabled={disabled}
 				>
-					Columns
+					{labels.columns}
 				</Button>
 			</Menu.Target>
 			<Menu.Dropdown>
@@ -78,7 +86,7 @@ export function VisibilityMenu<TData>({
 									column.toggleVisibility(e.currentTarget.checked)
 								}
 							/>
-							<PinControls column={column} />
+							<PinControls column={column} labels={labels} />
 						</Group>
 					))}
 				</Stack>

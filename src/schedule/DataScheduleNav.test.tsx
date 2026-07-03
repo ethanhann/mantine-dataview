@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { col } from "../core/colBuilder";
 import { useDataView } from "../core/useDataView";
+import type { DataViewLabels } from "../types/labels";
 import type { DataViewWindow } from "../types/state";
 import { DataScheduleNav } from "./DataScheduleNav";
 import { computeWindow } from "./dateWindow";
@@ -17,13 +18,20 @@ interface Shift {
 }
 const columns = col<Shift>().text("name").build();
 
-function NavHarness({ initialWindow }: { initialWindow?: DataViewWindow }) {
+function NavHarness({
+	initialWindow,
+	labels,
+}: {
+	initialWindow?: DataViewWindow;
+	labels?: Partial<DataViewLabels>;
+}) {
 	const view = useDataView<Shift>({
 		columns,
 		rows: [],
 		rowCount: 0,
 		status: "success",
 		getRowId: (r) => r.id,
+		labels,
 		...(initialWindow ? { initialState: { window: initialWindow } } : {}),
 	});
 	return (
@@ -91,6 +99,30 @@ describe("DataScheduleNav", () => {
 		expect(w?.level).toBe("month");
 		// The month window is padded to whole Monday-weeks, so its start lands on a Monday.
 		expect(dayjs(w?.start).day()).toBe(1);
+	});
+
+	it("renders its strings from the view labels dictionary", () => {
+		// Arrange / Act
+		render(
+			<MantineProvider>
+				<NavHarness
+					labels={{
+						today: "Heute",
+						previous: "Zurück",
+						next: "Weiter",
+						levelWeek: "Woche",
+						calendarLevel: "Kalenderebene",
+					}}
+				/>
+			</MantineProvider>,
+		);
+
+		// Assert
+		expect(screen.getByRole("button", { name: "Heute" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Zurück" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Weiter" })).toBeInTheDocument();
+		expect(screen.getByRole("radio", { name: "Woche" })).toBeChecked();
+		expect(screen.getByLabelText("Kalenderebene")).toBeInTheDocument();
 	});
 
 	it("anchors a level switch inside the logical period of a padded window", async () => {

@@ -12,9 +12,9 @@ export interface ViewSwitcherProps<TData> {
 	lockSwitcherOnMobile?: boolean;
 	/** Disable the control (e.g. while data is loading). */
 	disabled?: boolean;
-	/** Custom label for the table option. Default: "Table". */
+	/** Custom label for the table option. Default: `view.labels.tableView`. */
 	tableLabel?: ReactNode;
-	/** Custom label for the cards option. Default: "Cards". */
+	/** Custom label for the cards option. Default: `view.labels.cardsView`. */
 	cardsLabel?: ReactNode;
 	/**
 	 * Opt-in presentations to append after the built-in table/cards options. Only their `id` and
@@ -27,22 +27,22 @@ export function ViewSwitcher<TData>({
 	view,
 	lockSwitcherOnMobile,
 	disabled,
-	tableLabel = "Table",
-	cardsLabel = "Cards",
+	tableLabel,
+	cardsLabel,
 	views,
 }: ViewSwitcherProps<TData>) {
 	if (view.isMobileForced && lockSwitcherOnMobile) return null;
 
 	const data = [
-		{ value: "table" as ViewMode, label: tableLabel },
-		{ value: "cards" as ViewMode, label: cardsLabel },
+		{ value: "table" as ViewMode, label: tableLabel ?? view.labels.tableView },
+		{ value: "cards" as ViewMode, label: cardsLabel ?? view.labels.cardsView },
 		...(views ?? []).map((v) => ({ value: v.id, label: v.label })),
 	];
 	const available = new Set<string>(data.map((d) => d.value));
 
 	const control = (
 		<SegmentedControl
-			aria-label="View"
+			aria-label={view.labels.view}
 			value={view.view}
 			disabled={disabled || view.isMobileForced}
 			onChange={(value) => {
@@ -55,7 +55,7 @@ export function ViewSwitcher<TData>({
 	// Explain why the control is inert when the responsive rule forces cards on small screens.
 	if (view.isMobileForced) {
 		return (
-			<Tooltip label="Cards are shown on small screens" withinPortal>
+			<Tooltip label={view.labels.cardsForcedOnMobile} withinPortal>
 				<span>{control}</span>
 			</Tooltip>
 		);

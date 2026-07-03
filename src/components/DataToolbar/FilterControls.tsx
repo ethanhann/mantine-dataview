@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { belowBreakpointQuery } from "../../core/useForceCards";
+import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
 import { CloseIcon, FilterIcon } from "../icons";
 import { FilterControl } from "./FilterControl";
@@ -31,13 +32,18 @@ function ClearFiltersButton<TData>({
 			leftSection={<CloseIcon />}
 			onClick={() => view.table.resetColumnFilters()}
 		>
-			Reset filters
+			{view.labels.resetFilters}
 		</Button>
 	);
 }
 
-function filterButtonLabel(activeCount: number): string {
-	return activeCount > 0 ? `Filters (${activeCount})` : "Filters";
+function filterButtonLabel(
+	labels: DataViewLabels,
+	activeCount: number,
+): string {
+	return activeCount > 0
+		? labels.filtersWithCount(activeCount)
+		: labels.filters;
 }
 
 function FilterStack<TData>({
@@ -103,6 +109,7 @@ export function FilterControls<TData>({
 			facet={view.facets[column.id]}
 			disabled={disabled}
 			size={size}
+			labels={view.labels}
 		/>
 	));
 	const activeCount = view.state.columnFilters.length;
@@ -118,12 +125,12 @@ export function FilterControls<TData>({
 					aria-haspopup="dialog"
 					aria-expanded={modalOpen}
 				>
-					{filterButtonLabel(activeCount)}
+					{filterButtonLabel(view.labels, activeCount)}
 				</Button>
 				<Drawer
 					opened={modalOpen}
 					onClose={close}
-					title="Filters"
+					title={view.labels.filters}
 					position="bottom"
 					size="auto"
 				>
@@ -161,7 +168,7 @@ export function FilterControls<TData>({
 					aria-haspopup="dialog"
 					aria-expanded={modalOpen}
 				>
-					{filterButtonLabel(activeCount)}
+					{filterButtonLabel(view.labels, activeCount)}
 				</Button>
 			</Popover.Target>
 			<Popover.Dropdown>

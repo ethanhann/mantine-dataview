@@ -910,6 +910,40 @@ Override loading, empty, and error states:
 A filtered-empty state is handled automatically. It shows a "clear filters" action so
 users can reset without manually removing each filter.
 
+## Localization
+
+Every built-in UI string is overridable through the `labels` option, merged over the English
+defaults. Plain strings cover static text and functions cover parameterized text:
+
+```tsx
+const view = useDataViewFetcher<User>({
+    columns,
+    getRowId,
+    fetcher,
+    labels: {
+        searchPlaceholder: "Suchen…",
+        columns: "Spalten",
+        noResults: "Keine Ergebnisse.",
+        selectedCount: (count) => `${count} ausgewählt`,
+        paginationRange: (start, end, total) => `${start} bis ${end} von ${total}`,
+    },
+});
+```
+
+The resolved dictionary is exposed as `view.labels`, and every component reads from it: toolbar,
+filter controls, sort and column menus, view switcher, selection checkboxes, bulk-action bar,
+state messages, pagination, and the schedule navigators. See the `DataViewLabels` type for the
+full key list; `DEFAULT_LABELS` exports the English defaults.
+
+Notes:
+
+- Explicit per-component string props (such as the toolbar's `searchPlaceholder` or the pager's
+  `pageSizeLabel`) still win over the dictionary.
+- Cell values already localize through `Intl` via `dataType` formatting and the
+  `format`/`formatDefaults` pipeline; boolean cell text is customized with a `format` function.
+- The standalone `FilterControl` defaults to English. Pass `labels={view.labels}` when placing it
+  outside the toolbar.
+
 ## URL state sync
 
 Router-agnostic. The default adapter uses the History API; memoize it once:

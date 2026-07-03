@@ -16,6 +16,7 @@ import {
 } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnFilterMeta, DataColumnDef } from "../types/column";
+import { resolveLabels } from "../types/labels";
 import type {
 	DebounceOptions,
 	UseDataViewOptions,
@@ -145,8 +146,10 @@ export function useDataView<TData>(
 		formatDefaults,
 		facets: facetsInput,
 		params: paramsInput,
+		labels: labelsInput,
 	} = options;
 
+	const labels = useMemo(() => resolveLabels(labelsInput), [labelsInput]);
 	const facets = facetsInput ?? {};
 	const paramsKey = paramsInput ? JSON.stringify(paramsInput) : "";
 	// Keep `params` reference-stable while its content is unchanged. Without this it would be a fresh
@@ -701,6 +704,7 @@ export function useDataView<TData>(
 		setView,
 		setWindow,
 		isMobileForced,
+		labels,
 		status,
 		error,
 		renderStatus,

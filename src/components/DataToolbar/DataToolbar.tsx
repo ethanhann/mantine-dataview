@@ -46,7 +46,7 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 
 export function DataToolbar<TData>({
 	view,
-	searchPlaceholder = "Search…",
+	searchPlaceholder,
 	filterInlineThreshold = 3,
 	lockSwitcherOnMobile,
 	showSearch,
@@ -60,7 +60,7 @@ export function DataToolbar<TData>({
 	views,
 	...groupProps
 }: DataToolbarProps<TData>) {
-	const { table, state } = view;
+	const { table, state, labels } = view;
 	const loading = disableWhileLoading && view.status === "loading";
 	// Sorting and column visibility are table/cards concepts; a windowed view (calendar/agenda/
 	// resources) has neither. Hide both there while keeping search, filters, and the switcher.
@@ -85,8 +85,8 @@ export function DataToolbar<TData>({
 				{leftSection}
 				{searchOn && (
 					<TextInput
-						aria-label="Search"
-						placeholder={searchPlaceholder}
+						aria-label={labels.search}
+						placeholder={searchPlaceholder ?? labels.searchPlaceholder}
 						leftSection={<SearchIcon />}
 						disabled={loading}
 						value={state.globalFilter ?? ""}
@@ -95,7 +95,7 @@ export function DataToolbar<TData>({
 							state.globalFilter ? (
 								<CloseButton
 									size="sm"
-									aria-label="Clear search"
+									aria-label={labels.clearSearch}
 									disabled={loading}
 									onClick={() => table.setGlobalFilter("")}
 								/>

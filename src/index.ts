@@ -89,6 +89,8 @@ export type {
 	ValueFacet,
 	ValueFacetEntry,
 } from "./types/facets";
+// Localization: the overridable UI string dictionary and its English defaults.
+export { type DataViewLabels, DEFAULT_LABELS } from "./types/labels";
 export type {
 	DataViewSelection,
 	DebounceOptions,

@@ -23,6 +23,7 @@ import {
 	composeCardLayout,
 } from "../../core/cardComposition";
 import { useRowTransition } from "../../core/useRowTransition";
+import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
 import { nextCardIndex } from "../nextCardIndex";
 import { Slot } from "../Slot";
@@ -164,6 +165,7 @@ export function DataCards<TData>({
 							row={row}
 							layout={layout}
 							selectionEnabled={selectionEnabled}
+							labels={view.labels}
 						/>
 					);
 					if (slots?.Card) {
@@ -252,10 +254,12 @@ function DefaultCardBody<TData>({
 	row,
 	layout,
 	selectionEnabled,
+	labels,
 }: {
 	row: Row<TData>;
 	layout: ReturnType<typeof composeCardLayout<TData>>;
 	selectionEnabled: boolean;
+	labels: DataViewLabels;
 }) {
 	const cellById = useMemo(
 		() => new Map(row.getAllCells().map((c) => [c.column.id, c])),
@@ -272,7 +276,7 @@ function DefaultCardBody<TData>({
 		<>
 			{selectionEnabled && (
 				<Checkbox
-					aria-label="Select card"
+					aria-label={labels.selectCard}
 					checked={row.getIsSelected()}
 					disabled={!row.getCanSelect()}
 					onChange={row.getToggleSelectedHandler()}

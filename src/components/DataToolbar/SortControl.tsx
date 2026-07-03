@@ -17,7 +17,7 @@ export function SortControl<TData>({
 	view: UseDataViewReturn<TData>;
 	disabled?: boolean;
 }) {
-	const { sortableColumns, state, table } = view;
+	const { sortableColumns, state, table, labels } = view;
 	const primary = state.sorting[0];
 	const data = sortableColumns.map((c) => ({
 		value: c.id,
@@ -27,8 +27,8 @@ export function SortControl<TData>({
 	return (
 		<Group gap={4} wrap="nowrap">
 			<Select
-				aria-label="Sort by"
-				placeholder="Sort by"
+				aria-label={labels.sortBy}
+				placeholder={labels.sortBy}
 				clearable
 				disabled={disabled}
 				data={data}
@@ -38,7 +38,7 @@ export function SortControl<TData>({
 				}
 			/>
 			<ActionIcon
-				aria-label="Toggle sort direction"
+				aria-label={labels.toggleSortDirection}
 				variant="default"
 				size="lg"
 				disabled={disabled || !primary}
