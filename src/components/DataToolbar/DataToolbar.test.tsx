@@ -132,6 +132,36 @@ describe("DataToolbar", () => {
 		expect(screen.queryByLabelText("Refreshing")).toBeNull();
 	});
 
+	it("reorders columns with the move buttons in the Columns popover", async () => {
+		// Arrange
+		renderToolbar();
+		const headerIds = () =>
+			screen
+				.getAllByRole("columnheader")
+				.map((h) => h.textContent)
+				.filter(Boolean);
+		expect(headerIds()).toEqual(["Name", "Email", "Status", "City"]);
+		await userEvent.click(screen.getByRole("button", { name: "Columns" }));
+
+		// Act
+		await userEvent.click(
+			await screen.findByRole("button", {
+				name: "Move Email up",
+				hidden: true,
+			}),
+		);
+
+		// Assert
+		expect(headerIds()).toEqual(["Email", "Name", "Status", "City"]);
+		// The first row's up button is disabled; the last row's down button too.
+		expect(
+			screen.getByRole("button", { name: "Move Email up", hidden: true }),
+		).toBeDisabled();
+		expect(
+			screen.getByRole("button", { name: "Move City down", hidden: true }),
+		).toBeDisabled();
+	});
+
 	it("exposes the columns dropdown as a labeled group, not an ARIA menu", async () => {
 		// Arrange: a role="menu" may only contain menu items; a checkbox list needs
 		// a labeled group inside a dialog instead.

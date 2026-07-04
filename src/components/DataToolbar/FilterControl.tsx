@@ -22,8 +22,10 @@ import {
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
 import type { Column } from "@tanstack/react-table";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { resolveColumnLabel } from "../../core/cardComposition";
 import { resolveFormatter } from "../../core/formatValue";
+import type { FilterOption } from "../../types/column";
 import type { FacetData, ValueFacet } from "../../types/facets";
 import { type DataViewLabels, DEFAULT_LABELS } from "../../types/labels";
 import { FacetBuckets } from "./FacetBuckets";
@@ -107,6 +109,55 @@ function facetSelectData(
 	return fallbackOptions ?? [];
 }
 
+const ASYNC_OPTIONS_DEBOUNCE_MS = 300;
+
+/**
+ * Loads server-provided options for `select`/`multiselect` filters: once with the empty query on
+ * mount, then reloaded as the user types (debounced). A newer request supersedes a slower older
+ * one, and a failed load keeps whatever was last shown.
+ */
+function useAsyncOptions(load?: (query: string) => Promise<FilterOption[]>) {
+	const [options, setOptions] = useState<FilterOption[] | null>(null);
+	const loadRef = useRef(load);
+	loadRef.current = load;
+	const idRef = useRef(0);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	const enabled = load != null;
+
+	const run = useCallback((query: string) => {
+		const fn = loadRef.current;
+		if (!fn) return;
+		const id = ++idRef.current;
+		fn(query).then(
+			(next) => {
+				if (id === idRef.current) setOptions(next);
+			},
+			() => {},
+		);
+	}, []);
+
+	useEffect(() => {
+		if (enabled) run("");
+		return () => clearTimeout(timerRef.current);
+	}, [enabled, run]);
+
+	const onSearchChange = useCallback(
+		(query: string) => {
+			clearTimeout(timerRef.current);
+			timerRef.current = setTimeout(
+				() => run(query),
+				ASYNC_OPTIONS_DEBOUNCE_MS,
+			);
+		},
+		[run],
+	);
+
+	return {
+		asyncOptions: enabled ? options : null,
+		searchProps: enabled ? { searchable: true, onSearchChange } : {},
+	};
+}
+
 export function FilterControl<TData>({
 	column,
 	facet,
@@ -122,6 +173,7 @@ export function FilterControl<TData>({
 	labels?: DataViewLabels;
 }) {
 	const meta = column.columnDef.meta?.filter;
+	const { asyncOptions, searchProps } = useAsyncOptions(meta?.loadOptions);
 	if (!meta) return null;
 
 	const label = resolveColumnLabel(column);
@@ -154,10 +206,11 @@ export function FilterControl<TData>({
 					placeholder={placeholder}
 					clearable
 					disabled={disabled}
+					{...searchProps}
 					data={
 						valueFacet
 							? facetSelectData(valueFacet, labels, meta.options)
-							: (meta.options ?? [])
+							: (asyncOptions ?? meta.options ?? [])
 					}
 					value={(value as string | undefined) ?? null}
 					onChange={(v) => set(v ?? undefined)}
@@ -170,10 +223,11 @@ export function FilterControl<TData>({
 					size={size}
 					placeholder={placeholder}
 					disabled={disabled}
+					{...searchProps}
 					data={
 						valueFacet
 							? facetSelectData(valueFacet, labels, meta.options)
-							: (meta.options ?? [])
+							: (asyncOptions ?? meta.options ?? [])
 					}
 					value={(value as string[] | undefined) ?? []}
 					onChange={(v) => set(v.length > 0 ? v : undefined)}

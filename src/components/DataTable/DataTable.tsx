@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { type Column, flexRender, type Header } from "@tanstack/react-table";
 import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
+import { resolveFormatter } from "../../core/formatValue";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
@@ -288,8 +289,60 @@ export function DataTable<TData>({
 					))}
 				</Table.Thead>
 				{renderBody()}
+				<SummaryFoot
+					view={view}
+					columns={leafColumns}
+					selectionEnabled={selectionEnabled}
+				/>
 			</Table>
 		</div>
+	);
+}
+
+/**
+ * Server-computed aggregates as a footer row. Values format like cells (by the column's
+ * `dataType`). The row stays outside the keyboard grid's roving model: it is not focusable and
+ * carries no `aria-rowindex`, matching a plain table footer.
+ */
+function SummaryFoot<TData>({
+	view,
+	columns,
+	selectionEnabled,
+}: {
+	view: UseDataViewReturn<TData>;
+	columns: Column<TData>[];
+	selectionEnabled: boolean;
+}) {
+	const { summary } = view;
+	if (!columns.some((c) => c.id in summary)) return null;
+	return (
+		<Table.Tfoot>
+			<Table.Tr>
+				{selectionEnabled && (
+					<Table.Td style={{ width: SELECTION_COLUMN_WIDTH }} />
+				)}
+				{columns.map((column) => {
+					const meta = column.columnDef.meta;
+					const raw = summary[column.id];
+					const formatted =
+						raw != null && meta?.dataType
+							? resolveFormatter(meta.dataType, meta.format, undefined)(raw)
+							: raw;
+					return (
+						<Table.Td
+							key={column.id}
+							fw={600}
+							style={{
+								...pinningStyle(column),
+								...(meta?.align ? { textAlign: meta.align } : undefined),
+							}}
+						>
+							{formatted == null ? null : String(formatted)}
+						</Table.Td>
+					);
+				})}
+			</Table.Tr>
+		</Table.Tfoot>
 	);
 }
 

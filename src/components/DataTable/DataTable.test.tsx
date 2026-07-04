@@ -181,6 +181,47 @@ describe("DataTable", () => {
 		expect(screen.getByTestId("dt").tagName).toBe("TABLE");
 	});
 
+	it("renders a summary footer with values formatted by column data type", () => {
+		// Arrange: server-computed aggregates keyed by column id.
+		function SummaryHarness() {
+			const view = useDataView<User>({
+				columns: [
+					helper.accessor("name", { header: "Name" }),
+					helper.accessor("age", {
+						header: "Age",
+						meta: { dataType: "currency", align: "right" },
+					}),
+				],
+				rows: sampleRows,
+				rowCount: sampleRows.length,
+				status: "success",
+				getRowId: (u) => u.id,
+				summary: { age: 1234.5 },
+			});
+			return <DataTable view={view} />;
+		}
+
+		// Act
+		render(
+			<MantineProvider>
+				<SummaryHarness />
+			</MantineProvider>,
+		);
+
+		// Assert: the footer formats the raw value like a cell would.
+		const footer = document.querySelector("tfoot");
+		expect(footer).not.toBeNull();
+		expect(footer).toHaveTextContent("$1,234.50");
+	});
+
+	it("renders no footer without summary data", () => {
+		// Arrange / Act
+		renderTable();
+
+		// Assert
+		expect(document.querySelector("tfoot")).toBeNull();
+	});
+
 	it("gives the keyboard grid a default accessible name", () => {
 		// Arrange / Act
 		renderTable();

@@ -92,6 +92,12 @@ export type ColumnFilterMeta =
 	| {
 			variant: FilterVariant;
 			options?: FilterOption[];
+			/**
+			 * Load options from the server for `select`/`multiselect` variants. Called with the empty
+			 * query on mount and with the debounced search text as the user types. Facet-provided
+			 * options still win while present, since they carry live counts.
+			 */
+			loadOptions?: (query: string) => Promise<FilterOption[]>;
 			placeholder?: string;
 			/** Min bound for `numberRange` variant. When both min and max are set, renders a RangeSlider. */
 			min?: number;
@@ -105,6 +111,7 @@ export type ColumnFilterMeta =
 			component: ComponentType<CustomFilterComponentProps>;
 			variant?: FilterVariant;
 			options?: FilterOption[];
+			loadOptions?: (query: string) => Promise<FilterOption[]>;
 			placeholder?: string;
 			min?: number;
 			max?: number;

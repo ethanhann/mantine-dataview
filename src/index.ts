@@ -56,10 +56,17 @@ export {
 } from "./core/cardComposition";
 // Fluent column builder.
 export { type ColOptions, ColumnBuilder, col } from "./core/colBuilder";
-// CSV export utility.
-export { type ExportCsvOptions, exportCsv } from "./core/exportCsv";
+// CSV and JSON export utilities.
+export {
+	type ExportCsvOptions,
+	type ExportJsonOptions,
+	exportCsv,
+	exportJson,
+} from "./core/exportCsv";
 // View mode helper for cell renderers.
 export { getViewMode } from "./core/getViewMode";
+// Preference persistence: the storage adapter contract and the localStorage implementation.
+export { localStorageAdapter } from "./core/persist";
 // Core hook.
 export { useDataView } from "./core/useDataView";
 // Optional wrapper that manages fetching.
@@ -99,6 +106,12 @@ export type {
 	UseDataViewOptions,
 	UseDataViewReturn,
 } from "./types/options";
+export type {
+	PersistableKey,
+	PersistedState,
+	PersistOptions,
+	StateStorageAdapter,
+} from "./types/persist";
 export type {
 	DataViewRequest,
 	DataViewResponse,

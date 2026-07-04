@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useDataView } from "../../core/useDataView";
 import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
@@ -442,5 +442,62 @@ describe("FilterControl", () => {
 		await user.click(screen.getByRole("button", { name: "clear" }));
 		// Assert
 		expect(readFilters()).toEqual([]);
+	});
+});
+
+describe("async filter options", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	const CITY_OPTIONS = [
+		{ value: "L", label: "London" },
+		{ value: "B", label: "Berlin" },
+	];
+
+	function cityColumn(
+		loadOptions: (q: string) => Promise<typeof CITY_OPTIONS>,
+	) {
+		return helper.accessor("name", {
+			meta: { label: "City", filter: { variant: "select", loadOptions } },
+		});
+	}
+
+	it("loads select options asynchronously on mount", async () => {
+		// Arrange
+		const loadOptions = vi.fn(async (_q: string) => CITY_OPTIONS);
+
+		// Act
+		renderFilter({ cols: [cityColumn(loadOptions)] });
+
+		// Assert: loaded with the empty query, options usable once resolved.
+		expect(loadOptions).toHaveBeenCalledWith("");
+		fireEvent.click(screen.getByRole("combobox", { name: "City" }));
+		expect(
+			await screen.findByRole("option", { name: "London", hidden: true }),
+		).toBeInTheDocument();
+		fireEvent.click(
+			screen.getByRole("option", { name: "Berlin", hidden: true }),
+		);
+		expect(filterValue("name")).toBe("B");
+	});
+
+	it("reloads options with the debounced search query", async () => {
+		// Arrange
+		vi.useFakeTimers();
+		const loadOptions = vi.fn(async (_q: string) => CITY_OPTIONS);
+		renderFilter({ cols: [cityColumn(loadOptions)] });
+		expect(loadOptions).toHaveBeenCalledTimes(1);
+
+		// Act: type into the searchable select; each keystroke resets the debounce.
+		const input = screen.getByRole("combobox", { name: "City" });
+		fireEvent.change(input, { target: { value: "lo" } });
+		fireEvent.change(input, { target: { value: "lon" } });
+		expect(loadOptions).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(300);
+
+		// Assert: one reload with the settled query.
+		expect(loadOptions).toHaveBeenCalledTimes(2);
+		expect(loadOptions).toHaveBeenLastCalledWith("lon");
 	});
 });

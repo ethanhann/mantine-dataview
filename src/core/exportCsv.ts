@@ -99,11 +99,57 @@ export function exportCsv<TData>(
 
 	// RFC 4180 row terminator.
 	const csv = [header, ...rows].map((r) => r.join(separator)).join("\r\n");
-	const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+	downloadFile(
+		csv,
+		"text/csv;charset=utf-8;",
+		ensureExtension(filename, "csv"),
+	);
+}
+
+export interface ExportJsonOptions {
+	filename?: string;
+}
+
+/**
+ * Downloads the current page's visible columns as a JSON array of objects keyed by column id.
+ * Values are raw (machine-facing), matching `exportCsv`'s default.
+ */
+export function exportJson<TData>(
+	table: Table<TData>,
+	options?: ExportJsonOptions,
+): void {
+	if (typeof document === "undefined") {
+		throw new Error(
+			"exportJson requires a browser environment (document is undefined).",
+		);
+	}
+	const { filename = "export.json" } = options ?? {};
+	const columns = table
+		.getVisibleLeafColumns()
+		.filter((c) => c.id !== "_select");
+	if (columns.length === 0) return;
+	const rows = table.getRowModel().rows.map((row) => {
+		const record: Record<string, unknown> = {};
+		for (const col of columns) record[col.id] = row.getValue(col.id);
+		return record;
+	});
+	downloadFile(
+		JSON.stringify(rows, null, "\t"),
+		"application/json;charset=utf-8;",
+		ensureExtension(filename, "json"),
+	);
+}
+
+function ensureExtension(filename: string, ext: string): string {
+	return filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`;
+}
+
+function downloadFile(content: string, type: string, filename: string): void {
+	const blob = new Blob([content], { type });
 	const url = URL.createObjectURL(blob);
 	const link = document.createElement("a");
 	link.href = url;
-	link.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+	link.download = filename;
 	// Some browsers (notably Firefox) require the anchor to be in the document
 	// for a synthetic click to trigger the download.
 	document.body.appendChild(link);

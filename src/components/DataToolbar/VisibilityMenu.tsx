@@ -16,7 +16,64 @@ import type { Column } from "@tanstack/react-table";
 import { resolveColumnLabel } from "../../core/cardComposition";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
-import { ChevronDownIcon, PinLeftIcon, PinRightIcon } from "../icons";
+import {
+	ChevronDownIcon,
+	ChevronUpIcon,
+	PinLeftIcon,
+	PinRightIcon,
+} from "../icons";
+
+/** Move a column one position up or down within the materialized leaf order. */
+function MoveControls<TData>({
+	view,
+	column,
+	index,
+	count,
+	labels,
+}: {
+	view: UseDataViewReturn<TData>;
+	column: Column<TData>;
+	index: number;
+	count: number;
+	labels: DataViewLabels;
+}) {
+	const name = resolveColumnLabel(column);
+	const move = (delta: -1 | 1) => {
+		// The materialized order (definition order until the user reorders) is the mutation base,
+		// so the first move works even while `columnOrder` state is still empty.
+		const order = view.table.getAllLeafColumns().map((c) => c.id);
+		const from = order.indexOf(column.id);
+		const to = from + delta;
+		if (from === -1 || to < 0 || to >= order.length) return;
+		const next = [...order];
+		next.splice(to, 0, next.splice(from, 1)[0] as string);
+		view.table.setColumnOrder(next);
+	};
+	return (
+		<Group gap={2}>
+			<ActionIcon
+				size="xs"
+				variant="subtle"
+				color="gray"
+				aria-label={labels.moveColumnUp(name)}
+				disabled={index === 0}
+				onClick={() => move(-1)}
+			>
+				<ChevronUpIcon />
+			</ActionIcon>
+			<ActionIcon
+				size="xs"
+				variant="subtle"
+				color="gray"
+				aria-label={labels.moveColumnDown(name)}
+				disabled={index === count - 1}
+				onClick={() => move(1)}
+			>
+				<ChevronDownIcon />
+			</ActionIcon>
+		</Group>
+	);
+}
 
 function PinControls<TData>({
 	column,
@@ -85,7 +142,7 @@ export function VisibilityMenu<TData>({
 			</Popover.Target>
 			<Popover.Dropdown>
 				<Stack gap="xs" role="group" aria-label={labels.columns}>
-					{columns.map((column) => (
+					{columns.map((column, index) => (
 						<Group
 							key={column.id}
 							gap="xs"
@@ -99,7 +156,16 @@ export function VisibilityMenu<TData>({
 									column.toggleVisibility(e.currentTarget.checked)
 								}
 							/>
-							<PinControls column={column} labels={labels} />
+							<Group gap={2} wrap="nowrap">
+								<MoveControls
+									view={view}
+									column={column}
+									index={index}
+									count={columns.length}
+									labels={labels}
+								/>
+								<PinControls column={column} labels={labels} />
+							</Group>
 						</Group>
 					))}
 				</Stack>

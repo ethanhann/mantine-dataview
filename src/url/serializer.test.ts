@@ -30,6 +30,7 @@ const base: DataViewState = {
 	columnVisibility: {},
 	columnPinning: { left: [], right: [] },
 	columnSizing: {},
+	columnOrder: [],
 	view: "table",
 };
 

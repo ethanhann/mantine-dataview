@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Testing utilities at `@ethanhann/mantine-dataview/testing`: `createMockFetcher(rows, options)`
+  answers requests in-memory (heuristic filters, global search, sort, pagination, optional
+  latency/facets/summary) and `buildResponse(rows, overrides)` derives `rowCount`.
+
+- Column reordering: move up/down buttons per column in the Columns dropdown, driving a new
+  `columnOrder` state slice (seedable via `initialState`, persisted by the preference adapter).
+  Accessible names come from `labels.moveColumnUp`/`moveColumnDown`.
+
+- Async filter options: `loadOptions(query)` on `select`/`multiselect` filter meta loads options
+  from the server, once on mount and reloaded with the debounced search text (the control becomes
+  searchable). Facet options keep precedence while present.
+
+- Export-all support: `view.exportRequest` is the current request without pagination, ready to
+  hand to a backend export endpoint. Client-side JSON export joins CSV: `view.exportJson()` and
+  the standalone `exportJson` download the current page keyed by column id.
+
+- Summary aggregates: an optional `summary` field on `DataViewResponse` (raw values keyed by
+  column id, following the `facets` pattern) renders as a table footer row and a card-grid
+  summary block, formatted by each column's `dataType`. Exposed raw as `view.summary`.
+
+- Preference persistence: `persist: { adapter, include? }` on `useDataView`/`useDataViewFetcher`
+  saves column visibility, pinning, sizing, and page size across sessions. Ships with
+  `localStorageAdapter(key)` (including cross-tab sync via storage events); implement
+  `StateStorageAdapter` for server-stored preferences. Hydration order is defaults, then
+  `initialState`, then storage, then the URL. Writes are debounced, malformed stored values are
+  dropped field by field, and ephemeral slices (page index, sort, filters, search, selection) are
+  never persisted.
+
+- SSR support: the build output carries the `"use client"` directive, so imports work directly
+  from React Server Components (Next.js App Router), and `initialData` on `useDataViewFetcher`
+  seeds server-fetched rows, skipping both the first-load skeleton and the duplicate mount fetch.
+- A Scope positions README section documenting deliberate non-goals and contracts: inline editing,
+  virtualization (with a page-size ceiling), per-variant filter operator semantics, planned cursor
+  pagination, browser-local schedule times, and the RTL limitation (full rationale in
+  `data/roadmap-decisions.md`).
+
 - Column resizing: `enableColumnResizing` on `useDataView`/`useDataViewFetcher` adds drag handles
   to the table's header edges (live resize, double-click to reset a column, per-column opt-out via
   TanStack's `enableResizing: false`). Widths are tracked in `state.columnSizing` and can be

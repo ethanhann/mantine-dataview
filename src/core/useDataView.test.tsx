@@ -496,6 +496,47 @@ describe("useDataView", () => {
 		expect(snapshot?.globalFilter).toBe("ada");
 	});
 
+	it("tracks column order state", () => {
+		// Arrange
+		const { result } = setup();
+		expect(result.current.state.columnOrder).toEqual([]);
+
+		// Act
+		act(() =>
+			result.current.table.setColumnOrder(["status", "name", "actions"]),
+		);
+
+		// Assert
+		expect(result.current.state.columnOrder).toEqual([
+			"status",
+			"name",
+			"actions",
+		]);
+		expect(
+			result.current.table.getVisibleLeafColumns().map((c) => c.id),
+		).toEqual(["status", "name", "actions"]);
+	});
+
+	it("exposes exportRequest as the current request without pagination", () => {
+		// Arrange
+		const { result } = setup();
+		act(() => result.current.table.setPageIndex(3));
+		act(() =>
+			result.current.table.setColumnFilters([
+				{ id: "status", value: "active" },
+			]),
+		);
+
+		// Act
+		const exportRequest = result.current.exportRequest;
+
+		// Assert: everything the server needs to reproduce the result set, minus the page.
+		expect(exportRequest).not.toHaveProperty("pagination");
+		expect(exportRequest.filters).toEqual([{ id: "status", value: "active" }]);
+		expect(exportRequest.globalFilter).toBe("");
+		expect(exportRequest.sorting).toEqual([]);
+	});
+
 	it("keeps columns non-resizable by default", () => {
 		// Arrange / Act
 		const { result } = setup();

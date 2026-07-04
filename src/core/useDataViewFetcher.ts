@@ -43,6 +43,12 @@ export interface UseDataViewFetcherOptions<TData>
 	 * fetch (nothing to keep) and errors behave as usual. Default `false`.
 	 */
 	keepPreviousData?: boolean;
+	/**
+	 * Server-rendered (or otherwise pre-fetched) data to seed the view with. It must answer the
+	 * initial request: the mount fetch is skipped entirely, so there is no first-load skeleton and
+	 * no duplicate of the fetch the server already performed. Every later change fetches normally.
+	 */
+	initialData?: DataViewResponse<NoInfer<TData>>;
 }
 
 export function useDataViewFetcher<TData>({
@@ -50,13 +56,15 @@ export function useDataViewFetcher<TData>({
 	deps,
 	revalidateDelay = DEFAULT_REVALIDATE_DELAY_MS,
 	keepPreviousData = false,
+	initialData,
 	...options
 }: UseDataViewFetcherOptions<TData>): UseDataViewReturn<TData> {
-	const [response, setResponse] = useState<DataViewResponse<TData>>({
-		rows: [],
-		rowCount: 0,
-	});
-	const [status, setStatus] = useState<Status>("idle");
+	const [response, setResponse] = useState<DataViewResponse<TData>>(
+		() => initialData ?? { rows: [], rowCount: 0 },
+	);
+	const [status, setStatus] = useState<Status>(
+		initialData ? "success" : "idle",
+	);
 	const [error, setError] = useState<unknown>(undefined);
 	const [isRevalidating, setIsRevalidating] = useState(false);
 	const [isFetching, setIsFetching] = useState(false);
@@ -69,7 +77,9 @@ export function useDataViewFetcher<TData>({
 	// responses stop consuming the wire.
 	const abortRef = useRef<AbortController | null>(null);
 	// Whether a successful response has landed, i.e. there is something to keep on screen.
-	const hasDataRef = useRef(false);
+	const hasDataRef = useRef(initialData != null);
+	// Seeded data answers the initial request, so the mount emission must not fetch again.
+	const skipMountFetchRef = useRef(initialData != null);
 	const keepPreviousDataRef = useRef(keepPreviousData);
 	keepPreviousDataRef.current = keepPreviousData;
 
@@ -88,6 +98,10 @@ export function useDataViewFetcher<TData>({
 	const onRequestChange = useCallback(
 		async (request: DataViewRequest) => {
 			lastRequestRef.current = request;
+			if (skipMountFetchRef.current) {
+				skipMountFetchRef.current = false;
+				return;
+			}
 			const signal = nextAbortSignal();
 			const id = ++requestIdRef.current;
 			setIsFetching(true);
@@ -262,6 +276,7 @@ export function useDataViewFetcher<TData>({
 		rows: response.rows,
 		rowCount: response.rowCount,
 		facets: response.facets,
+		summary: response.summary,
 		status,
 		error,
 		onRequestChange,

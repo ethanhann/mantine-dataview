@@ -10,7 +10,13 @@ export default defineConfig({
 		react(),
 		dts({
 			include: ["src"],
-			exclude: ["src/**/*.stories.tsx", "src/**/*.test.{ts,tsx}"],
+			// `src/stories/**` covers the story helper modules (data.tsx etc.), whose
+			// d.ts would otherwise ship in the package.
+			exclude: [
+				"src/stories/**",
+				"src/**/*.stories.tsx",
+				"src/**/*.test.{ts,tsx}",
+			],
 			tsconfigPath: "./tsconfig.build.json",
 			// unplugin-dts mirrors the `src/` tree under dist; flatten it so the
 			// emitted `.d.ts` paths line up with package.json `exports`.
@@ -47,6 +53,7 @@ export default defineConfig({
 				index: resolve(__dirname, "src/index.ts"),
 				"url/index": resolve(__dirname, "src/url/index.ts"),
 				"schedule/index": resolve(__dirname, "src/schedule/index.ts"),
+				"testing/index": resolve(__dirname, "src/testing/index.ts"),
 			},
 			formats: ["es"],
 			fileName: (_format, entryName) => `${entryName}.js`,
@@ -67,6 +74,9 @@ export default defineConfig({
 			],
 			output: {
 				preserveModules: false,
+				// Every export uses hooks, so mark the chunks as client modules for React
+				// Server Component bundlers (Next.js App Router imports then just work).
+				banner: '"use client";',
 			},
 		},
 		sourcemap: true,

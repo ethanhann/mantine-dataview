@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { exportCsv } from "./exportCsv";
+import { exportCsv, exportJson } from "./exportCsv";
 
 function mockTable(
 	columns: { id: string; label: string; meta?: Record<string, unknown> }[],
@@ -243,6 +243,32 @@ describe("exportCsv", () => {
 
 		exportCsv(table, { filename: "report" });
 		expect(cap.link.download).toBe("report.csv");
+		cap.restore();
+	});
+
+	it("exports the current page as JSON keyed by column id", () => {
+		// Arrange
+		const cap = captureExport();
+		const table = mockTable(
+			[
+				{ id: "name", label: "Name" },
+				{ id: "age", label: "Age" },
+			],
+			[
+				{ name: "Ada", age: 30 },
+				{ name: "Linus", age: 55 },
+			],
+		);
+
+		// Act
+		exportJson(table, { filename: "people" });
+
+		// Assert
+		expect(JSON.parse(cap.csv)).toEqual([
+			{ name: "Ada", age: 30 },
+			{ name: "Linus", age: 55 },
+		]);
+		expect(cap.link.download).toBe("people.json");
 		cap.restore();
 	});
 

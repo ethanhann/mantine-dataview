@@ -532,6 +532,26 @@ import {exportCsv} from "@ethanhann/mantine-dataview";
 exportCsv(view.table, {filename: "report.csv"});
 ```
 
+### JSON export
+
+`view.exportJson()` (and the standalone `exportJson`) downloads the current page's visible
+columns as a JSON array of objects keyed by column id, with raw values:
+
+```tsx
+view.exportJson({filename: "users"});
+```
+
+### Exporting all pages
+
+Client-side export covers the current page only, since the client never holds the full set.
+For export-all, `view.exportRequest` is the current request without pagination: everything the
+server needs to reproduce the full result set (sort, filters, search, params). Hand it to a
+backend export endpoint:
+
+```tsx
+<Button onClick={() => api.downloadCsv(view.exportRequest)}>Export all</Button>
+```
+
 ## Column resizing
 
 Enable drag handles on the table's header edges with `enableColumnResizing`:
@@ -553,6 +573,13 @@ const view = useDataViewFetcher<User>({
 - Opt a column out with TanStack's `enableResizing: false` on its def.
 - Resizing is pointer-driven (mouse and touch). The handles are not in the tab order.
 - Column widths are intentionally not URL-synced, like visibility and pinning.
+
+## Column reordering
+
+The **Columns** dropdown includes move up/down buttons next to each column, driving TanStack's
+`columnOrder` state. Seed an order via `initialState: { columnOrder: ["status", "name"] }` or
+programmatically with `view.table.setColumnOrder([...])`. The order persists with the
+[preference persistence](#preference-persistence) adapter. Drag-to-reorder is not offered.
 
 ## Column pinning
 
@@ -613,6 +640,30 @@ meta: {filter: {variant: "numberRange"}}
 // Date range
 meta: {filter: {variant: "dateRange"}}
 ```
+
+### Async filter options
+
+Load `select`/`multiselect` options from the server with `loadOptions`. It is called with the
+empty query on mount and with the debounced search text as the user types (the control becomes
+searchable automatically):
+
+```tsx
+col.accessor("city", {
+    header: "City",
+    meta: {
+        filter: {
+            variant: "select",
+            loadOptions: async (query) => {
+                const res = await fetch(`/api/cities?q=${encodeURIComponent(query)}`);
+                return res.json(); // FilterOption[]: { value, label }[]
+            },
+        },
+    },
+});
+```
+
+Facet-provided options still win while present, since they carry live counts. A failed load
+keeps the last options shown.
 
 ### Custom filter component
 
@@ -742,6 +793,27 @@ type RangeFacet = {
     max?: number | string;
 };
 ```
+
+## Summary aggregates
+
+Return a `summary` object from the server (keyed by column id, raw values) and the table
+renders it as a footer row while the card grid shows a summary block. Values format by the
+column's `dataType`, like cells:
+
+```tsx
+fetcher: async (request) => {
+    const res = await api.list(request);
+    return {
+        rows: res.items,
+        rowCount: res.total,
+        summary: {salary: res.totals.salary, age: res.totals.avgAge},
+    };
+};
+```
+
+Only visible columns with a summary entry render. Like `facets`, the data updates on every
+fetch, so aggregates reflect the active filters. `view.summary` exposes the raw record for
+custom presentations.
 
 ## Card composition
 
@@ -965,6 +1037,32 @@ Notes:
   `format`/`formatDefaults` pipeline; boolean cell text is customized with a `format` function.
 - The standalone `FilterControl` defaults to English. Pass `labels={view.labels}` when placing it
   outside the toolbar.
+
+## Preference persistence
+
+Persist the user's layout choices (column visibility, pinning, sizing, and page size) across
+sessions with a storage adapter:
+
+```tsx
+import {localStorageAdapter} from "@ethanhann/mantine-dataview";
+
+const persist = useMemo(() => ({adapter: localStorageAdapter("users-table")}), []);
+const view = useDataViewFetcher<User>({columns, getRowId, fetcher, persist});
+```
+
+- Hydration order on mount: defaults, then `initialState`, then storage, then the URL. An
+  explicit URL always wins over a stored preference.
+- Writes are debounced (250ms), so a resize drag lands as one write.
+- The page index, sort, filters, search, and selection are deliberately not persisted. The URL
+  is their share-and-restore mechanism.
+- Restrict what persists with `persist.include`, e.g. `["columnVisibility", "columnSizing"]`.
+- A stored page size acts as the effective default, so it stays out of clean URLs.
+- Bump the storage key (e.g. `"users-table.v2"`) when your column set changes incompatibly;
+  malformed or stale values are dropped field by field.
+
+Implement `StateStorageAdapter` (`read`, `write`, optional `subscribe` for cross-tab updates)
+to store preferences elsewhere, such as per-user settings on your server. The built-in
+`localStorageAdapter` signals cross-tab changes automatically.
 
 ## URL state sync
 
@@ -1504,6 +1602,77 @@ Passed via the `slots` prop on `DataViewer` or the presentation components:
 | `Row`          | `{ row, cells, rowProps }`          | Wrap each table row        |
 | `Card`         | `{ row, data, selected, children }` | Wrap each card             |
 | `BulkActions`  | `{ count, ids, pageRows, clear }`   | Bulk action bar content    |
+
+## Testing your integration
+
+The `/testing` subpath ships an in-memory fetcher and a response builder for app tests and
+Storybook fixtures:
+
+```tsx
+import {buildResponse, createMockFetcher} from "@ethanhann/mantine-dataview/testing";
+
+const fetcher = createMockFetcher(FIXTURE_USERS, {
+    latency: 50, // exercise loading states
+    summary: (rows) => ({salary: rows.reduce((n, u) => n + u.salary, 0)}),
+});
+
+const view = useDataViewFetcher<User>({columns, getRowId, fetcher});
+```
+
+`createMockFetcher` answers requests from the fixed row set: filters (interpreted heuristically
+by value shape: string is contains, array is membership, a numeric pair is a range), global
+search over string fields, multi-column sort, then pagination, with `rowCount` reflecting the
+filtered total. The heuristics are for tests, not a semantic contract; a real server owns
+interpretation. `buildResponse(rows, overrides?)` derives `rowCount` for hand-rolled responses.
+
+## Server-side rendering
+
+The build output carries the `"use client"` directive, so importing any component or hook from
+a React Server Component (Next.js App Router) works without a wrapper module. The library
+renders on the client; the server's job is to provide the first page of data.
+
+Seed that server-fetched page with `initialData` so the first paint shows rows instead of the
+loading skeleton, and the mount fetch (a duplicate of what the server already did) is skipped:
+
+```tsx
+// app/users/page.tsx (server component)
+export default async function UsersPage() {
+    const first = await api.list({page: 1, size: 10});
+    return <UsersTable initialData={{rows: first.items, rowCount: first.total}}/>;
+}
+
+// users-table.tsx (client component by virtue of the import)
+"use client";
+export function UsersTable({initialData}: {initialData: DataViewResponse<User>}) {
+    const view = useDataViewFetcher<User>({columns, getRowId, fetcher, initialData});
+    return <DataViewer view={view}/>;
+}
+```
+
+`initialData` must answer the initial request (the default or `initialState`-seeded page, sort,
+and filters). Every later change fetches normally, and `refetch()` works immediately.
+
+## Scope positions
+
+Deliberate positions on commonly requested capabilities, so scope questions have one answer
+(full rationale in `data/roadmap-decisions.md`):
+
+- **Inline cell editing is out of scope.** The supported editing pattern is a detail panel or
+  modal paired with the reconciliation primitives (`patchRow`, `insertRow`, `removeRow`), which
+  reflects a write instantly and reconciles with server truth in the background.
+- **Virtualization is out of scope.** Server pagination keeps pages small by design. Keep page
+  sizes at or below roughly 100 rows; row transitions and keyboard navigation assume fully
+  rendered pages.
+- **Filter operators are implied by the variant.** `text` is contains-style, `select` /
+  `multiselect` / `boolean` are equality or membership, and the range variants are between.
+  The server owns interpretation. For an operator-picking UI, use a custom filter component.
+- **Cursor pagination is planned, not available.** `pagination` is index-based today; a
+  cursor-paged backend cannot be mapped onto it statelessly. The contract will gain an additive
+  cursor slice in a future release.
+- **Schedule times are browser-local.** Date windows and event times render in the browser's
+  timezone. Named-timezone rendering awaits downstream `@mantine/schedule` support.
+- **RTL is untested.** Column pinning uses physical left/right offsets and card arrow-key
+  navigation is physical, so right-to-left locales will have inverted affordances.
 
 ## Development
 

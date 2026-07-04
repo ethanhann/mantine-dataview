@@ -119,6 +119,8 @@ export interface DataViewState {
 	columnPinning: DataViewColumnPinning;
 	/** Pixel widths of user-resized columns, keyed by column id. Empty until a column is resized. */
 	columnSizing: Record<string, number>;
+	/** Explicit column order by id. Empty means the column definition order. */
+	columnOrder: string[];
 	view: ViewMode;
 	/** Visible date range. Set only while a schedule presentation is mounted; otherwise absent. */
 	window?: DataViewWindow;

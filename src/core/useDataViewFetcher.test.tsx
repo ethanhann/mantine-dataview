@@ -209,6 +209,93 @@ describe("keepPreviousData", () => {
 	});
 });
 
+describe("summary passthrough", () => {
+	it("exposes the response summary on the view", async () => {
+		// Arrange
+		const fetcher = vi.fn(async () => ({
+			rows: [{ id: "1", name: "Ada" }],
+			rowCount: 1,
+			summary: { name: "1 person" },
+		}));
+
+		// Act
+		render(<Harness fetcher={fetcher} />, { wrapper });
+
+		// Assert
+		await waitFor(() => expect(captured?.status).toBe("success"));
+		expect(captured?.summary).toEqual({ name: "1 person" });
+	});
+});
+
+describe("initialData", () => {
+	function SeededHarness({
+		fetcher,
+	}: {
+		fetcher: (r: DataViewRequest) => Promise<DataViewResponse<User>>;
+	}) {
+		const view = useDataViewFetcher<User>({
+			columns,
+			getRowId: (u) => u.id,
+			fetcher,
+			initialData: { rows: [{ id: "1", name: "Ada (server)" }], rowCount: 1 },
+		});
+		captured = view;
+		return <DataTable view={view} />;
+	}
+
+	it("renders seeded data immediately and skips the mount fetch", () => {
+		// Arrange
+		const fetcher = vi.fn(async () => ({
+			rows: [] as User[],
+			rowCount: 0,
+		}));
+
+		// Act
+		render(<SeededHarness fetcher={fetcher} />, { wrapper });
+
+		// Assert: no first-load skeleton and no wasted duplicate of the SSR fetch.
+		expect(screen.getByText("Ada (server)")).toBeVisible();
+		expect(captured?.status).toBe("success");
+		expect(fetcher).not.toHaveBeenCalled();
+	});
+
+	it("fetches normally on the first state change after seeding", async () => {
+		// Arrange
+		const fetcher = vi.fn(async (r: DataViewRequest) => ({
+			rows: [{ id: "2", name: `Page ${r.pagination.pageIndex + 1}` }],
+			rowCount: 20,
+		}));
+		render(<SeededHarness fetcher={fetcher} />, { wrapper });
+
+		// Act
+		act(() => captured?.table.setPageIndex(1));
+
+		// Assert
+		await waitFor(() => expect(screen.getByText("Page 2")).toBeVisible());
+		expect(fetcher).toHaveBeenCalledTimes(1);
+		expect(fetcher.mock.calls[0]?.[0].pagination.pageIndex).toBe(1);
+	});
+
+	it("refetch() fetches even when seeded", async () => {
+		// Arrange
+		const fetcher = vi.fn(async () => ({
+			rows: [{ id: "3", name: "Fresh" }],
+			rowCount: 1,
+		}));
+		render(<SeededHarness fetcher={fetcher} />, { wrapper });
+		expect(fetcher).not.toHaveBeenCalled();
+
+		// Act
+		await act(async () => {
+			captured?.refetch();
+		});
+
+		// Assert
+		await waitFor(() => expect(screen.getByText("Fresh")).toBeVisible());
+		expect(fetcher).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe("fetch cancellation", () => {
 	it("passes an AbortSignal and aborts a superseded fetch", async () => {
 		// Arrange: capture each call's signal; the first fetch never resolves.

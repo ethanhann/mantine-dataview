@@ -4,6 +4,7 @@
 
 import {
 	type ColumnFiltersState,
+	type ColumnOrderState,
 	type ColumnPinningState,
 	type ColumnSizingState,
 	functionalUpdate,
@@ -35,8 +36,12 @@ import {
 	resolveUrlConfig,
 	useUrlSync,
 } from "../url/useUrlSync";
-import { exportCsv as exportCsvFn } from "./exportCsv";
+import {
+	exportCsv as exportCsvFn,
+	exportJson as exportJsonFn,
+} from "./exportCsv";
 import { resolveFormatter } from "./formatValue";
+import { extractPersisted, hydrateFromStorage } from "./persist";
 import { resolveDataViewStatus } from "./resolveStatus";
 import { useForceCards } from "./useForceCards";
 
@@ -44,6 +49,7 @@ import { useForceCards } from "./useForceCards";
 const DEFAULT_DEBOUNCE_MS = 300;
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100];
 const DEFAULT_PAGE_SIZE = 10;
+const PERSIST_WRITE_DEBOUNCE_MS = 250;
 
 interface ResolvedDebounce {
 	globalFilter: number;
@@ -122,6 +128,7 @@ function buildDefaultState<TData>(
 		columnVisibility: {},
 		columnPinning: { left: [], right: [] },
 		columnSizing: {},
+		columnOrder: [],
 		view: options.defaultView ?? "table",
 		...options.initialState,
 	};
@@ -148,12 +155,15 @@ export function useDataView<TData>(
 		responsive,
 		formatDefaults,
 		facets: facetsInput,
+		summary: summaryInput,
 		params: paramsInput,
 		labels: labelsInput,
+		persist,
 	} = options;
 
 	const labels = useMemo(() => resolveLabels(labelsInput), [labelsInput]);
 	const facets = facetsInput ?? {};
+	const summary = summaryInput ?? {};
 	const paramsKey = paramsInput ? JSON.stringify(paramsInput) : "";
 	// Keep `params` reference-stable while its content is unchanged. Without this it would be a fresh
 	// object every render, so the request's `params` slice would look "changed" on a pagination-only
@@ -191,10 +201,16 @@ export function useDataView<TData>(
 	);
 
 	// State ownership. The hook keeps internal state that controlled slices can override. On the
-	// first render it also hydrates that state from the URL when sync is enabled.
+	// first render it also hydrates from persisted preferences and then the URL (the URL wins,
+	// since it represents an explicit navigation). The storage patch is kept for the URL layer's
+	// defaults: a stored page size is the effective default, so it stays out of clean URLs.
+	const storagePatchRef = useRef<Partial<DataViewState>>({});
 	const [internalState, setInternalState] = useState<DataViewState>(() => {
 		const base = buildDefaultState(options);
-		return { ...base, ...hydrateFromUrl(urlConfig, base, getFilterMeta) };
+		const stored = hydrateFromStorage(persist, base);
+		storagePatchRef.current = stored;
+		const seeded = { ...base, ...stored };
+		return { ...seeded, ...hydrateFromUrl(urlConfig, seeded, getFilterMeta) };
 	});
 
 	const resolvedState = useMemo<DataViewState>(
@@ -242,11 +258,54 @@ export function useDataView<TData>(
 		applyPatch,
 		getFilterMeta,
 		defaultPageSize:
+			storagePatchRef.current.pagination?.pageSize ??
 			options.initialState?.pagination?.pageSize ??
 			resolvePageSizeOptions(options)[0] ??
 			DEFAULT_PAGE_SIZE,
 		defaultView: options.initialState?.view ?? options.defaultView ?? "table",
 	});
+
+	// Persist preference changes, debounced: a resize drag patches state per mousemove, and the
+	// storage write should land once per gesture, not per pixel. The first run is skipped since it
+	// would only write back what hydration just read.
+	const persistRef = useRef(persist);
+	persistRef.current = persist;
+	const persisted = persist
+		? extractPersisted(resolvedState, persist.include)
+		: null;
+	const persistedKey = persisted ? JSON.stringify(persisted) : "";
+	const prevPersistedKeyRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!persistedKey) return;
+		if (prevPersistedKeyRef.current === null) {
+			prevPersistedKeyRef.current = persistedKey;
+			return;
+		}
+		if (prevPersistedKeyRef.current === persistedKey) return;
+		prevPersistedKeyRef.current = persistedKey;
+		const timer = setTimeout(() => {
+			const cfg = persistRef.current;
+			if (!cfg) return;
+			cfg.adapter.write(
+				extractPersisted(resolvedStateRef.current, cfg.include),
+			);
+		}, PERSIST_WRITE_DEBOUNCE_MS);
+		return () => clearTimeout(timer);
+	}, [persistedKey]);
+
+	// External storage changes (e.g. another tab) patch the live state when the adapter can
+	// signal them. Mirrors the URL subscribe effect.
+	const persistEnabled = persist != null;
+	useEffect(() => {
+		if (!persistEnabled) return;
+		const cfg = persistRef.current;
+		if (!cfg?.adapter.subscribe) return;
+		return cfg.adapter.subscribe(() => {
+			const live = persistRef.current;
+			if (!live) return;
+			applyPatch(hydrateFromStorage(live, resolvedStateRef.current));
+		});
+	}, [persistEnabled, applyPatch]);
 
 	// Changing what the server sees (sort, filter, or search) resets to the first page. This
 	// keeps a filtered result set from stranding the user on a page that is now empty.
@@ -362,6 +421,18 @@ export function useDataView<TData>(
 		[applyPatch],
 	);
 
+	const onColumnOrderChange = useCallback<OnChangeFn<ColumnOrderState>>(
+		(updater) => {
+			applyPatch({
+				columnOrder: functionalUpdate(
+					updater,
+					resolvedStateRef.current.columnOrder,
+				),
+			});
+		},
+		[applyPatch],
+	);
+
 	const isMobileForced = useForceCards(responsive);
 	const view: ViewMode = isMobileForced ? "cards" : resolvedState.view;
 
@@ -404,6 +475,7 @@ export function useDataView<TData>(
 			columnVisibility: resolvedState.columnVisibility,
 			columnPinning: resolvedState.columnPinning,
 			columnSizing: resolvedState.columnSizing,
+			columnOrder: resolvedState.columnOrder,
 		},
 		onPaginationChange,
 		onSortingChange,
@@ -413,6 +485,7 @@ export function useDataView<TData>(
 		onColumnVisibilityChange,
 		onColumnPinningChange,
 		onColumnSizingChange,
+		onColumnOrderChange,
 	});
 
 	// The normalized request holds only the slices the server cares about. View, selection, and
@@ -680,6 +753,16 @@ export function useDataView<TData>(
 		(opts?: Parameters<typeof exportCsvFn>[1]) => exportCsvFn(table, opts),
 		[table],
 	);
+	const exportJson = useCallback(
+		(opts?: Parameters<typeof exportJsonFn>[1]) => exportJsonFn(table, opts),
+		[table],
+	);
+	// Everything the server needs to reproduce the full result set, minus the page: hand it to a
+	// backend export endpoint for export-all-pages.
+	const exportRequest = useMemo(() => {
+		const { pagination: _pagination, ...rest } = request;
+		return rest;
+	}, [request]);
 
 	const resetFilter = useCallback(
 		(columnId: string) => table.getColumn(columnId)?.setFilterValue(undefined),
@@ -735,7 +818,10 @@ export function useDataView<TData>(
 		filterableColumns,
 		selection,
 		exportCsv,
+		exportJson,
+		exportRequest,
 		facets,
+		summary,
 		resetFilter,
 		resetAllFilters,
 		patchRow,
