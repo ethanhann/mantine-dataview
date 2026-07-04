@@ -3,6 +3,7 @@
 
 import {
 	Button,
+	CloseIcon,
 	Drawer,
 	Group,
 	type MantineSize,
@@ -14,7 +15,7 @@ import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { belowBreakpointQuery } from "../../core/useForceCards";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
-import { CloseIcon, FilterIcon } from "../icons";
+import { FilterIcon } from "../icons";
 import { FilterControl } from "./FilterControl";
 
 function ClearFiltersButton<TData>({
@@ -29,7 +30,7 @@ function ClearFiltersButton<TData>({
 			style={{ alignSelf: "flex-end" }}
 			variant="subtle"
 			color="gray"
-			leftSection={<CloseIcon />}
+			leftSection={<CloseIcon size="16" />}
 			onClick={() => view.table.resetColumnFilters()}
 		>
 			{view.labels.resetFilters}

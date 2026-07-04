@@ -7,6 +7,7 @@
 // It is named `useDataViewFetcher` because it calls hooks internally. That means the name must
 // begin with `use`.
 
+import { useDidUpdate } from "@mantine/hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseDataViewOptions, UseDataViewReturn } from "../types/options";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
@@ -134,11 +135,7 @@ export function useDataViewFetcher<TData>({
 	);
 
 	const depsKey = deps ? JSON.stringify(deps) : "";
-	const prevDepsKeyRef = useRef(depsKey);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: onRequestChange is stable; the ref guard skips the mount run
-	useEffect(() => {
-		if (prevDepsKeyRef.current === depsKey) return;
-		prevDepsKeyRef.current = depsKey;
+	useDidUpdate(() => {
 		if (lastRequestRef.current) {
 			onRequestChange(lastRequestRef.current);
 		}

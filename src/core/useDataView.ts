@@ -2,6 +2,7 @@
 // flag turned on. It emits a normalized `DataViewRequest` whenever the state the server cares
 // about changes. The presentations and the toolbar are pure projections of what it returns.
 
+import { useDebouncedCallback, useDidUpdate } from "@mantine/hooks";
 import {
 	type ColumnFiltersState,
 	type ColumnOrderState,
@@ -266,31 +267,27 @@ export function useDataView<TData>(
 	});
 
 	// Persist preference changes, debounced: a resize drag patches state per mousemove, and the
-	// storage write should land once per gesture, not per pixel. The first run is skipped since it
-	// would only write back what hydration just read.
+	// storage write should land once per gesture, not per pixel. The mount run is skipped since it
+	// would only write back what hydration just read, and a write still pending at unmount is
+	// flushed so navigating away never drops the user's last change.
 	const persistRef = useRef(persist);
 	persistRef.current = persist;
 	const persisted = persist
 		? extractPersisted(resolvedState, persist.include)
 		: null;
 	const persistedKey = persisted ? JSON.stringify(persisted) : "";
-	const prevPersistedKeyRef = useRef<string | null>(null);
-	useEffect(() => {
-		if (!persistedKey) return;
-		if (prevPersistedKeyRef.current === null) {
-			prevPersistedKeyRef.current = persistedKey;
-			return;
-		}
-		if (prevPersistedKeyRef.current === persistedKey) return;
-		prevPersistedKeyRef.current = persistedKey;
-		const timer = setTimeout(() => {
+	const writePersisted = useDebouncedCallback(
+		() => {
 			const cfg = persistRef.current;
 			if (!cfg) return;
 			cfg.adapter.write(
 				extractPersisted(resolvedStateRef.current, cfg.include),
 			);
-		}, PERSIST_WRITE_DEBOUNCE_MS);
-		return () => clearTimeout(timer);
+		},
+		{ delay: PERSIST_WRITE_DEBOUNCE_MS, flushOnUnmount: true },
+	);
+	useDidUpdate(() => {
+		if (persistedKey) writePersisted();
 	}, [persistedKey]);
 
 	// External storage changes (e.g. another tab) patch the live state when the adapter can
@@ -317,11 +314,7 @@ export function useDataView<TData>(
 		[],
 	);
 
-	const prevParamsKeyRef = useRef(paramsKey);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: applyPatch/resetPagination are stable; the ref guard skips the mount run
-	useEffect(() => {
-		if (prevParamsKeyRef.current === paramsKey) return;
-		prevParamsKeyRef.current = paramsKey;
+	useDidUpdate(() => {
 		applyPatch({ pagination: resetPagination() });
 	}, [paramsKey]);
 

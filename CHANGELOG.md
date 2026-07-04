@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The default empty, filtered-empty, and error states render Mantine's `EmptyState` component
+  with state icons (inbox, filter, alert), giving them a title/indicator/action hierarchy in both
+  presentations. Slot overrides and all state strings are unchanged.
+
+### Changed
+
+- Internal adoption of Mantine 9.4 built-ins where they match our semantics: `useDidUpdate`
+  replaces hand-rolled skip-first-run effect guards, `useDebouncedCallback` replaces the manual
+  timers for async filter option loading and preference writes, and the filter reset button uses
+  Mantine's exported `CloseIcon`. A preference write still pending at unmount now flushes
+  (`flushOnUnmount`) instead of being dropped.
+- Empty and filtered-empty state action buttons standardize on the `light` variant, matching the
+  error state's retry button.
+
 - Testing utilities at `@ethanhann/mantine-dataview/testing`: `createMockFetcher(rows, options)`
   answers requests in-memory (heuristic filters, global search, sort, pagination, optional
   latency/facets/summary) and `buildResponse(rows, overrides)` derives `rowCount`.

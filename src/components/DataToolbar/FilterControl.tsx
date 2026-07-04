@@ -21,6 +21,7 @@ import {
 	TextInput,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
+import { useDebouncedCallback } from "@mantine/hooks";
 import type { Column } from "@tanstack/react-table";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { resolveColumnLabel } from "../../core/cardComposition";
@@ -121,7 +122,6 @@ function useAsyncOptions(load?: (query: string) => Promise<FilterOption[]>) {
 	const loadRef = useRef(load);
 	loadRef.current = load;
 	const idRef = useRef(0);
-	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const enabled = load != null;
 
 	const run = useCallback((query: string) => {
@@ -138,19 +138,9 @@ function useAsyncOptions(load?: (query: string) => Promise<FilterOption[]>) {
 
 	useEffect(() => {
 		if (enabled) run("");
-		return () => clearTimeout(timerRef.current);
 	}, [enabled, run]);
 
-	const onSearchChange = useCallback(
-		(query: string) => {
-			clearTimeout(timerRef.current);
-			timerRef.current = setTimeout(
-				() => run(query),
-				ASYNC_OPTIONS_DEBOUNCE_MS,
-			);
-		},
-		[run],
-	);
+	const onSearchChange = useDebouncedCallback(run, ASYNC_OPTIONS_DEBOUNCE_MS);
 
 	return {
 		asyncOptions: enabled ? options : null,

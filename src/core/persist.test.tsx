@@ -109,6 +109,26 @@ describe("state persistence", () => {
 		);
 	});
 
+	it("flushes a pending write on unmount instead of dropping it", () => {
+		// Arrange: a preference change whose debounce has not elapsed yet.
+		vi.useFakeTimers();
+		const { adapter } = memoryAdapter();
+		const { result, unmount } = setup(adapter);
+		act(() => {
+			result.current.table.getColumn("email")?.toggleVisibility(false);
+		});
+		expect(adapter.write).not.toHaveBeenCalled();
+
+		// Act
+		unmount();
+
+		// Assert: navigating away must not lose the user's last change.
+		expect(adapter.write).toHaveBeenCalledTimes(1);
+		expect(adapter.write).toHaveBeenCalledWith(
+			expect.objectContaining({ columnVisibility: { email: false } }),
+		);
+	});
+
 	it("does not persist the page index", () => {
 		// Arrange
 		vi.useFakeTimers();
