@@ -42,7 +42,7 @@ jobs:
       # the whole test suite there.
       - name: Upload coverage summary
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-summary
           path: coverage/coverage-summary.json
