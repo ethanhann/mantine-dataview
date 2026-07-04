@@ -12,7 +12,9 @@ import {
 } from "@mantine/core";
 import { type Column, flexRender, type Header } from "@tanstack/react-table";
 import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
+import { resolveFormatter } from "../../core/formatValue";
 import { useRowTransition } from "../../core/useRowTransition";
+import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
 import { SortIcon } from "../icons";
 import { Slot } from "../Slot";
@@ -115,6 +117,7 @@ export function DataTable<TData>({
 		rowCount: table.getRowCount() + headerRowCount,
 		rowIndexBase: headerRowCount + pageIndex * pageSize + 1,
 		selection: view.selection,
+		canSelectItem: (index) => transition.rows[index]?.getCanSelect() ?? false,
 		onActivate: onRowActivate
 			? (index, event) => {
 					const row = transition.rows[index];
@@ -139,7 +142,7 @@ export function DataTable<TData>({
 								style={{ width: SELECTION_COLUMN_WIDTH }}
 							>
 								<Checkbox
-									aria-label="Select row"
+									aria-label={view.labels.selectRow}
 									checked={row.getIsSelected()}
 									disabled={!row.getCanSelect()}
 									// Only sub-row-bearing rows can be partially selected; a leaf row that
@@ -248,7 +251,13 @@ export function DataTable<TData>({
 
 	return (
 		<div style={hasPinning ? { overflowX: "auto" } : undefined}>
-			<Table layout="fixed" {...nav.containerProps} {...tableProps}>
+			{/* The keyboard grid needs an accessible name; consumer tableProps can override it. */}
+			<Table
+				layout="fixed"
+				{...(keyboardNavigation ? { "aria-label": view.labels.dataGrid } : {})}
+				{...nav.containerProps}
+				{...tableProps}
+			>
 				<Table.Thead>
 					{table.getHeaderGroups().map((group, groupIndex) => (
 						<Table.Tr
@@ -258,7 +267,7 @@ export function DataTable<TData>({
 							{selectionEnabled && (
 								<Table.Th style={{ width: SELECTION_COLUMN_WIDTH }}>
 									<Checkbox
-										aria-label="Select all rows on this page"
+										aria-label={view.labels.selectAllRows}
 										checked={table.getIsAllPageRowsSelected()}
 										indeterminate={
 											table.getIsSomePageRowsSelected() &&
@@ -273,14 +282,67 @@ export function DataTable<TData>({
 									key={header.id}
 									header={header}
 									disabled={interactionDisabled}
+									labels={view.labels}
 								/>
 							))}
 						</Table.Tr>
 					))}
 				</Table.Thead>
 				{renderBody()}
+				<SummaryFoot
+					view={view}
+					columns={leafColumns}
+					selectionEnabled={selectionEnabled}
+				/>
 			</Table>
 		</div>
+	);
+}
+
+/**
+ * Server-computed aggregates as a footer row. Values format like cells (by the column's
+ * `dataType`). The row stays outside the keyboard grid's roving model: it is not focusable and
+ * carries no `aria-rowindex`, matching a plain table footer.
+ */
+function SummaryFoot<TData>({
+	view,
+	columns,
+	selectionEnabled,
+}: {
+	view: UseDataViewReturn<TData>;
+	columns: Column<TData>[];
+	selectionEnabled: boolean;
+}) {
+	const { summary } = view;
+	if (!columns.some((c) => c.id in summary)) return null;
+	return (
+		<Table.Tfoot>
+			<Table.Tr>
+				{selectionEnabled && (
+					<Table.Td style={{ width: SELECTION_COLUMN_WIDTH }} />
+				)}
+				{columns.map((column) => {
+					const meta = column.columnDef.meta;
+					const raw = summary[column.id];
+					const formatted =
+						raw != null && meta?.dataType
+							? resolveFormatter(meta.dataType, meta.format, undefined)(raw)
+							: raw;
+					return (
+						<Table.Td
+							key={column.id}
+							fw={600}
+							style={{
+								...pinningStyle(column),
+								...(meta?.align ? { textAlign: meta.align } : undefined),
+							}}
+						>
+							{formatted == null ? null : String(formatted)}
+						</Table.Td>
+					);
+				})}
+			</Table.Tr>
+		</Table.Tfoot>
 	);
 }
 
@@ -308,9 +370,11 @@ function MessageBody({
 function HeaderCell<TData>({
 	header,
 	disabled,
+	labels,
 }: {
 	header: Header<TData, unknown>;
 	disabled?: boolean;
+	labels: DataViewLabels;
 }) {
 	const { column } = header;
 	const align = column.columnDef.meta?.align;
@@ -326,11 +390,17 @@ function HeaderCell<TData>({
 			? column.columnDef.header
 			: column.id;
 
-	const colSize = column.columnDef.size;
+	// With resizing enabled every column carries its live size (drag feedback happens through the
+	// width), otherwise only explicitly sized columns get a width and the rest share space.
+	const resizable = column.getCanResize();
+	const colSize = resizable ? header.getSize() : column.columnDef.size;
 
 	return (
 		<Table.Th
 			style={{
+				// The handle is positioned against the header cell. Pinned cells are already sticky
+				// (a positioned ancestor); static ones need the explicit `relative`.
+				position: "relative",
 				...pinningStyle(column),
 				...(align ? { textAlign: align } : undefined),
 				...(colSize != null ? { width: colSize } : undefined),
@@ -346,7 +416,7 @@ function HeaderCell<TData>({
 			{sortable ? (
 				<UnstyledButton
 					type="button"
-					aria-label={`Sort by ${headerText}`}
+					aria-label={labels.sortByColumn(headerText)}
 					onClick={column.getToggleSortingHandler()}
 					style={{
 						display: "inline-flex",
@@ -361,7 +431,7 @@ function HeaderCell<TData>({
 						<span
 							role="img"
 							style={{ fontSize: "0.7em", opacity: 0.6 }}
-							aria-label={`sort priority ${sortIndex + 1}`}
+							aria-label={labels.sortPriority(sortIndex + 1)}
 						>
 							{sortIndex + 1}
 						</span>
@@ -379,6 +449,21 @@ function HeaderCell<TData>({
 					{content}
 					{sorted && <SortIcon direction={sorted} />}
 				</span>
+			)}
+			{resizable && (
+				// biome-ignore lint/a11y/useFocusableInteractive: pointer-only affordance; keyboard resizing is not offered, so keeping it out of the tab order beats a focusable control that arrow keys do nothing with.
+				// biome-ignore lint/a11y/useSemanticElements: an <hr> cannot host the drag handlers; `separator` on a div is the established pattern for a column resize handle.
+				<div
+					role="separator"
+					aria-orientation="vertical"
+					aria-label={labels.resizeColumn(headerText)}
+					aria-valuenow={Math.round(header.getSize())}
+					className="dataviewResizeHandle"
+					data-resizing={column.getIsResizing() || undefined}
+					onMouseDown={header.getResizeHandler()}
+					onTouchStart={header.getResizeHandler()}
+					onDoubleClick={() => column.resetSize()}
+				/>
 			)}
 		</Table.Th>
 	);

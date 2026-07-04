@@ -48,15 +48,27 @@ export function resolveEvents<TData>(
 	return events;
 }
 
+/**
+ * Finds the table row backing an event id. Mantine expands a recurring event into instances whose
+ * id is `${event.id}::${recurrenceId}`, so when the exact id has no match, retry with the portion
+ * before the last `::` — otherwise every interaction on a generated occurrence would miss its row.
+ */
+function findTableRow<TData>(view: UseDataViewReturn<TData>, eventId: string) {
+	const rows = view.table.getRowModel().rows;
+	const exact = rows.find((r) => r.id === eventId);
+	if (exact) return exact;
+	const suffix = eventId.lastIndexOf("::");
+	if (suffix === -1) return undefined;
+	const seriesId = eventId.slice(0, suffix);
+	return rows.find((r) => r.id === seriesId);
+}
+
 /** The shared `onEventClick` handler: toggle selection for the row backing an event id. */
 export function toggleEventSelection<TData>(
 	view: UseDataViewReturn<TData>,
 	eventId: string | number,
 ): void {
-	const row = view.table
-		.getRowModel()
-		.rows.find((r) => r.id === String(eventId));
-	row?.toggleSelected();
+	findTableRow(view, String(eventId))?.toggleSelected();
 }
 
 /** The original row backing an event id, or `undefined` if it isn't on the current page. */
@@ -64,8 +76,7 @@ export function findEventRow<TData>(
 	view: UseDataViewReturn<TData>,
 	eventId: string | number,
 ): TData | undefined {
-	return view.table.getRowModel().rows.find((r) => r.id === String(eventId))
-		?.original;
+	return findTableRow(view, String(eventId))?.original;
 }
 
 /** A first-class event-click handler that receives the typed original row. */

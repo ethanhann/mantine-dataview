@@ -21,8 +21,11 @@ import {
 	type CardField,
 	type ComposeCardOptions,
 	composeCardLayout,
+	resolveColumnLabel,
 } from "../../core/cardComposition";
+import { resolveFormatter } from "../../core/formatValue";
 import { useRowTransition } from "../../core/useRowTransition";
+import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
 import { nextCardIndex } from "../nextCardIndex";
 import { Slot } from "../Slot";
@@ -110,6 +113,7 @@ export function DataCards<TData>({
 		rowCount: table.getRowCount(),
 		rowIndexBase: pageIndex * pageSize + 1,
 		selection: view.selection,
+		canSelectItem: (index) => transition.rows[index]?.getCanSelect() ?? false,
 		resolveNext: cardResolver,
 		onActivate: onCardActivate
 			? (index, event) => {
@@ -130,6 +134,8 @@ export function DataCards<TData>({
 			<SimpleGrid
 				key={transition.generation}
 				data-changed={animateRows || undefined}
+				// The keyboard grid needs an accessible name; consumer gridProps can override it.
+				{...(keyboardNavigation ? { "aria-label": view.labels.dataGrid } : {})}
 				{...nav.containerProps}
 				{...grid}
 			>
@@ -163,6 +169,7 @@ export function DataCards<TData>({
 							row={row}
 							layout={layout}
 							selectionEnabled={selectionEnabled}
+							labels={view.labels}
 						/>
 					);
 					if (slots?.Card) {
@@ -199,12 +206,19 @@ export function DataCards<TData>({
 		);
 	};
 
+	const withSummary = (gridNode: ReactNode): ReactNode => (
+		<>
+			{gridNode}
+			<CardsSummary view={view} />
+		</>
+	);
+
 	if (
 		animateRows &&
 		renderStatus.phase === "loading" &&
 		transition.rows.length > 0
 	) {
-		return renderCards(transition.rows);
+		return withSummary(renderCards(transition.rows));
 	}
 
 	switch (renderStatus.phase) {
@@ -239,8 +253,43 @@ export function DataCards<TData>({
 				</Center>
 			);
 		default:
-			return renderCards(transition.rows);
+			return withSummary(renderCards(transition.rows));
 	}
+}
+
+/**
+ * The card grid's analog of the table's summary footer: label and value pairs for every visible
+ * column with a server-computed aggregate, formatted by the column's dataType.
+ */
+function CardsSummary<TData>({ view }: { view: UseDataViewReturn<TData> }) {
+	const { summary, table } = view;
+	const columns = table
+		.getVisibleLeafColumns()
+		.filter((c) => c.id in summary && summary[c.id] != null);
+	if (columns.length === 0) return null;
+	return (
+		<Card withBorder padding="sm" mt="sm">
+			<Group gap="lg" wrap="wrap">
+				{columns.map((column) => {
+					const meta = column.columnDef.meta;
+					const raw = summary[column.id];
+					const formatted = meta?.dataType
+						? resolveFormatter(meta.dataType, meta.format, undefined)(raw)
+						: String(raw);
+					return (
+						<Group key={column.id} gap={4} wrap="nowrap">
+							<Text size="sm" c="dimmed">
+								{resolveColumnLabel(column)}
+							</Text>
+							<Text size="sm" fw={600}>
+								{formatted}
+							</Text>
+						</Group>
+					);
+				})}
+			</Group>
+		</Card>
+	);
 }
 
 // NOTE: deliberately NOT wrapped in `memo`. It reads `row.getIsSelected()`, but TanStack can reuse
@@ -251,10 +300,12 @@ function DefaultCardBody<TData>({
 	row,
 	layout,
 	selectionEnabled,
+	labels,
 }: {
 	row: Row<TData>;
 	layout: ReturnType<typeof composeCardLayout<TData>>;
 	selectionEnabled: boolean;
+	labels: DataViewLabels;
 }) {
 	const cellById = useMemo(
 		() => new Map(row.getAllCells().map((c) => [c.column.id, c])),
@@ -271,7 +322,7 @@ function DefaultCardBody<TData>({
 		<>
 			{selectionEnabled && (
 				<Checkbox
-					aria-label="Select card"
+					aria-label={labels.selectCard}
 					checked={row.getIsSelected()}
 					disabled={!row.getCanSelect()}
 					onChange={row.getToggleSelectedHandler()}

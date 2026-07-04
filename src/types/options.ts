@@ -2,7 +2,7 @@
 
 import type { MantineBreakpoint } from "@mantine/core";
 import type { Column, Table } from "@tanstack/react-table";
-import type { ExportCsvOptions } from "../core/exportCsv";
+import type { ExportCsvOptions, ExportJsonOptions } from "../core/exportCsv";
 // Import URL *types* from the types module (not the `../url` barrel) so a type-only consumer of
 // these options never drags the runtime adapter code into its module graph.
 import type { UrlSerializer, UrlStateAdapter } from "../url/types";
@@ -12,6 +12,8 @@ import type {
 	DataColumnDef,
 } from "./column";
 import type { FacetData } from "./facets";
+import type { DataViewLabels } from "./labels";
+import type { PersistOptions } from "./persist";
 import type { DataViewRequest, FilterParam } from "./request";
 import type {
 	DataViewState,
@@ -87,16 +89,36 @@ export interface UseDataViewOptions<TData> {
 	 */
 	enableMultiRowSelection?: boolean;
 	enableGlobalFilter?: boolean;
+	/**
+	 * When true, table columns get drag handles on their header edges and user widths are tracked
+	 * in `state.columnSizing` (seed persisted widths via `initialState`). Opt columns out
+	 * individually with `enableResizing: false` on the column def. Default `false`.
+	 */
+	enableColumnResizing?: boolean;
 	debounce?: DebounceOptions;
 
 	responsive?: ResponsiveOptions;
 	urlSync?: UrlSyncOptions;
+	/**
+	 * Persist layout preferences (column visibility, pinning, sizing, page size) across sessions
+	 * through a storage adapter, e.g. `persist: { adapter: localStorageAdapter("users-table") }`.
+	 * Hydration order on mount: defaults, then `initialState`, then storage, then the URL.
+	 */
+	persist?: PersistOptions;
 	/** Table-level format defaults keyed by data type. Column-level `format` overrides these. */
 	formatDefaults?: Partial<Record<ColumnDataType, ColumnFormatOption>>;
 	/** Facet aggregation data from the server, keyed by column ID. */
 	facets?: Record<string, FacetData>;
+	/** Server-computed aggregates keyed by column ID, rendered as a table footer / card summary. */
+	summary?: Record<string, unknown>;
 	/** External parameters included in every request. Changes trigger a refetch and reset pagination. */
 	params?: Record<string, FilterParam>;
+	/**
+	 * Overrides for the built-in UI strings, merged over the English defaults. The resolved
+	 * dictionary is exposed as `view.labels` and read by every component. Explicit per-component
+	 * string props still win over the dictionary.
+	 */
+	labels?: Partial<DataViewLabels>;
 }
 
 /** Current selection, derived from `rowSelection` keyed by `getRowId`. */
@@ -148,6 +170,8 @@ export interface UseDataViewReturn<TData> {
 	setWindow: (next: DataViewWindow) => void;
 	/** True when the responsive rule forces cards. */
 	isMobileForced: boolean;
+	/** The resolved UI string dictionary (consumer overrides merged over the English defaults). */
+	labels: DataViewLabels;
 	// The echoed inputs plus a derived render status let presentations stay thin projections.
 	status: Status;
 	error: unknown;
@@ -163,8 +187,17 @@ export interface UseDataViewReturn<TData> {
 	selection: DataViewSelection<TData>;
 	/** Export visible columns and current page rows as a CSV file download. */
 	exportCsv: (options?: ExportCsvOptions) => void;
+	/** Export visible columns and current page rows as a JSON file download. */
+	exportJson: (options?: ExportJsonOptions) => void;
+	/**
+	 * The current request without pagination: everything the server needs to reproduce the full
+	 * result set. Hand it to a backend export endpoint for export-all-pages.
+	 */
+	exportRequest: Omit<DataViewRequest, "pagination">;
 	/** Latest facet data from the server response, keyed by column ID. */
 	facets: Record<string, FacetData>;
+	/** Latest server-computed aggregates, keyed by column ID. Empty when none were provided. */
+	summary: Record<string, unknown>;
 	/** Clear the filter on a single column by ID. */
 	resetFilter: (columnId: string) => void;
 	/** Clear all column filters. */
@@ -194,4 +227,10 @@ export interface UseDataViewReturn<TData> {
 	 * The UI can show a subtle sync indicator without replacing content with skeletons.
 	 */
 	isRevalidating: boolean;
+	/**
+	 * True while any fetch is in flight. Unlike `status: "loading"` it also covers fetches that
+	 * keep the previous rows on screen (`keepPreviousData`) and background revalidation. On the
+	 * bare `useDataView` hook it mirrors `status === "loading"`.
+	 */
+	isFetching: boolean;
 }

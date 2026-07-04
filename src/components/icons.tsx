@@ -40,11 +40,11 @@ export function SortIcon({ direction }: { direction: SortDirection | false }) {
 
 // All glyphs are decorative (`aria-hidden`), so they carry no `<title>` — a title would be dead
 // weight in the a11y tree and can surface an unwanted native tooltip.
-function Glyph({ d }: { d: string }) {
+function Glyph({ d, size = 16 }: { d: string; size?: number }) {
 	return (
 		<svg
-			width="16"
-			height="16"
+			width={size}
+			height={size}
 			viewBox="0 0 24 24"
 			fill="none"
 			stroke="currentColor"
@@ -64,16 +64,36 @@ export function SearchIcon() {
 	return <Glyph d="M21 21l-4.3-4.3M11 19a8 8 0 110-16 8 8 0 010 16z" />;
 }
 
-export function FilterIcon() {
-	return <Glyph d="M3 5h18M7 12h10M10 19h4" />;
+export function FilterIcon({ size }: { size?: number } = {}) {
+	return <Glyph size={size} d="M3 5h18M7 12h10M10 19h4" />;
+}
+
+/** Alert triangle for the default error state. */
+export function AlertIcon({ size }: { size?: number } = {}) {
+	return (
+		<Glyph
+			size={size}
+			d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+		/>
+	);
+}
+
+/** Empty inbox for the default no-results state. */
+export function InboxIcon({ size }: { size?: number } = {}) {
+	return (
+		<Glyph
+			size={size}
+			d="M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zM4 13h3l3 3h4l3-3h3"
+		/>
+	);
 }
 
 export function ChevronDownIcon() {
 	return <Glyph d="M6 9l6 6 6-6" />;
 }
 
-export function CloseIcon() {
-	return <Glyph d="M18 6L6 18M6 6l12 12" />;
+export function ChevronUpIcon() {
+	return <Glyph d="M6 15l6-6 6 6" />;
 }
 
 export function PinLeftIcon() {

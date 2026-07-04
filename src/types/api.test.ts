@@ -1,5 +1,7 @@
 import type {
+	ColumnOrderState,
 	ColumnPinningState,
+	ColumnSizingState,
 	PaginationState,
 	RowSelectionState,
 	SortingState,
@@ -25,17 +27,25 @@ import { createColumnHelper } from "../index";
 	const _selection: RowSelectionState = {} as DataViewState["rowSelection"];
 	const _visibility: VisibilityState = {} as DataViewState["columnVisibility"];
 	const _pinning: ColumnPinningState = {} as DataViewState["columnPinning"];
+	const _sizing: ColumnSizingState = {} as DataViewState["columnSizing"];
+	const _order: ColumnOrderState = {} as DataViewState["columnOrder"];
 	// And the reverse direction, so the shapes stay structurally equal (not just one-way assignable).
 	const _pagination2: DataViewState["pagination"] = {} as PaginationState;
 	const _sorting2: DataViewState["sorting"] = {} as SortingState;
+	const _sizing2: DataViewState["columnSizing"] = {} as ColumnSizingState;
+	const _order2: DataViewState["columnOrder"] = {} as ColumnOrderState;
 	void [
 		_pagination,
 		_sorting,
 		_selection,
 		_visibility,
 		_pinning,
+		_sizing,
+		_order,
 		_pagination2,
 		_sorting2,
+		_sizing2,
+		_order2,
 	];
 };
 

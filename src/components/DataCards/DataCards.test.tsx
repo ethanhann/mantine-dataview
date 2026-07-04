@@ -75,6 +75,51 @@ const renderCards = (props: HarnessProps = {}) =>
 	);
 
 describe("DataCards", () => {
+	it("renders a summary block for server aggregates", () => {
+		// Arrange
+		function SummaryHarness() {
+			const view = useDataView<User>({
+				columns: [
+					helper.accessor("name", {
+						header: "Name",
+						meta: { label: "Name", card: { role: "title" } },
+					}),
+					helper.accessor("age", {
+						header: "Age",
+						meta: { label: "Age", dataType: "number" },
+					}),
+				],
+				rows: sampleRows,
+				rowCount: sampleRows.length,
+				status: "success",
+				getRowId: (u) => u.id,
+				summary: { age: 4321 },
+			});
+			return <DataCards view={view} />;
+		}
+
+		// Act
+		render(
+			<MantineProvider>
+				<SummaryHarness />
+			</MantineProvider>,
+		);
+
+		// Assert: the dataType-formatted value renders next to its column label
+		// (the label also appears as each card's meta field label).
+		const value = screen.getByText("4,321");
+		expect(value).toBeVisible();
+		expect(value.parentElement).toHaveTextContent("Age");
+	});
+
+	it("gives the keyboard grid a default accessible name", () => {
+		// Arrange / Act
+		renderCards();
+
+		// Assert
+		expect(screen.getByRole("grid", { name: "Data grid" })).toBeInTheDocument();
+	});
+
 	it("composes cards from card roles", () => {
 		renderCards();
 		expect(screen.getByText("Ada")).toBeVisible(); // title

@@ -240,7 +240,7 @@ Or drive the view programmatically:
 
 ```tsx
 view.setView("cards"); // switch to cards
-view.view;             // current view: "table" | "cards"
+view.view;             // current view: "table" | "cards" (plus any registered views, e.g. "schedule")
 ```
 
 ## Controlled (bring your own data layer)
@@ -532,6 +532,55 @@ import {exportCsv} from "@ethanhann/mantine-dataview";
 exportCsv(view.table, {filename: "report.csv"});
 ```
 
+### JSON export
+
+`view.exportJson()` (and the standalone `exportJson`) downloads the current page's visible
+columns as a JSON array of objects keyed by column id, with raw values:
+
+```tsx
+view.exportJson({filename: "users"});
+```
+
+### Exporting all pages
+
+Client-side export covers the current page only, since the client never holds the full set.
+For export-all, `view.exportRequest` is the current request without pagination: everything the
+server needs to reproduce the full result set (sort, filters, search, params). Hand it to a
+backend export endpoint:
+
+```tsx
+<Button onClick={() => api.downloadCsv(view.exportRequest)}>Export all</Button>
+```
+
+## Column resizing
+
+Enable drag handles on the table's header edges with `enableColumnResizing`:
+
+```tsx
+const view = useDataViewFetcher<User>({
+    columns,
+    getRowId,
+    fetcher,
+    enableColumnResizing: true,
+});
+```
+
+- Drag a header's right edge to resize; double-click the handle to reset that column.
+- User widths live in `state.columnSizing` keyed by column id. Persist and restore them via
+  `initialState: { columnSizing: savedWidths }`.
+- With resizing enabled every column carries a concrete width (TanStack's default is 150px);
+  set `width` on columns that should start wider or narrower.
+- Opt a column out with TanStack's `enableResizing: false` on its def.
+- Resizing is pointer-driven (mouse and touch). The handles are not in the tab order.
+- Column widths are intentionally not URL-synced, like visibility and pinning.
+
+## Column reordering
+
+The **Columns** dropdown includes move up/down buttons next to each column, driving TanStack's
+`columnOrder` state. Seed an order via `initialState: { columnOrder: ["status", "name"] }` or
+programmatically with `view.table.setColumnOrder([...])`. The order persists with the
+[preference persistence](#preference-persistence) adapter. Drag-to-reorder is not offered.
+
 ## Column pinning
 
 Pin columns to the left or right edge so they stay visible while scrolling horizontally.
@@ -580,39 +629,41 @@ Define filters declaratively on column meta. Seven variants are built in:
 
 ```tsx
 // Boolean, renders as a segmented control
-meta: {
-    filter: {
-        variant: "boolean"
-    }
-}
+meta: {filter: {variant: "boolean"}}
 
 // Number range with slider
-meta: {
-    filter: {
-        variant: "numberRange", min
-    :
-        0, max
-    :
-        1000, step
-    :
-        10
-    }
-}
+meta: {filter: {variant: "numberRange", min: 0, max: 1000, step: 10}}
 
 // Number range without bounds (falls back to two number inputs)
-meta: {
-    filter: {
-        variant: "numberRange"
-    }
-}
+meta: {filter: {variant: "numberRange"}}
 
 // Date range
-meta: {
-    filter: {
-        variant: "dateRange"
-    }
-}
+meta: {filter: {variant: "dateRange"}}
 ```
+
+### Async filter options
+
+Load `select`/`multiselect` options from the server with `loadOptions`. It is called with the
+empty query on mount and with the debounced search text as the user types (the control becomes
+searchable automatically):
+
+```tsx
+col.accessor("city", {
+    header: "City",
+    meta: {
+        filter: {
+            variant: "select",
+            loadOptions: async (query) => {
+                const res = await fetch(`/api/cities?q=${encodeURIComponent(query)}`);
+                return res.json(); // FilterOption[]: { value, label }[]
+            },
+        },
+    },
+});
+```
+
+Facet-provided options still win while present, since they carry live counts. A failed load
+keeps the last options shown.
 
 ### Custom filter component
 
@@ -742,6 +793,27 @@ type RangeFacet = {
     max?: number | string;
 };
 ```
+
+## Summary aggregates
+
+Return a `summary` object from the server (keyed by column id, raw values) and the table
+renders it as a footer row while the card grid shows a summary block. Values format by the
+column's `dataType`, like cells:
+
+```tsx
+fetcher: async (request) => {
+    const res = await api.list(request);
+    return {
+        rows: res.items,
+        rowCount: res.total,
+        summary: {salary: res.totals.salary, age: res.totals.avgAge},
+    };
+};
+```
+
+Only visible columns with a summary entry render. Like `facets`, the data updates on every
+fetch, so aggregates reflect the active filters. `view.summary` exposes the raw record for
+custom presentations.
 
 ## Card composition
 
@@ -932,6 +1004,66 @@ Override loading, empty, and error states:
 A filtered-empty state is handled automatically. It shows a "clear filters" action so
 users can reset without manually removing each filter.
 
+## Localization
+
+Every built-in UI string is overridable through the `labels` option, merged over the English
+defaults. Plain strings cover static text and functions cover parameterized text:
+
+```tsx
+const view = useDataViewFetcher<User>({
+    columns,
+    getRowId,
+    fetcher,
+    labels: {
+        searchPlaceholder: "Suchen…",
+        columns: "Spalten",
+        noResults: "Keine Ergebnisse.",
+        selectedCount: (count) => `${count} ausgewählt`,
+        paginationRange: (start, end, total) => `${start} bis ${end} von ${total}`,
+    },
+});
+```
+
+The resolved dictionary is exposed as `view.labels`, and every component reads from it: toolbar,
+filter controls, sort and column menus, view switcher, selection checkboxes, bulk-action bar,
+state messages, pagination, and the schedule navigators. See the `DataViewLabels` type for the
+full key list; `DEFAULT_LABELS` exports the English defaults.
+
+Notes:
+
+- Explicit per-component string props (such as the toolbar's `searchPlaceholder` or the pager's
+  `pageSizeLabel`) still win over the dictionary.
+- Cell values already localize through `Intl` via `dataType` formatting and the
+  `format`/`formatDefaults` pipeline; boolean cell text is customized with a `format` function.
+- The standalone `FilterControl` defaults to English. Pass `labels={view.labels}` when placing it
+  outside the toolbar.
+
+## Preference persistence
+
+Persist the user's layout choices (column visibility, pinning, sizing, and page size) across
+sessions with a storage adapter:
+
+```tsx
+import {localStorageAdapter} from "@ethanhann/mantine-dataview";
+
+const persist = useMemo(() => ({adapter: localStorageAdapter("users-table")}), []);
+const view = useDataViewFetcher<User>({columns, getRowId, fetcher, persist});
+```
+
+- Hydration order on mount: defaults, then `initialState`, then storage, then the URL. An
+  explicit URL always wins over a stored preference.
+- Writes are debounced (250ms), so a resize drag lands as one write.
+- The page index, sort, filters, search, and selection are deliberately not persisted. The URL
+  is their share-and-restore mechanism.
+- Restrict what persists with `persist.include`, e.g. `["columnVisibility", "columnSizing"]`.
+- A stored page size acts as the effective default, so it stays out of clean URLs.
+- Bump the storage key (e.g. `"users-table.v2"`) when your column set changes incompatibly;
+  malformed or stale values are dropped field by field.
+
+Implement `StateStorageAdapter` (`read`, `write`, optional `subscribe` for cross-tab updates)
+to store preferences elsewhere, such as per-user settings on your server. The built-in
+`localStorageAdapter` signals cross-tab changes automatically.
+
 ## URL state sync
 
 Router-agnostic. The default adapter uses the History API; memoize it once:
@@ -971,6 +1103,10 @@ interface UrlStateAdapter {
 
 > Always memoize the adapter so the sync effects don't re-bind every render.
 
+> Without `subscribe`, back and forward navigation changes the URL but the view never re-reads it,
+> so the table silently desyncs. Implement it (a `popstate` listener suffices) unless your app never
+> relies on history navigation.
+
 ### React Router
 
 ```tsx
@@ -978,13 +1114,17 @@ import {useSearchParams} from "react-router-dom";
 import type {UrlStateAdapter} from "@ethanhann/mantine-dataview/url";
 
 function useReactRouterAdapter(): UrlStateAdapter {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [, setSearchParams] = useSearchParams();
     return useMemo<UrlStateAdapter>(
         () => ({
             read: () => Object.fromEntries(new URLSearchParams(window.location.search)),
             write: (next, opts) => setSearchParams(next, {replace: opts?.replace}),
+            subscribe: (onChange) => {
+                window.addEventListener("popstate", onChange);
+                return () => window.removeEventListener("popstate", onChange);
+            },
         }),
-        [searchParams, setSearchParams],
+        [setSearchParams],
     );
 }
 ```
@@ -1001,6 +1141,10 @@ function useTanStackRouterAdapter(): UrlStateAdapter {
         () => ({
             read: () => Object.fromEntries(new URLSearchParams(window.location.search)),
             write: (next, opts) => navigate({search: () => next, replace: opts?.replace}),
+            subscribe: (onChange) => {
+                window.addEventListener("popstate", onChange);
+                return () => window.removeEventListener("popstate", onChange);
+            },
         }),
         [navigate],
     );
@@ -1013,9 +1157,10 @@ function useTanStackRouterAdapter(): UrlStateAdapter {
 - Override param names or codecs with `urlSync.serialize`.
 - Choose how writes affect history with `urlSync.historyMode`: `"replace"` (default) keeps a clean
   history so the back button doesn't replay each filter/sort/page change; `"push"` creates a new
-  entry per change so back/forward steps through them.
-- URLs are kept clean: the page param is omitted on page 1, and the size param is omitted while it
-  equals the default page size.
+  entry per change so back/forward steps through them. In push mode, search and filter changes are
+  coalesced (300ms) so a typing burst lands as one history entry.
+- URLs are kept clean: the page param is omitted on page 1, and the size and view params are
+  omitted while they equal their defaults (honoring `initialState`).
 - Selection, column visibility, and column pinning are not URL-synced by design.
 
 ## Responsive behavior
@@ -1053,6 +1198,42 @@ Opt out per component:
 <DataTable view={view} disableWhileLoading={false}/>
 <DataToolbar view={view} disableWhileLoading={false}/>
 ```
+
+### Keep previous data during refetch
+
+By default every request change swaps the content for loading skeletons. With
+`keepPreviousData`, a refetch keeps the previous rows on screen (`status` stays `"success"`)
+while the new page loads, and `view.isFetching` signals the fetch in flight:
+
+```tsx
+const view = useDataViewFetcher<User>({
+    columns,
+    getRowId,
+    fetcher,
+    keepPreviousData: true,
+});
+```
+
+The first fetch still shows skeletons (there is nothing to keep), and a failed refetch still
+shows the error state. The toolbar automatically shows a small loader while a background fetch
+is in flight with data on screen; opt out with `showSyncIndicator={false}` on the toolbar.
+`view.isFetching` is true during any fetch, unlike `status: "loading"`, which only covers
+fetches that replace the content.
+
+### Aborting stale fetches
+
+The fetcher receives an `AbortSignal` that fires when the request is superseded by a newer one,
+by an optimistic mutation, or by unmount. Pass it to `fetch` to cancel the wire request:
+
+```tsx
+fetcher: async (request, {signal}) => {
+    const res = await fetch(`/api/users?${toParams(request)}`, {signal});
+    return toResponse(await res.json());
+},
+```
+
+Ignoring the signal is safe. Stale responses are discarded either way, so this only saves
+bandwidth and server work.
 
 ### Animated row transitions
 
@@ -1237,8 +1418,8 @@ Rows become calendar events the same way columns become card fields — declarat
 | `duration` | event length — minutes (number) or ISO-8601 (`"PT1H30M"`). Derives `end`. |
 | `title`    | event label.                                                              |
 | `color`    | a Mantine color or CSS color.                                             |
-| `resource` | resource/group id (reserved; resource views are a follow-up).             |
-| `allDay`   | boolean all-day flag.                                                     |
+| `resource` | resource/group id, used by the resources view to place events in rows.    |
+| `allDay`   | boolean all-day flag, carried on the event payload. Mantine's event shape has no all-day lane, so it has no visual effect unless a custom `renderEventBody` reads `payload.allDay`. |
 
 ```tsx
 import {col} from "@ethanhann/mantine-dataview";
@@ -1258,7 +1439,9 @@ The `map` transform handles values that aren't the event value directly — a st
 color, or an epoch number mapped to a `Date`.
 
 For event shapes that aren't column-backed, use the `toEvent` escape hatch, which returns a
-`@mantine/schedule` event directly and bypasses role composition:
+`@mantine/schedule` event directly and bypasses role composition. The event `id` must match the
+row's `getRowId` output, or click-to-select, `onEventClick`, and the editing callbacks cannot
+resolve the row:
 
 ```tsx
 <DataSchedule
@@ -1349,6 +1532,10 @@ fetcher: async (request) => {
 };
 ```
 
+The backend query must return events that **overlap** the window, not only those that start inside
+it. A `start >= from` query silently drops an event that begins before the visible week and extends
+into it.
+
 In schedule mode the pager is replaced by the calendar's own date navigation, and the toolbar
 drops the sort and column controls (a calendar has neither) while keeping search and filters.
 `DataScheduleNav` is exported if you want a standalone prev/today/next + level control.
@@ -1362,20 +1549,15 @@ The visible window round-trips through the query string
 ```tsx
 urlSync: {
     adapter,
-        include
-:
-    ["pagination", "sorting", "columnFilters", "globalFilter", "view", "window"],
+    include: ["pagination", "sorting", "columnFilters", "globalFilter", "view", "window"],
 }
 ```
 
-### v1 scope
+### Scope notes
 
-The schedule presentation is **read-only apart from click-to-select** (clicking an event toggles
-its row selection, feeding bulk actions). Drag-to-create, move, and resize are not wired in v1 —
-forward Mantine's `onEventDrop`/`onEventResize`/`onTimeSlotClick` through `scheduleProps` to handle
-them yourself (they pair well with the reconciliation primitives). Recurrence is pass-through only
-(emit an `rrule` from `toEvent` and Mantine expands it), and resource views are a follow-up (the
-`resource` role is reserved).
+Recurrence is pass-through only: emit a `recurrence: { rrule }` object from `toEvent` and Mantine
+expands it into occurrences (there is no recurrence-authoring UI). Interactions on a generated
+occurrence resolve back to the series row.
 
 ## API overview
 
@@ -1405,6 +1587,7 @@ Returned by `useDataViewFetcher` (fall back to `refetch()` on raw `useDataView`)
 | `insertRow(record)` | Prepend a new row, increment `rowCount`, then revalidate        |
 | `removeRow(id)`     | Remove a row, decrement `rowCount`, then revalidate             |
 | `isRevalidating`    | `true` while the background revalidation fetch is in flight     |
+| `isFetching`        | `true` while any fetch is in flight (incl. `keepPreviousData`)  |
 
 ### Customization slots
 
@@ -1416,9 +1599,80 @@ Passed via the `slots` prop on `DataViewer` or the presentation components:
 | `ErrorState`   | `{ retry }`                         | Error with retry action    |
 | `LoadingTable` | —                                   | Table skeleton replacement |
 | `LoadingCards` | —                                   | Card skeleton replacement  |
-| `Row`          | `{ row, children }`                 | Wrap each table row        |
+| `Row`          | `{ row, cells, rowProps }`          | Wrap each table row        |
 | `Card`         | `{ row, data, selected, children }` | Wrap each card             |
 | `BulkActions`  | `{ count, ids, pageRows, clear }`   | Bulk action bar content    |
+
+## Testing your integration
+
+The `/testing` subpath ships an in-memory fetcher and a response builder for app tests and
+Storybook fixtures:
+
+```tsx
+import {buildResponse, createMockFetcher} from "@ethanhann/mantine-dataview/testing";
+
+const fetcher = createMockFetcher(FIXTURE_USERS, {
+    latency: 50, // exercise loading states
+    summary: (rows) => ({salary: rows.reduce((n, u) => n + u.salary, 0)}),
+});
+
+const view = useDataViewFetcher<User>({columns, getRowId, fetcher});
+```
+
+`createMockFetcher` answers requests from the fixed row set: filters (interpreted heuristically
+by value shape: string is contains, array is membership, a numeric pair is a range), global
+search over string fields, multi-column sort, then pagination, with `rowCount` reflecting the
+filtered total. The heuristics are for tests, not a semantic contract; a real server owns
+interpretation. `buildResponse(rows, overrides?)` derives `rowCount` for hand-rolled responses.
+
+## Server-side rendering
+
+The build output carries the `"use client"` directive, so importing any component or hook from
+a React Server Component (Next.js App Router) works without a wrapper module. The library
+renders on the client; the server's job is to provide the first page of data.
+
+Seed that server-fetched page with `initialData` so the first paint shows rows instead of the
+loading skeleton, and the mount fetch (a duplicate of what the server already did) is skipped:
+
+```tsx
+// app/users/page.tsx (server component)
+export default async function UsersPage() {
+    const first = await api.list({page: 1, size: 10});
+    return <UsersTable initialData={{rows: first.items, rowCount: first.total}}/>;
+}
+
+// users-table.tsx (client component by virtue of the import)
+"use client";
+export function UsersTable({initialData}: {initialData: DataViewResponse<User>}) {
+    const view = useDataViewFetcher<User>({columns, getRowId, fetcher, initialData});
+    return <DataViewer view={view}/>;
+}
+```
+
+`initialData` must answer the initial request (the default or `initialState`-seeded page, sort,
+and filters). Every later change fetches normally, and `refetch()` works immediately.
+
+## Scope positions
+
+Deliberate positions on commonly requested capabilities, so scope questions have one answer
+(full rationale in `data/roadmap-decisions.md`):
+
+- **Inline cell editing is out of scope.** The supported editing pattern is a detail panel or
+  modal paired with the reconciliation primitives (`patchRow`, `insertRow`, `removeRow`), which
+  reflects a write instantly and reconciles with server truth in the background.
+- **Virtualization is out of scope.** Server pagination keeps pages small by design. Keep page
+  sizes at or below roughly 100 rows; row transitions and keyboard navigation assume fully
+  rendered pages.
+- **Filter operators are implied by the variant.** `text` is contains-style, `select` /
+  `multiselect` / `boolean` are equality or membership, and the range variants are between.
+  The server owns interpretation. For an operator-picking UI, use a custom filter component.
+- **Cursor pagination is planned, not available.** `pagination` is index-based today; a
+  cursor-paged backend cannot be mapped onto it statelessly. The contract will gain an additive
+  cursor slice in a future release.
+- **Schedule times are browser-local.** Date windows and event times render in the browser's
+  timezone. Named-timezone rendering awaits downstream `@mantine/schedule` support.
+- **RTL is untested.** Column pinning uses physical left/right offsets and card arrow-key
+  navigation is physical, so right-to-left locales will have inverted affordances.
 
 ## Development
 

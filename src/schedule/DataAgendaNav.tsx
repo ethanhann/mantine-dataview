@@ -5,14 +5,7 @@
 
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
-import { WindowNav } from "./WindowNav";
-
-const RANGE_LABELS: Record<ScheduleLevel, string> = {
-	day: "Day",
-	week: "Week",
-	month: "Month",
-	year: "Year",
-};
+import { levelLabels, WindowNav } from "./WindowNav";
 
 export interface DataAgendaNavProps<TData> {
 	view: UseDataViewReturn<TData>;
@@ -35,8 +28,8 @@ export function DataAgendaNav<TData>({
 			view={view}
 			defaultLevel={defaultLevel}
 			levels={levels}
-			labels={RANGE_LABELS}
-			selectorLabel="Agenda range"
+			labels={levelLabels(view.labels)}
+			selectorLabel={view.labels.agendaRange}
 			disabled={disabled}
 		/>
 	);

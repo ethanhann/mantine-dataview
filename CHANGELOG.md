@@ -3,7 +3,140 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.11.0] - 2026-07-01
+## [0.12.0] - 2026-07-04
+
+### Added
+
+- The default empty, filtered-empty, and error states render Mantine's `EmptyState` component
+  with state icons (inbox, filter, alert), giving them a title/indicator/action hierarchy in both
+  presentations. Slot overrides and all state strings are unchanged.
+
+### Changed
+
+- Internal adoption of Mantine 9.4 built-ins where they match our semantics: `useDidUpdate`
+  replaces hand-rolled skip-first-run effect guards, `useDebouncedCallback` replaces the manual
+  timers for async filter option loading and preference writes, and the filter reset button uses
+  Mantine's exported `CloseIcon`. A preference write still pending at unmount now flushes
+  (`flushOnUnmount`) instead of being dropped.
+- Empty and filtered-empty state action buttons standardize on the `light` variant, matching the
+  error state's retry button.
+
+- Testing utilities at `@ethanhann/mantine-dataview/testing`: `createMockFetcher(rows, options)`
+  answers requests in-memory (heuristic filters, global search, sort, pagination, optional
+  latency/facets/summary) and `buildResponse(rows, overrides)` derives `rowCount`.
+
+- Column reordering: move up/down buttons per column in the Columns dropdown, driving a new
+  `columnOrder` state slice (seedable via `initialState`, persisted by the preference adapter).
+  Accessible names come from `labels.moveColumnUp`/`moveColumnDown`.
+
+- Async filter options: `loadOptions(query)` on `select`/`multiselect` filter meta loads options
+  from the server, once on mount and reloaded with the debounced search text (the control becomes
+  searchable). Facet options keep precedence while present.
+
+- Export-all support: `view.exportRequest` is the current request without pagination, ready to
+  hand to a backend export endpoint. Client-side JSON export joins CSV: `view.exportJson()` and
+  the standalone `exportJson` download the current page keyed by column id.
+
+- Summary aggregates: an optional `summary` field on `DataViewResponse` (raw values keyed by
+  column id, following the `facets` pattern) renders as a table footer row and a card-grid
+  summary block, formatted by each column's `dataType`. Exposed raw as `view.summary`.
+
+- Preference persistence: `persist: { adapter, include? }` on `useDataView`/`useDataViewFetcher`
+  saves column visibility, pinning, sizing, and page size across sessions. Ships with
+  `localStorageAdapter(key)` (including cross-tab sync via storage events); implement
+  `StateStorageAdapter` for server-stored preferences. Hydration order is defaults, then
+  `initialState`, then storage, then the URL. Writes are debounced, malformed stored values are
+  dropped field by field, and ephemeral slices (page index, sort, filters, search, selection) are
+  never persisted.
+
+- SSR support: the build output carries the `"use client"` directive, so imports work directly
+  from React Server Components (Next.js App Router), and `initialData` on `useDataViewFetcher`
+  seeds server-fetched rows, skipping both the first-load skeleton and the duplicate mount fetch.
+- A Scope positions README section documenting deliberate non-goals and contracts: inline editing,
+  virtualization (with a page-size ceiling), per-variant filter operator semantics, planned cursor
+  pagination, browser-local schedule times, and the RTL limitation (full rationale in
+  `data/roadmap-decisions.md`).
+
+- Column resizing: `enableColumnResizing` on `useDataView`/`useDataViewFetcher` adds drag handles
+  to the table's header edges (live resize, double-click to reset a column, per-column opt-out via
+  TanStack's `enableResizing: false`). Widths are tracked in `state.columnSizing` and can be
+  seeded through `initialState` for persistence. The handle's accessible name comes from
+  `labels.resizeColumn`. Default off.
+
+- `keepPreviousData` option on `useDataViewFetcher`: a refetch keeps the previous rows on screen
+  (`status` stays `"success"`) instead of swapping to skeletons. The first fetch and errors behave
+  as before.
+- `view.isFetching`: true while any fetch is in flight, covering keep-previous-data refetches and
+  background revalidation. On the bare `useDataView` hook it mirrors `status === "loading"`.
+- The fetcher now receives `{ signal: AbortSignal }` as a second argument. The signal aborts when
+  the request is superseded (newer request, optimistic mutation, or unmount), so a `fetch` that
+  passes it through cancels the wire request. Ignoring it stays safe.
+- The toolbar shows a small loader while a background fetch is in flight with data on screen
+  (revalidation, or `isFetching` under `keepPreviousData`). Opt out with
+  `showSyncIndicator={false}`; the accessible name is `labels.refreshing`.
+- Localization: a `labels` option on `useDataView`/`useDataViewFetcher` overrides any of the
+  built-in UI strings (toolbar, filter controls, sort and column menus, view switcher, selection,
+  bulk actions, state messages, pagination, and the schedule navigators), merged over the English
+  defaults and exposed as `view.labels`. `DataViewLabels` and `DEFAULT_LABELS` are exported.
+  Explicit per-component string props keep precedence.
+
+### Fixed
+
+- Selection changes are now announced to assistive technology. The bulk-actions bar keeps a
+  visually-hidden live region mounted at all times; previously the region mounted together with
+  its first message, which screen readers do not announce.
+- The Columns dropdown is a labeled checkbox group inside a popover instead of an ARIA menu.
+  A `role="menu"` may only contain menu items, so the previous markup was invalid and its
+  checkboxes were unreachable through menu navigation. The trigger now reports
+  `aria-haspopup`/`aria-expanded`.
+- Row and card enter/crossfade animations respect `prefers-reduced-motion: reduce`.
+- The keyboard-navigable table and card grids now have a default accessible name
+  (`labels.dataGrid`, "Data grid"), overridable per component via a native `aria-label` in
+  `tableProps`/grid props.
+- Fully controlled state now works: `onStateChange` reports the proposed next state (the patch
+  composes last) instead of echoing the stale controlled value, which left a controlled slice
+  permanently stuck on its first value.
+- CSV export no longer corrupts negative numbers. Formula sanitization applies only to string
+  values, since a number's leading minus (raw or formatted) is data, not a formula trigger.
+- Background revalidation now restores `status` to `success` on both its outcomes. Previously an
+  optimistic mutation that invalidated an in-flight fetch could strand the UI on skeletons, and a
+  revalidation after a failed fetch left the error state rendered over fresh data.
+- Keyboard range selection (Shift with an arrow, Home, or End) extends the existing selection
+  instead of replacing it, so selections on other pages survive. Shrinking the range still
+  deselects the rows that leave it.
+- Space and range selection now respect the per-row `enableRowSelection` predicate. A row whose
+  checkbox is disabled can no longer be selected from the keyboard.
+- Registered views (schedule, agenda, resources) render through the slot wrapper, keyed by view id.
+  A registration whose render uses hooks no longer risks rules-of-hooks violations, and two
+  registered views no longer share component state when switching between them.
+- `removeRow` clears the removed id from the cross-page selection, as documented, so bulk actions
+  no longer submit deleted rows.
+- The schedule nav's level switch anchors on the window midpoint. Switching from a padded month
+  window (for example January whose grid starts in December) no longer jumps to the wrong month or
+  year.
+- Date-only strings (`YYYY-MM-DD`) in schedule role columns parse as local midnight instead of UTC,
+  so all-day rows no longer render on the previous day west of UTC.
+- Clicking, selecting, moving, or resizing a generated recurring occurrence now resolves to its
+  series row. Mantine suffixes instance ids with `::recurrenceId`, which previously matched no row
+  and made every interaction a silent no-op.
+- A `params` change now emits exactly one request, already reset to the first page. Previously it
+  double-fetched: once with the stale page (possibly out of range), then again with page 0.
+- URL sync in push mode no longer corrupts history: the mount write to a clean URL is gone, a
+  back/forward to an entry without the size or view param restores the defaults instead of
+  freezing the last-picked values, and search/filter bursts coalesce (300ms) into one entry.
+- The main entry no longer force-imports `@mantine/dates/styles.css`, which crashed plain Node ESM
+  and contradicted the install instructions. Import it in your app alongside Mantine's styles as
+  the README describes.
+
+### Changed
+
+- The `view` URL param is omitted while it equals the default view, and the size/view defaults for
+  URL cleanliness now honor `initialState`, so an app defaulting to 25 rows or the cards view keeps
+  those out of every URL.
+- The README's stale "v1 scope" section is gone. It denied shipped features: event move/resize,
+  range select, slot click, and the resources view are all wired and documented.
+
+## [0.11.0] - 2026-06-30
 
 ### Added
 

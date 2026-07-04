@@ -40,6 +40,8 @@ function Harness(props: {
 	onRowActivate?: (row: User) => void;
 	slots?: DataTableProps<User>["slots"];
 	pinnedLeft?: string[];
+	initialRowSelection?: Record<string, boolean>;
+	enableRowSelection?: (row: User) => boolean;
 }) {
 	const view = useDataView<User>({
 		columns,
@@ -47,8 +49,20 @@ function Harness(props: {
 		rowCount: ROWS.length,
 		status: "success",
 		getRowId: (u) => u.id,
-		...(props.pinnedLeft
-			? { initialState: { columnPinning: { left: props.pinnedLeft } } }
+		...(props.enableRowSelection
+			? { enableRowSelection: props.enableRowSelection }
+			: {}),
+		...(props.pinnedLeft || props.initialRowSelection
+			? {
+					initialState: {
+						...(props.pinnedLeft
+							? { columnPinning: { left: props.pinnedLeft } }
+							: {}),
+						...(props.initialRowSelection
+							? { rowSelection: props.initialRowSelection }
+							: {}),
+					},
+				}
 			: {}),
 	});
 	return (
@@ -230,6 +244,57 @@ describe("DataTable keyboard navigation", () => {
 		// Assert: rows 0, 1, 2 selected.
 		expect(screen.getByTestId("count")).toHaveTextContent("3");
 		expect(bodyRows()[3]).toHaveAttribute("aria-selected", "false");
+	});
+
+	it("preserves selections on other pages when extending a range", async () => {
+		// Arrange: id "99" is selected but not on the current page.
+		const user = userEvent.setup();
+		renderTable({ initialRowSelection: { "99": true } });
+		bodyRows()[0]?.focus();
+		// Act
+		await user.keyboard("{Shift>}{ArrowDown}{ArrowDown}{/Shift}");
+		// Assert: the range adds rows 0-2 without wiping the off-page selection.
+		expect(screen.getByTestId("count")).toHaveTextContent("4");
+		expect(bodyRows()[0]).toHaveAttribute("aria-selected", "true");
+		expect(bodyRows()[2]).toHaveAttribute("aria-selected", "true");
+	});
+
+	it("deselects rows that leave a shrinking range", async () => {
+		// Arrange
+		const user = userEvent.setup();
+		renderTable();
+		bodyRows()[0]?.focus();
+		// Act: extend down to rows 0-2, then shrink back to rows 0-1.
+		await user.keyboard("{Shift>}{ArrowDown}{ArrowDown}{ArrowUp}{/Shift}");
+		// Assert
+		expect(screen.getByTestId("count")).toHaveTextContent("2");
+		expect(bodyRows()[1]).toHaveAttribute("aria-selected", "true");
+		expect(bodyRows()[2]).toHaveAttribute("aria-selected", "false");
+	});
+
+	it("does not select a non-selectable row with Space", async () => {
+		// Arrange: row id "2" (index 1) cannot be selected.
+		const user = userEvent.setup();
+		renderTable({ enableRowSelection: (u) => u.id !== "2" });
+		bodyRows()[1]?.focus();
+		// Act
+		await user.keyboard(" ");
+		// Assert
+		expect(screen.getByTestId("count")).toHaveTextContent("0");
+	});
+
+	it("skips non-selectable rows when extending a range", async () => {
+		// Arrange: row id "2" (index 1) cannot be selected.
+		const user = userEvent.setup();
+		renderTable({ enableRowSelection: (u) => u.id !== "2" });
+		bodyRows()[0]?.focus();
+		// Act: the range covers rows 0-2, of which row 1 is not selectable.
+		await user.keyboard("{Shift>}{ArrowDown}{ArrowDown}{/Shift}");
+		// Assert
+		expect(screen.getByTestId("count")).toHaveTextContent("2");
+		expect(bodyRows()[0]).toHaveAttribute("aria-selected", "true");
+		expect(bodyRows()[1]).not.toHaveAttribute("aria-selected");
+		expect(bodyRows()[2]).toHaveAttribute("aria-selected", "true");
 	});
 
 	it("adds no grid roles or tabstops when disabled", () => {

@@ -166,6 +166,8 @@ export interface SerializeContext {
 	getFilterMeta?: FilterMetaLookup;
 	/** When set, the page size param is omitted while it equals this default, keeping URLs clean. */
 	defaultPageSize?: number;
+	/** When set, the view param is omitted while it equals this default, keeping URLs clean. */
+	defaultView?: DataViewState["view"];
 }
 
 /**
@@ -175,7 +177,13 @@ export interface SerializeContext {
  */
 export function serializeState(
 	state: DataViewState,
-	{ serializer, include, getFilterMeta, defaultPageSize }: SerializeContext,
+	{
+		serializer,
+		include,
+		getFilterMeta,
+		defaultPageSize,
+		defaultView,
+	}: SerializeContext,
 ): Record<string, string> {
 	const params: Record<string, string> = {};
 
@@ -197,7 +205,12 @@ export function serializeState(
 		params[serializer.search] = state.globalFilter;
 	}
 	if (include.includes("view")) {
-		params[serializer.view] = state.view;
+		// Omit the view param while it matches the default, so a mount with untouched state does not
+		// rewrite a clean URL (which in push mode would also make the first Back press appear dead).
+		// When no default is supplied, fall back to always writing it.
+		if (state.view !== defaultView) {
+			params[serializer.view] = state.view;
+		}
 	}
 	if (include.includes("window") && state.window) {
 		params[serializer.windowStart] = state.window.start;
@@ -224,7 +237,14 @@ export interface DeserializeContext extends SerializeContext {
  */
 export function deserializeParams(
 	params: Record<string, string>,
-	{ serializer, include, getFilterMeta, current }: DeserializeContext,
+	{
+		serializer,
+		include,
+		getFilterMeta,
+		current,
+		defaultPageSize,
+		defaultView,
+	}: DeserializeContext,
 ): Partial<DataViewState> {
 	const patch: Partial<DataViewState> = {};
 
@@ -236,12 +256,14 @@ export function deserializeParams(
 			? Math.max(0, Math.trunc(pageNumber) - 1)
 			: 0;
 		// Clamp to a positive integer; a `0`, negative, or fractional size from a tampered URL would
-		// break pagination math downstream.
+		// break pagination math downstream. An absent size means the default (the serializer omits it
+		// at the default), so a back/forward to a clean URL restores it; only when no default is known
+		// does the current size carry over.
 		const parsedSize = rawSize ? Math.trunc(Number(rawSize)) : Number.NaN;
 		const pageSize =
 			Number.isFinite(parsedSize) && parsedSize > 0
 				? parsedSize
-				: current.pagination.pageSize;
+				: (defaultPageSize ?? current.pagination.pageSize);
 		patch.pagination = { pageIndex, pageSize };
 	}
 	if (include.includes("sorting")) {
@@ -253,8 +275,12 @@ export function deserializeParams(
 	if (include.includes("view")) {
 		const rawView = params[serializer.view];
 		// Accept the opt-in `schedule` id too; an unregistered schedule view degrades to the table in
-		// the body rather than erroring, so restoring it from a URL is safe.
-		patch.view = rawView && isKnownViewMode(rawView) ? rawView : current.view;
+		// the body rather than erroring, so restoring it from a URL is safe. An absent or invalid view
+		// means the default (mirroring how it is written); without a known default, keep the current.
+		patch.view =
+			rawView && isKnownViewMode(rawView)
+				? rawView
+				: (defaultView ?? current.view);
 	}
 	if (include.includes("window")) {
 		const start = params[serializer.windowStart];

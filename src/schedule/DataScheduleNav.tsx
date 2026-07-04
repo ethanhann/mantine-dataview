@@ -3,14 +3,7 @@
 
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
-import { WindowNav } from "./WindowNav";
-
-const CALENDAR_LABELS: Record<ScheduleLevel, string> = {
-	day: "Day",
-	week: "Week",
-	month: "Month",
-	year: "Year",
-};
+import { levelLabels, WindowNav } from "./WindowNav";
 
 export interface DataScheduleNavProps<TData> {
 	view: UseDataViewReturn<TData>;
@@ -33,8 +26,8 @@ export function DataScheduleNav<TData>({
 			view={view}
 			defaultLevel={defaultLevel}
 			levels={levels}
-			labels={CALENDAR_LABELS}
-			selectorLabel="Calendar level"
+			labels={levelLabels(view.labels)}
+			selectorLabel={view.labels.calendarLevel}
 			disabled={disabled}
 		/>
 	);

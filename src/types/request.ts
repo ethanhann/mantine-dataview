@@ -1,8 +1,10 @@
 // Server data contract that is agnostic about the backend.
 //
 // The library defines the shape of what it needs, never how to obtain it. The consumer maps
-// `DataViewRequest` onto their transport, whether that is offset and limit, a cursor, or GraphQL
-// variables. They then map the result back into a `DataViewResponse`.
+// `DataViewRequest` onto their transport, whether that is offset and limit or GraphQL variables.
+// They then map the result back into a `DataViewResponse`. Pagination is index-based, and a
+// cursor-paged backend cannot be mapped statelessly onto `pageIndex`/`pageSize` today. A cursor
+// slice on this contract is planned (see data/roadmap-decisions.md).
 
 import type { FacetData } from "./facets";
 import type {
@@ -48,4 +50,10 @@ export interface DataViewResponse<TData> {
 	rowCount: number;
 	/** Optional facet aggregation data, keyed by column ID. */
 	facets?: Record<string, FacetData>;
+	/**
+	 * Optional server-computed aggregates (sums, averages, counts) keyed by column ID. Raw values,
+	 * formatted for display by the column's `dataType` like any cell. The table renders them as a
+	 * footer row and the card grid as a summary block.
+	 */
+	summary?: Record<string, unknown>;
 }

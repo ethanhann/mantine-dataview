@@ -21,14 +21,19 @@ import {
 	TextInput,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
+import { useDebouncedCallback } from "@mantine/hooks";
 import type { Column } from "@tanstack/react-table";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { resolveColumnLabel } from "../../core/cardComposition";
 import { resolveFormatter } from "../../core/formatValue";
+import type { FilterOption } from "../../types/column";
 import type { FacetData, ValueFacet } from "../../types/facets";
+import { type DataViewLabels, DEFAULT_LABELS } from "../../types/labels";
 import { FacetBuckets } from "./FacetBuckets";
 
-// @ts-expect-error CSS import has no type declarations
-import "@mantine/dates/styles.css";
+// Deliberately no `import "@mantine/dates/styles.css"` here: a bare CSS import in library code
+// would be forced on every consumer (and crash plain Node ESM). The README instructs apps to
+// import it alongside Mantine's other styles.
 
 type NumOrNull = number | null;
 
@@ -37,10 +42,12 @@ const BOOLEAN_FALSE_KEYS = new Set(["false", "0", "no"]);
 
 function LabelWithClear({
 	label,
+	clearText,
 	onClear,
 	size = "xs",
 }: {
 	label: string;
+	clearText: string;
 	onClear: () => void;
 	size?: MantineSize;
 }) {
@@ -56,7 +63,7 @@ function LabelWithClear({
 				c="dimmed"
 				onClick={onClear}
 			>
-				clear
+				{clearText}
 			</Anchor>
 		</Group>
 	);
@@ -90,16 +97,55 @@ function asArray(value: unknown): [unknown, unknown] {
 
 function facetSelectData(
 	facet: ValueFacet,
+	labels: DataViewLabels,
 	fallbackOptions?: { value: string; label: string }[],
 ) {
 	if (facet.values.length > 0) {
 		return facet.values.map((v) => ({
 			value: v.value,
-			label: `${v.label ?? v.value} (${v.count})`,
+			label: labels.withCount(v.label ?? v.value, v.count),
 			disabled: v.count === 0,
 		}));
 	}
 	return fallbackOptions ?? [];
+}
+
+const ASYNC_OPTIONS_DEBOUNCE_MS = 300;
+
+/**
+ * Loads server-provided options for `select`/`multiselect` filters: once with the empty query on
+ * mount, then reloaded as the user types (debounced). A newer request supersedes a slower older
+ * one, and a failed load keeps whatever was last shown.
+ */
+function useAsyncOptions(load?: (query: string) => Promise<FilterOption[]>) {
+	const [options, setOptions] = useState<FilterOption[] | null>(null);
+	const loadRef = useRef(load);
+	loadRef.current = load;
+	const idRef = useRef(0);
+	const enabled = load != null;
+
+	const run = useCallback((query: string) => {
+		const fn = loadRef.current;
+		if (!fn) return;
+		const id = ++idRef.current;
+		fn(query).then(
+			(next) => {
+				if (id === idRef.current) setOptions(next);
+			},
+			() => {},
+		);
+	}, []);
+
+	useEffect(() => {
+		if (enabled) run("");
+	}, [enabled, run]);
+
+	const onSearchChange = useDebouncedCallback(run, ASYNC_OPTIONS_DEBOUNCE_MS);
+
+	return {
+		asyncOptions: enabled ? options : null,
+		searchProps: enabled ? { searchable: true, onSearchChange } : {},
+	};
 }
 
 export function FilterControl<TData>({
@@ -107,13 +153,17 @@ export function FilterControl<TData>({
 	facet,
 	disabled,
 	size = "xs",
+	labels = DEFAULT_LABELS,
 }: {
 	column: Column<TData>;
 	facet?: FacetData;
 	disabled?: boolean;
 	size?: MantineSize;
+	/** The view's string dictionary. Defaults to English for standalone placement. */
+	labels?: DataViewLabels;
 }) {
 	const meta = column.columnDef.meta?.filter;
+	const { asyncOptions, searchProps } = useAsyncOptions(meta?.loadOptions);
 	if (!meta) return null;
 
 	const label = resolveColumnLabel(column);
@@ -146,10 +196,11 @@ export function FilterControl<TData>({
 					placeholder={placeholder}
 					clearable
 					disabled={disabled}
+					{...searchProps}
 					data={
 						valueFacet
-							? facetSelectData(valueFacet, meta.options)
-							: (meta.options ?? [])
+							? facetSelectData(valueFacet, labels, meta.options)
+							: (asyncOptions ?? meta.options ?? [])
 					}
 					value={(value as string | undefined) ?? null}
 					onChange={(v) => set(v ?? undefined)}
@@ -162,10 +213,11 @@ export function FilterControl<TData>({
 					size={size}
 					placeholder={placeholder}
 					disabled={disabled}
+					{...searchProps}
 					data={
 						valueFacet
-							? facetSelectData(valueFacet, meta.options)
-							: (meta.options ?? [])
+							? facetSelectData(valueFacet, labels, meta.options)
+							: (asyncOptions ?? meta.options ?? [])
 					}
 					value={(value as string[] | undefined) ?? []}
 					onChange={(v) => set(v.length > 0 ? v : undefined)}
@@ -180,8 +232,12 @@ export function FilterControl<TData>({
 			const noEntry = valueFacet?.values.find((v) =>
 				BOOLEAN_FALSE_KEYS.has(v.value.toLowerCase()),
 			);
-			const yesLabel = yesEntry ? `Yes (${yesEntry.count})` : "Yes";
-			const noLabel = noEntry ? `No (${noEntry.count})` : "No";
+			const yesLabel = yesEntry
+				? labels.withCount(labels.filterYes, yesEntry.count)
+				: labels.filterYes;
+			const noLabel = noEntry
+				? labels.withCount(labels.filterNo, noEntry.count)
+				: labels.filterNo;
 			return (
 				<Input.Wrapper label={label} size={size}>
 					<SegmentedControl
@@ -189,7 +245,7 @@ export function FilterControl<TData>({
 						size="xs"
 						disabled={disabled}
 						data={[
-							{ value: "all", label: "All" },
+							{ value: "all", label: labels.filterAll },
 							{ value: "yes", label: yesLabel },
 							{ value: "no", label: noLabel },
 						]}
@@ -214,7 +270,11 @@ export function FilterControl<TData>({
 			) : null;
 
 			const rangeLabel = hasValue ? (
-				<LabelWithClear label={label} onClear={() => set(undefined)} />
+				<LabelWithClear
+					label={label}
+					clearText={labels.clearFilter}
+					onClear={() => set(undefined)}
+				/>
 			) : (
 				label
 			);
@@ -272,7 +332,7 @@ export function FilterControl<TData>({
 						<NumberInput
 							size={size}
 							aria-label={`${label} minimum`}
-							placeholder="Min"
+							placeholder={labels.filterMin}
 							disabled={disabled}
 							value={min ?? ""}
 							onChange={(v) => update([toNum(v), max])}
@@ -281,7 +341,7 @@ export function FilterControl<TData>({
 						<NumberInput
 							size={size}
 							aria-label={`${label} maximum`}
-							placeholder="Max"
+							placeholder={labels.filterMax}
 							disabled={disabled}
 							value={max ?? ""}
 							onChange={(v) => update([min, toNum(v)])}
@@ -314,7 +374,11 @@ export function FilterControl<TData>({
 			];
 			const dateRangeLabel =
 				value != null ? (
-					<LabelWithClear label={label} onClear={() => set(undefined)} />
+					<LabelWithClear
+						label={label}
+						clearText={labels.clearFilter}
+						onClear={() => set(undefined)}
+					/>
 				) : (
 					label
 				);

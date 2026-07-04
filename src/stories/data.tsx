@@ -19,6 +19,8 @@ export interface Person {
 	status: "active" | "invited" | "suspended";
 	age: number;
 	location: string;
+	/** Hire date as a date-only ISO string, for the date filter stories. */
+	hiredAt: string;
 }
 
 const FIRST = [
@@ -69,6 +71,9 @@ export const people: Person[] = FIRST.map((first, i) => {
 		status: STATUSES[i % STATUSES.length] as Person["status"],
 		age: 24 + ((i * 7) % 40),
 		location: CITIES[i % CITIES.length] as string,
+		hiredAt: `202${i % 6}-${String((i % 12) + 1).padStart(2, "0")}-${String(
+			(i % 27) + 1,
+		).padStart(2, "0")}`,
 	};
 });
 
@@ -175,6 +180,17 @@ function matchesFilter(p: Person, id: string, value: unknown): boolean {
 	if (id === "age" && Array.isArray(value)) {
 		const [min, max] = value as [number | null, number | null];
 		return (min == null || p.age >= min) && (max == null || p.age <= max);
+	}
+	// Date-only ISO strings compare lexicographically, so a range check is a string compare.
+	// `hiredAtExact` is the story column exposing the single-`date` variant over the same field.
+	if (id === "hiredAt" && Array.isArray(value)) {
+		const [from, to] = value as [string | null, string | null];
+		return (
+			(from == null || p.hiredAt >= from) && (to == null || p.hiredAt <= to)
+		);
+	}
+	if (id === "hiredAtExact" && typeof value === "string") {
+		return p.hiredAt === value;
 	}
 	if (Array.isArray(value)) {
 		return value.length === 0 || value.includes(field(p, id));

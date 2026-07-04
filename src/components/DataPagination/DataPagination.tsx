@@ -21,6 +21,7 @@ export interface DataPaginationProps<TData>
 	showPageSize?: boolean;
 	/** Show the range summary, such as "1 to 10 of 42". It defaults to true. */
 	showRange?: boolean;
+	/** Accessible name of the page-size select. Default: `view.labels.rowsPerPage`. */
 	pageSizeLabel?: string;
 }
 
@@ -29,14 +30,14 @@ export function DataPagination<TData>({
 	pageSizeOptions,
 	showPageSize = true,
 	showRange = true,
-	pageSizeLabel = "Rows per page",
+	pageSizeLabel,
 	...groupProps
 }: DataPaginationProps<TData>) {
 	// A windowed view (calendar/agenda/resources) fetches by date window, not by page — the pager is
 	// meaningless there and the presentation owns its own date navigation. Render nothing.
 	if (isWindowedView(view.view)) return null;
 
-	const { table } = view;
+	const { table, labels } = view;
 	const { pageIndex, pageSize } = view.state.pagination;
 	const total = table.getRowCount();
 	const pageCount = table.getPageCount();
@@ -58,7 +59,7 @@ export function DataPagination<TData>({
 			<Group gap="sm" wrap="wrap">
 				{showPageSize && (
 					<Select
-						aria-label={pageSizeLabel}
+						aria-label={pageSizeLabel ?? labels.rowsPerPage}
 						data={sizeData}
 						value={String(pageSize)}
 						onChange={(v) => {
@@ -71,7 +72,7 @@ export function DataPagination<TData>({
 				)}
 				{showRange && (
 					<Text size="sm" c="dimmed">
-						{start}–{end} of {total}
+						{labels.paginationRange(start, end, total)}
 					</Text>
 				)}
 			</Group>
@@ -81,7 +82,9 @@ export function DataPagination<TData>({
 					value={pageIndex + 1}
 					total={pageCount}
 					onChange={(page) => table.setPageIndex(page - 1)}
-					getControlProps={(control) => ({ "aria-label": `${control} page` })}
+					getControlProps={(control) => ({
+						"aria-label": labels.paginationControl(control),
+					})}
 				/>
 			)}
 		</Group>

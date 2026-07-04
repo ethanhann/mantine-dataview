@@ -45,7 +45,13 @@ function Harness({
 		debounce: 0,
 		...(initialState ? { initialState } : {}),
 	});
-	return <FilterControls view={view} inlineThreshold={inlineThreshold} />;
+	return (
+		<>
+			<span data-testid="page">{view.state.pagination.pageIndex}</span>
+			<span data-testid="filter-count">{view.state.columnFilters.length}</span>
+			<FilterControls view={view} inlineThreshold={inlineThreshold} />
+		</>
+	);
 }
 
 function renderControls(props: Parameters<typeof Harness>[0]) {
@@ -136,6 +142,26 @@ describe("FilterControls", () => {
 		expect(
 			await screen.findByRole("button", { name: "Reset filters" }),
 		).toBeInTheDocument();
+	});
+
+	it("clears the filters and returns to the first page on reset", async () => {
+		// Arrange: an active filter with the user several pages in.
+		const user = userEvent.setup();
+		renderControls({
+			inlineThreshold: 1,
+			initialState: {
+				columnFilters: [{ id: "name", value: "an" }],
+				pagination: { pageIndex: 9, pageSize: 10 },
+			},
+		});
+		await user.click(screen.getByRole("button", { name: "Filters (1)" }));
+		// Act
+		await user.click(
+			await screen.findByRole("button", { name: "Reset filters" }),
+		);
+		// Assert
+		expect(screen.getByTestId("filter-count")).toHaveTextContent("0");
+		expect(screen.getByTestId("page")).toHaveTextContent("0");
 	});
 
 	it("renders a bottom drawer of filters on a mobile viewport", async () => {

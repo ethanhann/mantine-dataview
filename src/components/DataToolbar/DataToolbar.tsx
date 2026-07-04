@@ -6,6 +6,7 @@ import {
 	CloseButton,
 	Group,
 	type GroupProps,
+	Loader,
 	Stack,
 	TextInput,
 } from "@mantine/core";
@@ -36,6 +37,11 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 	showViewSwitcher?: boolean;
 	/** Disable search, filter, and sort controls while data is loading. Default: true. */
 	disableWhileLoading?: boolean;
+	/**
+	 * Show a small loader while a background fetch is in flight with data still on screen
+	 * (`isRevalidating`, or `isFetching` under `keepPreviousData`). Default: true.
+	 */
+	showSyncIndicator?: boolean;
 	/** Content injected at the start of the left control group (before search). */
 	leftSection?: ReactNode;
 	/** Content injected at the end of the right control group (after view switcher). */
@@ -46,7 +52,7 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 
 export function DataToolbar<TData>({
 	view,
-	searchPlaceholder = "Search…",
+	searchPlaceholder,
 	filterInlineThreshold = 3,
 	lockSwitcherOnMobile,
 	showSearch,
@@ -55,12 +61,13 @@ export function DataToolbar<TData>({
 	showVisibility,
 	showViewSwitcher,
 	disableWhileLoading = true,
+	showSyncIndicator = true,
 	leftSection,
 	rightSection,
 	views,
 	...groupProps
 }: DataToolbarProps<TData>) {
-	const { table, state } = view;
+	const { table, state, labels } = view;
 	const loading = disableWhileLoading && view.status === "loading";
 	// Sorting and column visibility are table/cards concepts; a windowed view (calendar/agenda/
 	// resources) has neither. Hide both there while keeping search, filters, and the switcher.
@@ -85,8 +92,8 @@ export function DataToolbar<TData>({
 				{leftSection}
 				{searchOn && (
 					<TextInput
-						aria-label="Search"
-						placeholder={searchPlaceholder}
+						aria-label={labels.search}
+						placeholder={searchPlaceholder ?? labels.searchPlaceholder}
 						leftSection={<SearchIcon />}
 						disabled={loading}
 						value={state.globalFilter ?? ""}
@@ -95,7 +102,7 @@ export function DataToolbar<TData>({
 							state.globalFilter ? (
 								<CloseButton
 									size="sm"
-									aria-label="Clear search"
+									aria-label={labels.clearSearch}
 									disabled={loading}
 									onClick={() => table.setGlobalFilter("")}
 								/>
@@ -113,6 +120,11 @@ export function DataToolbar<TData>({
 				{sortOn && <SortControl view={view} disabled={loading} />}
 			</Group>
 			<Group wrap="wrap" gap="sm">
+				{showSyncIndicator &&
+					(view.isRevalidating ||
+						(view.isFetching && view.status === "success")) && (
+						<Loader size="xs" aria-label={labels.refreshing} />
+					)}
 				{visibilityOn && <VisibilityMenu view={view} disabled={loading} />}
 				{switcherOn && (
 					<ViewSwitcher

@@ -53,6 +53,16 @@ export function computeWindow(
 }
 
 /**
+ * The window's midpoint. This is the safe anchor for re-deriving a window: a padded month window
+ * starts in the previous month's weeks, so the start can sit outside the logical period, while the
+ * midpoint always lands inside it.
+ */
+export function windowMidpoint(window: DataViewWindow): Date {
+	const start = dayjs(window.start);
+	return start.add(dayjs(window.end).diff(start) / 2, "millisecond").toDate();
+}
+
+/**
  * Steps the window one level-unit earlier (`-1`) or later (`1`), keeping the same level. Steps from
  * the window's midpoint so a padded month/week lands squarely in the next period. `firstDayOfWeek`
  * defaults to Monday to match Mantine. Pass the value from your `DatesProvider` if it differs.
@@ -62,8 +72,7 @@ export function shiftWindow(
 	direction: -1 | 1,
 	firstDayOfWeek: number = DEFAULT_FIRST_DAY,
 ): DataViewWindow {
-	const start = dayjs(window.start);
-	const mid = start.add(dayjs(window.end).diff(start) / 2, "millisecond");
+	const mid = dayjs(windowMidpoint(window));
 	return computeWindow(
 		mid.add(direction, window.level).toDate(),
 		window.level,

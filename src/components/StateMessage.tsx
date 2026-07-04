@@ -2,9 +2,10 @@
 // same slots. Each presentation supplies its own container. For the table that is a table cell
 // spanning every column, and for the card grid it is a centered box.
 
-import { Button, Stack, Text } from "@mantine/core";
+import { Button, EmptyState } from "@mantine/core";
 import type { Table } from "@tanstack/react-table";
 import type { UseDataViewReturn } from "../types/options";
+import { AlertIcon, FilterIcon, InboxIcon } from "./icons";
 import { Slot } from "./Slot";
 import type { DataViewSlots } from "./types";
 
@@ -39,17 +40,20 @@ export function ErrorContent<TData>({ view, slots }: StateProps<TData>) {
 			? view.error.message
 			: null;
 	return (
-		<Stack align="center" gap="xs">
-			<Text c="red">Something went wrong.</Text>
-			{devMessage && (
-				<Text c="dimmed" size="xs" ta="center">
-					{devMessage}
-				</Text>
-			)}
-			<Button variant="light" size="xs" onClick={view.refetch}>
-				Retry
-			</Button>
-		</Stack>
+		<EmptyState
+			size="sm"
+			variant="light"
+			color="red"
+			icon={<AlertIcon size={28} />}
+			title={view.labels.errorMessage}
+			description={devMessage}
+		>
+			<EmptyState.Actions>
+				<Button variant="light" size="xs" onClick={view.refetch}>
+					{view.labels.retry}
+				</Button>
+			</EmptyState.Actions>
+		</EmptyState>
 	);
 }
 
@@ -61,13 +65,26 @@ export function EmptyContent<TData>({ view, slots }: StateProps<TData>) {
 	}
 	if (filtered) {
 		return (
-			<Stack align="center" gap="xs">
-				<Text c="dimmed">No matches.</Text>
-				<Button variant="subtle" size="xs" onClick={clearFilters}>
-					Clear filters
-				</Button>
-			</Stack>
+			<EmptyState
+				size="sm"
+				withIndicatorBackground
+				icon={<FilterIcon size={28} />}
+				title={view.labels.noMatches}
+			>
+				<EmptyState.Actions>
+					<Button variant="light" size="xs" onClick={clearFilters}>
+						{view.labels.clearFilters}
+					</Button>
+				</EmptyState.Actions>
+			</EmptyState>
 		);
 	}
-	return <Text c="dimmed">No results.</Text>;
+	return (
+		<EmptyState
+			size="sm"
+			withIndicatorBackground
+			icon={<InboxIcon size={28} />}
+			title={view.labels.noResults}
+		/>
+	);
 }

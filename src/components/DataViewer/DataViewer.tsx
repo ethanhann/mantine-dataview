@@ -11,6 +11,7 @@ import { DataCards, type DataCardsProps } from "../DataCards";
 import { DataPagination, type DataPaginationProps } from "../DataPagination";
 import { DataTable, type DataTableProps } from "../DataTable";
 import { DataToolbar, type DataToolbarProps } from "../DataToolbar";
+import { Slot } from "../Slot";
 import type { DataViewSlots, RegisteredView } from "../types";
 import {
 	type DataViewContextValue,
@@ -116,8 +117,12 @@ function DataViewBody<TData>({
 	// A registered opt-in view (e.g. schedule) renders its own body. If the active view id has no
 	// matching registration — e.g. a stale `?view=schedule` URL with no `views` prop — fall through
 	// to the built-in table, so an unregistered view degrades gracefully rather than rendering blank.
+	// Rendered through `Slot` (hooks inside the registration stay valid) and keyed by id so two
+	// registered views never share one component position's hook state.
 	const registered = views?.find((v) => v.id === view.view);
-	if (registered) return registered.render(view);
+	if (registered) {
+		return <Slot key={registered.id} render={registered.render} ctx={view} />;
+	}
 	return view.view === "cards" ? (
 		<DataCards
 			view={view}

@@ -56,12 +56,15 @@ function Harness({
 	cols = columns,
 	onRequestChange,
 	toolbar,
+	backgroundFetch,
 }: {
 	cols?: DataColumnDef<User>[];
 	onRequestChange?: ReqSpy;
 	toolbar?: Partial<DataToolbarProps<User>>;
+	/** Simulate a background fetch (revalidation) while data is on screen. */
+	backgroundFetch?: boolean;
 }) {
-	const view = useDataView<User>({
+	const base = useDataView<User>({
 		columns: cols,
 		rows: sampleRows,
 		rowCount: sampleRows.length,
@@ -70,6 +73,9 @@ function Harness({
 		onRequestChange,
 		debounce: 0,
 	});
+	const view = backgroundFetch
+		? { ...base, isFetching: true, isRevalidating: true }
+		: base;
 	return (
 		<>
 			<DataToolbar view={view} {...toolbar} />
@@ -99,6 +105,86 @@ function selectOption(comboboxName: string, optionName: string) {
 }
 
 describe("DataToolbar", () => {
+	it("shows a sync indicator during a background fetch", () => {
+		// Arrange / Act
+		renderToolbar({ backgroundFetch: true });
+
+		// Assert
+		expect(screen.getByLabelText("Refreshing")).toBeInTheDocument();
+	});
+
+	it("shows no sync indicator when idle", () => {
+		// Arrange / Act
+		renderToolbar();
+
+		// Assert
+		expect(screen.queryByLabelText("Refreshing")).toBeNull();
+	});
+
+	it("can opt out of the sync indicator", () => {
+		// Arrange / Act
+		renderToolbar({
+			backgroundFetch: true,
+			toolbar: { showSyncIndicator: false },
+		});
+
+		// Assert
+		expect(screen.queryByLabelText("Refreshing")).toBeNull();
+	});
+
+	it("reorders columns with the move buttons in the Columns popover", async () => {
+		// Arrange
+		renderToolbar();
+		const headerIds = () =>
+			screen
+				.getAllByRole("columnheader")
+				.map((h) => h.textContent)
+				.filter(Boolean);
+		expect(headerIds()).toEqual(["Name", "Email", "Status", "City"]);
+		await userEvent.click(screen.getByRole("button", { name: "Columns" }));
+
+		// Act
+		await userEvent.click(
+			await screen.findByRole("button", {
+				name: "Move Email up",
+				hidden: true,
+			}),
+		);
+
+		// Assert
+		expect(headerIds()).toEqual(["Email", "Name", "Status", "City"]);
+		// The first row's up button is disabled; the last row's down button too.
+		expect(
+			screen.getByRole("button", { name: "Move Email up", hidden: true }),
+		).toBeDisabled();
+		expect(
+			screen.getByRole("button", { name: "Move City down", hidden: true }),
+		).toBeDisabled();
+	});
+
+	it("exposes the columns dropdown as a labeled group, not an ARIA menu", async () => {
+		// Arrange: a role="menu" may only contain menu items; a checkbox list needs
+		// a labeled group inside a dialog instead.
+		renderToolbar();
+		const trigger = screen.getByRole("button", { name: "Columns" });
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+		// Act
+		await userEvent.click(trigger);
+
+		// Assert. `hidden: true` because jsdom never settles Mantine's mount transition,
+		// so the (really visible) dropdown reports as display: none after the open.
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+		expect(screen.queryByRole("menu", { hidden: true })).toBeNull();
+		const checkbox = await screen.findByRole("checkbox", {
+			name: "Name",
+			hidden: true,
+		});
+		const group = checkbox.closest('[role="group"]');
+		expect(group).not.toBeNull();
+		expect(group).toHaveAccessibleName("Columns");
+	});
+
 	it("drives global search", async () => {
 		const onRequestChange = reqSpy();
 		renderToolbar({ onRequestChange });

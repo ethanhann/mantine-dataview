@@ -2,9 +2,12 @@
 // flag turned on. It emits a normalized `DataViewRequest` whenever the state the server cares
 // about changes. The presentations and the toolbar are pure projections of what it returns.
 
+import { useDebouncedCallback, useDidUpdate } from "@mantine/hooks";
 import {
 	type ColumnFiltersState,
+	type ColumnOrderState,
 	type ColumnPinningState,
+	type ColumnSizingState,
 	functionalUpdate,
 	getCoreRowModel,
 	type OnChangeFn,
@@ -16,6 +19,7 @@ import {
 } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnFilterMeta, DataColumnDef } from "../types/column";
+import { resolveLabels } from "../types/labels";
 import type {
 	DebounceOptions,
 	UseDataViewOptions,
@@ -33,8 +37,12 @@ import {
 	resolveUrlConfig,
 	useUrlSync,
 } from "../url/useUrlSync";
-import { exportCsv as exportCsvFn } from "./exportCsv";
+import {
+	exportCsv as exportCsvFn,
+	exportJson as exportJsonFn,
+} from "./exportCsv";
 import { resolveFormatter } from "./formatValue";
+import { extractPersisted, hydrateFromStorage } from "./persist";
 import { resolveDataViewStatus } from "./resolveStatus";
 import { useForceCards } from "./useForceCards";
 
@@ -42,6 +50,7 @@ import { useForceCards } from "./useForceCards";
 const DEFAULT_DEBOUNCE_MS = 300;
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100];
 const DEFAULT_PAGE_SIZE = 10;
+const PERSIST_WRITE_DEBOUNCE_MS = 250;
 
 interface ResolvedDebounce {
 	globalFilter: number;
@@ -119,6 +128,8 @@ function buildDefaultState<TData>(
 		rowSelection: {},
 		columnVisibility: {},
 		columnPinning: { left: [], right: [] },
+		columnSizing: {},
+		columnOrder: [],
 		view: options.defaultView ?? "table",
 		...options.initialState,
 	};
@@ -140,14 +151,20 @@ export function useDataView<TData>(
 		enableRowSelection,
 		enableMultiRowSelection,
 		enableGlobalFilter = true,
+		enableColumnResizing = false,
 		debounce,
 		responsive,
 		formatDefaults,
 		facets: facetsInput,
+		summary: summaryInput,
 		params: paramsInput,
+		labels: labelsInput,
+		persist,
 	} = options;
 
+	const labels = useMemo(() => resolveLabels(labelsInput), [labelsInput]);
 	const facets = facetsInput ?? {};
+	const summary = summaryInput ?? {};
 	const paramsKey = paramsInput ? JSON.stringify(paramsInput) : "";
 	// Keep `params` reference-stable while its content is unchanged. Without this it would be a fresh
 	// object every render, so the request's `params` slice would look "changed" on a pagination-only
@@ -185,10 +202,16 @@ export function useDataView<TData>(
 	);
 
 	// State ownership. The hook keeps internal state that controlled slices can override. On the
-	// first render it also hydrates that state from the URL when sync is enabled.
+	// first render it also hydrates from persisted preferences and then the URL (the URL wins,
+	// since it represents an explicit navigation). The storage patch is kept for the URL layer's
+	// defaults: a stored page size is the effective default, so it stays out of clean URLs.
+	const storagePatchRef = useRef<Partial<DataViewState>>({});
 	const [internalState, setInternalState] = useState<DataViewState>(() => {
 		const base = buildDefaultState(options);
-		return { ...base, ...hydrateFromUrl(urlConfig, base, getFilterMeta) };
+		const stored = hydrateFromStorage(persist, base);
+		storagePatchRef.current = stored;
+		const seeded = { ...base, ...stored };
+		return { ...seeded, ...hydrateFromUrl(urlConfig, seeded, getFilterMeta) };
 	});
 
 	const resolvedState = useMemo<DataViewState>(
@@ -214,21 +237,72 @@ export function useDataView<TData>(
 			const nextInternal = { ...internalStateRef.current, ...patch };
 			internalStateRef.current = nextInternal;
 			setInternalState(nextInternal);
-			// Controlled slices always win over internal ones, so the emitted snapshot mirrors how
-			// `resolvedState` is composed.
-			onStateChange?.({ ...nextInternal, ...controlledStateRef.current });
+			// The notification reports the proposed next state: controlled slices stay
+			// authoritative for everything they own, except the slice this patch changes.
+			// The patch must compose last or a controlled consumer never sees the change
+			// it is being asked to commit.
+			onStateChange?.({
+				...nextInternal,
+				...controlledStateRef.current,
+				...patch,
+			});
 		},
 		[onStateChange],
 	);
 
 	// Ongoing URL writes plus the back and forward subscription. Hydration already happened above.
+	// The defaults honor `initialState`, so an app defaulting to e.g. 25 rows or the cards view
+	// keeps those out of every URL.
 	useUrlSync({
 		config: urlConfig,
 		state: resolvedState,
 		applyPatch,
 		getFilterMeta,
-		defaultPageSize: resolvePageSizeOptions(options)[0] ?? DEFAULT_PAGE_SIZE,
+		defaultPageSize:
+			storagePatchRef.current.pagination?.pageSize ??
+			options.initialState?.pagination?.pageSize ??
+			resolvePageSizeOptions(options)[0] ??
+			DEFAULT_PAGE_SIZE,
+		defaultView: options.initialState?.view ?? options.defaultView ?? "table",
 	});
+
+	// Persist preference changes, debounced: a resize drag patches state per mousemove, and the
+	// storage write should land once per gesture, not per pixel. The mount run is skipped since it
+	// would only write back what hydration just read, and a write still pending at unmount is
+	// flushed so navigating away never drops the user's last change.
+	const persistRef = useRef(persist);
+	persistRef.current = persist;
+	const persisted = persist
+		? extractPersisted(resolvedState, persist.include)
+		: null;
+	const persistedKey = persisted ? JSON.stringify(persisted) : "";
+	const writePersisted = useDebouncedCallback(
+		() => {
+			const cfg = persistRef.current;
+			if (!cfg) return;
+			cfg.adapter.write(
+				extractPersisted(resolvedStateRef.current, cfg.include),
+			);
+		},
+		{ delay: PERSIST_WRITE_DEBOUNCE_MS, flushOnUnmount: true },
+	);
+	useDidUpdate(() => {
+		if (persistedKey) writePersisted();
+	}, [persistedKey]);
+
+	// External storage changes (e.g. another tab) patch the live state when the adapter can
+	// signal them. Mirrors the URL subscribe effect.
+	const persistEnabled = persist != null;
+	useEffect(() => {
+		if (!persistEnabled) return;
+		const cfg = persistRef.current;
+		if (!cfg?.adapter.subscribe) return;
+		return cfg.adapter.subscribe(() => {
+			const live = persistRef.current;
+			if (!live) return;
+			applyPatch(hydrateFromStorage(live, resolvedStateRef.current));
+		});
+	}, [persistEnabled, applyPatch]);
 
 	// Changing what the server sees (sort, filter, or search) resets to the first page. This
 	// keeps a filtered result set from stranding the user on a page that is now empty.
@@ -240,11 +314,7 @@ export function useDataView<TData>(
 		[],
 	);
 
-	const prevParamsKeyRef = useRef(paramsKey);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: applyPatch/resetPagination are stable; the ref guard skips the mount run
-	useEffect(() => {
-		if (prevParamsKeyRef.current === paramsKey) return;
-		prevParamsKeyRef.current = paramsKey;
+	useDidUpdate(() => {
 		applyPatch({ pagination: resetPagination() });
 	}, [paramsKey]);
 
@@ -332,6 +402,30 @@ export function useDataView<TData>(
 		[applyPatch],
 	);
 
+	const onColumnSizingChange = useCallback<OnChangeFn<ColumnSizingState>>(
+		(updater) => {
+			applyPatch({
+				columnSizing: functionalUpdate(
+					updater,
+					resolvedStateRef.current.columnSizing,
+				),
+			});
+		},
+		[applyPatch],
+	);
+
+	const onColumnOrderChange = useCallback<OnChangeFn<ColumnOrderState>>(
+		(updater) => {
+			applyPatch({
+				columnOrder: functionalUpdate(
+					updater,
+					resolvedStateRef.current.columnOrder,
+				),
+			});
+		},
+		[applyPatch],
+	);
+
 	const isMobileForced = useForceCards(responsive);
 	const view: ViewMode = isMobileForced ? "cards" : resolvedState.view;
 
@@ -361,6 +455,10 @@ export function useDataView<TData>(
 				: (enableRowSelection ?? true),
 		enableMultiRowSelection: enableMultiRowSelection ?? true,
 		enableGlobalFilter,
+		// TanStack defaults column resizability to true; this library gates it behind an explicit
+		// opt-in so the presentation only renders handles (and per-column widths) when asked.
+		enableColumnResizing,
+		columnResizeMode: "onChange",
 		state: {
 			pagination: resolvedState.pagination,
 			sorting: resolvedState.sorting,
@@ -369,6 +467,8 @@ export function useDataView<TData>(
 			rowSelection: resolvedState.rowSelection,
 			columnVisibility: resolvedState.columnVisibility,
 			columnPinning: resolvedState.columnPinning,
+			columnSizing: resolvedState.columnSizing,
+			columnOrder: resolvedState.columnOrder,
 		},
 		onPaginationChange,
 		onSortingChange,
@@ -377,6 +477,8 @@ export function useDataView<TData>(
 		onRowSelectionChange,
 		onColumnVisibilityChange,
 		onColumnPinningChange,
+		onColumnSizingChange,
+		onColumnOrderChange,
 	});
 
 	// The normalized request holds only the slices the server cares about. View, selection, and
@@ -422,7 +524,14 @@ export function useDataView<TData>(
 		const searchChanged = !!prev && prev.globalFilter !== request.globalFilter;
 		const filtersChanged = !!prev && prev.filters !== request.filters;
 		const windowChanged = !!prev && prev.window !== request.window;
-		const paginationChanged = !!prev && prev.pagination !== request.pagination;
+		// Pagination compares by value: the params-reset effect rebuilds the pagination object even
+		// when it already sits on the first page, and that identity change alone is not a new request.
+		const paginationChanged =
+			!!prev &&
+			(prev.pagination.pageIndex !== request.pagination.pageIndex ||
+				prev.pagination.pageSize !== request.pagination.pageSize);
+		const paramsChanged = !!prev && prev.params !== request.params;
+		const sortingChanged = !!prev && prev.sorting !== request.sorting;
 		const windowActive = request.window != null;
 		prevRequestRef.current = request;
 
@@ -459,8 +568,26 @@ export function useDataView<TData>(
 			prev.params === request.params;
 		const suppressed = !isFirst && windowActive && onlyPaginationChanged;
 
+		// A params change resets to the first page via an effect that has already run in this same
+		// flush. Emitting the in-between request would send the new params with the old page (possibly
+		// out of range) and then again with page 0. Skip it; the reset render emits.
+		const awaitingParamsReset =
+			paramsChanged && request.pagination.pageIndex !== 0;
+
+		// The request object is rebuilt whenever a slice's identity changes, but an identity change
+		// with equal values (the params-reset effect rebuilding an already-reset pagination) is not a
+		// new request. Without this guard that render would re-emit a duplicate fetch.
+		const nothingChanged =
+			!isFirst &&
+			!searchChanged &&
+			!filtersChanged &&
+			!windowChanged &&
+			!paginationChanged &&
+			!paramsChanged &&
+			!sortingChanged;
+
 		clearTimeout(timerRef.current);
-		if (suppressed) {
+		if (suppressed || awaitingParamsReset || nothingChanged) {
 			// Intentionally emit nothing.
 		} else if (shouldDebounce) {
 			timerRef.current = setTimeout(emit, delay);
@@ -619,6 +746,16 @@ export function useDataView<TData>(
 		(opts?: Parameters<typeof exportCsvFn>[1]) => exportCsvFn(table, opts),
 		[table],
 	);
+	const exportJson = useCallback(
+		(opts?: Parameters<typeof exportJsonFn>[1]) => exportJsonFn(table, opts),
+		[table],
+	);
+	// Everything the server needs to reproduce the full result set, minus the page: hand it to a
+	// backend export endpoint for export-all-pages.
+	const exportRequest = useMemo(() => {
+		const { pagination: _pagination, ...rest } = request;
+		return rest;
+	}, [request]);
 
 	const resetFilter = useCallback(
 		(columnId: string) => table.getColumn(columnId)?.setFilterValue(undefined),
@@ -647,10 +784,13 @@ export function useDataView<TData>(
 		[refetch],
 	);
 	const removeRow = useCallback(
-		(_id: string) => {
+		(id: string) => {
+			// A removed row must not linger in the id-keyed selection, where a bulk
+			// action would still submit it.
+			deselectIds(id);
 			refetch();
 		},
-		[refetch],
+		[deselectIds, refetch],
 	);
 
 	return {
@@ -661,6 +801,7 @@ export function useDataView<TData>(
 		setView,
 		setWindow,
 		isMobileForced,
+		labels,
 		status,
 		error,
 		renderStatus,
@@ -670,12 +811,16 @@ export function useDataView<TData>(
 		filterableColumns,
 		selection,
 		exportCsv,
+		exportJson,
+		exportRequest,
 		facets,
+		summary,
 		resetFilter,
 		resetAllFilters,
 		patchRow,
 		insertRow,
 		removeRow,
 		isRevalidating: false,
+		isFetching: status === "loading",
 	};
 }

@@ -3,10 +3,23 @@
 // with their own defaults and labels.
 
 import { Button, Group, SegmentedControl } from "@mantine/core";
+import type { DataViewLabels } from "../types/labels";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
-import { computeWindow, shiftWindow } from "./dateWindow";
+import { computeWindow, shiftWindow, windowMidpoint } from "./dateWindow";
 import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
+
+/** Maps the view's string dictionary to the per-level display labels the navs render. */
+export function levelLabels(
+	labels: DataViewLabels,
+): Record<ScheduleLevel, string> {
+	return {
+		day: labels.levelDay,
+		week: labels.levelWeek,
+		month: labels.levelMonth,
+		year: labels.levelYear,
+	};
+}
 
 export interface WindowNavProps<TData> {
 	view: UseDataViewReturn<TData>;
@@ -30,6 +43,7 @@ export function WindowNav<TData>({
 	selectorLabel,
 	disabled,
 }: WindowNavProps<TData>) {
+	const viewLabels = view.labels;
 	const window = view.state.window;
 	const level: ScheduleLevel = window?.level ?? defaultLevel;
 	const firstDayOfWeek = useFirstDayOfWeek();
@@ -41,7 +55,9 @@ export function WindowNav<TData>({
 	const goToday = () =>
 		view.setWindow(computeWindow(new Date(), level, firstDayOfWeek));
 	const setLevel = (next: ScheduleLevel) => {
-		const anchor = window ? new Date(window.start) : new Date();
+		// Anchor on the midpoint: a padded month window starts in the previous month's
+		// weeks, and anchoring there would land the new level on the wrong period.
+		const anchor = window ? windowMidpoint(window) : new Date();
 		view.setWindow(computeWindow(anchor, next, firstDayOfWeek));
 	};
 
@@ -53,7 +69,7 @@ export function WindowNav<TData>({
 					size="xs"
 					onClick={() => step(-1)}
 					disabled={disabled}
-					aria-label="Previous"
+					aria-label={viewLabels.previous}
 				>
 					‹
 				</Button>
@@ -63,14 +79,14 @@ export function WindowNav<TData>({
 					onClick={goToday}
 					disabled={disabled}
 				>
-					Today
+					{viewLabels.today}
 				</Button>
 				<Button
 					variant="default"
 					size="xs"
 					onClick={() => step(1)}
 					disabled={disabled}
-					aria-label="Next"
+					aria-label={viewLabels.next}
 				>
 					›
 				</Button>

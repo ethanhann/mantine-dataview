@@ -7,8 +7,10 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { col } from "../core/colBuilder";
 import { useDataView } from "../core/useDataView";
+import type { DataViewLabels } from "../types/labels";
 import type { DataViewWindow } from "../types/state";
 import { DataScheduleNav } from "./DataScheduleNav";
+import { computeWindow } from "./dateWindow";
 
 interface Shift {
 	id: string;
@@ -16,13 +18,21 @@ interface Shift {
 }
 const columns = col<Shift>().text("name").build();
 
-function NavHarness() {
+function NavHarness({
+	initialWindow,
+	labels,
+}: {
+	initialWindow?: DataViewWindow;
+	labels?: Partial<DataViewLabels>;
+}) {
 	const view = useDataView<Shift>({
 		columns,
 		rows: [],
 		rowCount: 0,
 		status: "success",
 		getRowId: (r) => r.id,
+		labels,
+		...(initialWindow ? { initialState: { window: initialWindow } } : {}),
 	});
 	return (
 		<>
@@ -32,8 +42,15 @@ function NavHarness() {
 	);
 }
 
-function renderNav(wrapper: (children: ReactNode) => ReactNode = (c) => c) {
-	return render(<MantineProvider>{wrapper(<NavHarness />)}</MantineProvider>);
+function renderNav(
+	wrapper: (children: ReactNode) => ReactNode = (c) => c,
+	initialWindow?: DataViewWindow,
+) {
+	return render(
+		<MantineProvider>
+			{wrapper(<NavHarness initialWindow={initialWindow} />)}
+		</MantineProvider>,
+	);
 }
 
 function readWindow(): DataViewWindow | null {
@@ -82,6 +99,46 @@ describe("DataScheduleNav", () => {
 		expect(w?.level).toBe("month");
 		// The month window is padded to whole Monday-weeks, so its start lands on a Monday.
 		expect(dayjs(w?.start).day()).toBe(1);
+	});
+
+	it("renders its strings from the view labels dictionary", () => {
+		// Arrange / Act
+		render(
+			<MantineProvider>
+				<NavHarness
+					labels={{
+						today: "Heute",
+						previous: "Zurück",
+						next: "Weiter",
+						levelWeek: "Woche",
+						calendarLevel: "Kalenderebene",
+					}}
+				/>
+			</MantineProvider>,
+		);
+
+		// Assert
+		expect(screen.getByRole("button", { name: "Heute" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Zurück" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Weiter" })).toBeInTheDocument();
+		expect(screen.getByRole("radio", { name: "Woche" })).toBeChecked();
+		expect(screen.getByLabelText("Kalenderebene")).toBeInTheDocument();
+	});
+
+	it("anchors a level switch inside the logical period of a padded window", async () => {
+		// Arrange: January 2027 at month level pads back into December 2026, so an
+		// anchor on the window start would land the year switch on 2026.
+		const user = userEvent.setup();
+		renderNav(undefined, computeWindow(new Date(2027, 0, 15), "month"));
+		expect(dayjs(readWindow()?.start).year()).toBe(2026); // sanity: padded start
+
+		// Act
+		await user.click(screen.getByRole("radio", { name: "Year" }));
+
+		// Assert
+		const w = readWindow();
+		expect(w?.level).toBe("year");
+		expect(dayjs(w?.start).year()).toBe(2027);
 	});
 
 	it("aligns the window to a Sunday DatesProvider firstDayOfWeek without a prop", async () => {
