@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text } from "@mantine/core";
+import { Button, Group, Stack, Table, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { DataTable } from "../components/DataTable";
@@ -90,3 +90,90 @@ function KeyboardExample() {
 export const KeyboardAndSelection: Story = {
 	render: () => <KeyboardExample />,
 };
+
+/**
+ * Drag a header's right edge to resize the column; double-click the handle to reset it. Widths
+ * live in `state.columnSizing` and persist through the preference adapter. Enabled with
+ * `enableColumnResizing` on the hook.
+ */
+function ResizingExample() {
+	const view = useDataView<Person>({
+		columns,
+		getRowId: (p) => p.id,
+		rows: people.slice(0, 8),
+		rowCount: people.length,
+		status: "success",
+		enableColumnResizing: true,
+	});
+	return (
+		<Stack gap="sm">
+			<Text size="sm" c="dimmed">
+				Widths: {JSON.stringify(view.state.columnSizing)}
+			</Text>
+			<DataTable view={view} withTableBorder />
+		</Stack>
+	);
+}
+
+export const ColumnResizing: Story = { render: () => <ResizingExample /> };
+
+/**
+ * The `Row` slot wraps every data row. Spread the provided `rowProps` onto the element so the
+ * custom row keeps roving focus, selection, and activation. Here suspended people get a tinted
+ * row.
+ */
+function RowSlotExample() {
+	const view = useDataView<Person>({
+		columns,
+		getRowId: (p) => p.id,
+		rows: people.slice(0, 8),
+		rowCount: people.length,
+		status: "success",
+	});
+	return (
+		<DataTable
+			view={view}
+			withTableBorder
+			slots={{
+				Row: ({ row, cells, rowProps }) => (
+					<Table.Tr
+						{...rowProps}
+						style={{
+							...(row.original.status === "suspended"
+								? { background: "var(--mantine-color-red-light)" }
+								: {}),
+						}}
+					>
+						{cells}
+					</Table.Tr>
+				),
+			}}
+		/>
+	);
+}
+
+export const RowSlot: Story = { render: () => <RowSlotExample /> };
+
+/**
+ * Single-select mode: `enableMultiRowSelection={false}` collapses selection to one row. The
+ * checkboxes behave like radios, Space moves the single selection, and the selection API's
+ * mutators keep only the last id.
+ */
+function SingleSelectExample() {
+	const view = useDataView<Person>({
+		columns,
+		getRowId: (p) => p.id,
+		rows: people.slice(0, 8),
+		rowCount: people.length,
+		status: "success",
+		enableMultiRowSelection: false,
+	});
+	return (
+		<Stack gap="sm">
+			<Text size="sm">Selected: {view.selection.ids.join(", ") || "none"}</Text>
+			<DataTable view={view} withTableBorder />
+		</Stack>
+	);
+}
+
+export const SingleSelect: Story = { render: () => <SingleSelectExample /> };

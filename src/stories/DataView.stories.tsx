@@ -14,7 +14,13 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { ViewSwitcher } from "../components/DataToolbar";
 import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/useDataViewFetcher";
-import { col, createColumnHelper, type DataColumnDef } from "../index";
+import {
+	col,
+	createColumnHelper,
+	type DataColumnDef,
+	localStorageAdapter,
+} from "../index";
+import { createMockFetcher as createTestFetcher } from "../testing";
 import type { FacetData } from "../types/facets";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
 import { windowHistoryAdapter } from "../url";
@@ -939,6 +945,7 @@ export const OptimisticReconciliation: Story = {
 					status: "active",
 					age: 30,
 					location: "Austin",
+					hiredAt: "2026-07-01",
 				};
 				serverDataRef.current = [record, ...serverDataRef.current];
 				view.insertRow(record);
@@ -1009,3 +1016,191 @@ export const OptimisticReconciliation: Story = {
 		return <Example />;
 	},
 };
+
+/**
+ * Every built-in string routes through the `labels` dictionary, merged over the English defaults.
+ * This table is fully German: toolbar, filters, selection, bulk bar, states, and pagination.
+ * Functions cover parameterized text such as the selected count and the pagination range.
+ */
+function LocalizationExample() {
+	const fetcher = useMemo(() => createMockFetcher(), []);
+	const view = useDataViewFetcher<Person>({
+		columns,
+		getRowId,
+		fetcher,
+		labels: {
+			searchPlaceholder: "Suchen…",
+			search: "Suche",
+			clearSearch: "Suche löschen",
+			filters: "Filter",
+			filtersWithCount: (count) => `Filter (${count})`,
+			resetFilters: "Filter zurücksetzen",
+			clearFilter: "löschen",
+			sortBy: "Sortieren nach",
+			toggleSortDirection: "Sortierrichtung umschalten",
+			columns: "Spalten",
+			view: "Ansicht",
+			tableView: "Tabelle",
+			cardsView: "Karten",
+			filterAll: "Alle",
+			filterYes: "Ja",
+			filterNo: "Nein",
+			filterMin: "Min",
+			filterMax: "Max",
+			selectRow: "Zeile auswählen",
+			selectAllRows: "Alle Zeilen dieser Seite auswählen",
+			selectCard: "Karte auswählen",
+			selectedCount: (count) => `${count} ausgewählt`,
+			clearSelection: "Aufheben",
+			bulkActions: "Massenaktionen",
+			noResults: "Keine Ergebnisse.",
+			noMatches: "Keine Treffer.",
+			clearFilters: "Filter löschen",
+			errorMessage: "Etwas ist schiefgelaufen.",
+			retry: "Erneut versuchen",
+			rowsPerPage: "Zeilen pro Seite",
+			paginationRange: (start, end, total) =>
+				`${start} bis ${end} von ${total}`,
+		},
+	});
+	return <DataViewer view={view} />;
+}
+
+export const Localization: Story = { render: () => <LocalizationExample /> };
+
+/**
+ * `keepPreviousData` keeps the previous rows on screen during a refetch instead of swapping to
+ * skeletons; the toolbar shows a small sync loader while the fetch is in flight. Change the page
+ * or a filter and watch the old rows stay until the new ones land (the mock server takes 1.2s).
+ */
+function KeepPreviousDataExample() {
+	const fetcher = useMemo(() => createMockFetcher(undefined, 1200), []);
+	const view = useDataViewFetcher<Person>({
+		columns,
+		getRowId,
+		fetcher,
+		keepPreviousData: true,
+	});
+	return <DataViewer view={view} />;
+}
+
+export const KeepPreviousData: Story = {
+	render: () => <KeepPreviousDataExample />,
+};
+
+/**
+ * Layout preferences persist across sessions through a storage adapter. Hide a column, pin or
+ * resize one, reorder via the Columns menu, or change the page size, then reload the page: the
+ * choices come back. Ephemeral state (page, sort, filters, search) intentionally does not.
+ */
+function PersistenceExample() {
+	const fetcher = useMemo(() => createMockFetcher(), []);
+	const persist = useMemo(
+		() => ({ adapter: localStorageAdapter("storybook-dataview-prefs") }),
+		[],
+	);
+	const view = useDataViewFetcher<Person>({
+		columns,
+		getRowId,
+		fetcher,
+		persist,
+		enableColumnResizing: true,
+	});
+	return <DataViewer view={view} />;
+}
+
+export const PreferencePersistence: Story = {
+	render: () => <PersistenceExample />,
+};
+
+/**
+ * Server-computed aggregates: the response's `summary` (keyed by column id, raw values) renders
+ * as a table footer row and, in card view, a summary block. Values format by the column's
+ * `dataType`. The aggregates recompute over the filtered set, so filtering updates them.
+ */
+function SummaryExample() {
+	const fetcher = useMemo(
+		() =>
+			createTestFetcher(people, {
+				latency: 400,
+				summary: (rows) => ({
+					name: `${rows.length} people`,
+					age:
+						rows.length === 0
+							? 0
+							: Math.round(rows.reduce((n, p) => n + p.age, 0) / rows.length),
+				}),
+			}),
+		[],
+	);
+	const view = useDataViewFetcher<Person>({
+		columns,
+		getRowId,
+		fetcher,
+	});
+	return <DataViewer view={view} />;
+}
+
+export const SummaryAggregates: Story = { render: () => <SummaryExample /> };
+
+/**
+ * Column order is state: seed it with `initialState.columnOrder` and let users move columns with
+ * the up/down buttons in the Columns menu. The order persists through the preference adapter.
+ */
+function ReorderingExample() {
+	const fetcher = useMemo(() => createMockFetcher(), []);
+	const view = useDataViewFetcher<Person>({
+		columns,
+		getRowId,
+		fetcher,
+		initialState: { columnOrder: ["status", "name", "email"] },
+	});
+	return (
+		<Stack gap="sm">
+			<Text size="sm" c="dimmed">
+				Order: {view.state.columnOrder.join(" → ") || "definition order"}
+			</Text>
+			<DataViewer view={view} />
+		</Stack>
+	);
+}
+
+export const ColumnReordering: Story = { render: () => <ReorderingExample /> };
+
+/**
+ * Exporting: `exportCsv`/`exportJson` download the current page client-side, while
+ * `view.exportRequest` (the request minus pagination) is what a backend export-all endpoint
+ * needs to reproduce the full filtered set. Filter or search, then inspect the request.
+ */
+function ExportAllExample() {
+	const fetcher = useMemo(() => createMockFetcher(), []);
+	const view = useDataViewFetcher<Person>({
+		columns,
+		getRowId,
+		fetcher,
+	});
+	return (
+		<Stack gap="sm">
+			<Group gap="xs">
+				<Button size="xs" variant="default" onClick={() => view.exportCsv()}>
+					Export page (CSV)
+				</Button>
+				<Button size="xs" variant="default" onClick={() => view.exportJson()}>
+					Export page (JSON)
+				</Button>
+				<Button
+					size="xs"
+					onClick={() =>
+						// A real app posts this to its export endpoint instead.
+						alert(JSON.stringify(view.exportRequest, null, 2))
+					}
+				>
+					Export all (request)
+				</Button>
+			</Group>
+			<DataViewer view={view} />
+		</Stack>
+	);
+}
+
+export const ExportAll: Story = { render: () => <ExportAllExample /> };

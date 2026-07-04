@@ -81,3 +81,42 @@ function KeyboardExample() {
 export const KeyboardAndSelection: Story = {
 	render: () => <KeyboardExample />,
 };
+
+/**
+ * The `Card` slot wraps the default composition in a custom shell while keeping the built-in
+ * title/subtitle/badge/meta layout (unlike `renderCard`, which replaces the content entirely).
+ * Here selected cards get a primary border.
+ */
+function CardSlotExample() {
+	const view = useDataView<Person>({
+		columns,
+		getRowId: (p) => p.id,
+		rows: people.slice(0, 6),
+		rowCount: people.length,
+		status: "success",
+		defaultView: "cards",
+	});
+	return (
+		<DataCards
+			view={view}
+			slots={{
+				Card: ({ selected, children }) => (
+					<div
+						style={{
+							padding: "var(--mantine-spacing-lg)",
+							borderRadius: "var(--mantine-radius-md)",
+							border: selected
+								? "2px solid var(--mantine-primary-color-filled)"
+								: "1px dashed var(--mantine-color-default-border)",
+							position: "relative",
+						}}
+					>
+						{children}
+					</div>
+				),
+			}}
+		/>
+	);
+}
+
+export const CardSlot: Story = { render: () => <CardSlotExample /> };
