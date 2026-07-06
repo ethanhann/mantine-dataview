@@ -4,7 +4,7 @@
 import type { MantineColor } from "@mantine/core";
 import type { ScheduleEventData } from "@mantine/schedule";
 import type { MouseEvent } from "react";
-import type { UseDataViewReturn } from "../types/options";
+import type { UseDataViewReturn } from "../../types/options";
 import { composeEvent } from "./composeEvent";
 import { composeScheduleEvent } from "./scheduleEvent";
 

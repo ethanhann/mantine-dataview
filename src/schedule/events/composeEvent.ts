@@ -3,12 +3,12 @@
 // fully unit-testable on its own. The schedule presentation adapts the returned `DataViewEvent`
 // to Mantine's concrete event shape; the `toEvent` escape hatch bypasses this entirely.
 
-import type { DataColumnDef } from "../types/column";
+import type { DataColumnDef } from "../../types/column";
 import type {
 	DataViewEvent,
 	ScheduleFieldMeta,
 	ScheduleRole,
-} from "../types/schedule";
+} from "../../types/schedule";
 
 export interface ComposeEventOptions<TData> {
 	columns: DataColumnDef<TData>[];

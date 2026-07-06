@@ -82,8 +82,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Internal: reorganized `src/core/` into `state/` and `columns/` subdirectories, moved shared
   component utilities into `components/_shared/`, and extracted `ExportCsvOptions`/`ExportJsonOptions`
-  into `src/types/export.ts` to break a dependency cycle between `types/` and `core/`. No public
-  API changes.
+  into `src/types/export.ts` to break a dependency cycle between `types/` and `core/`. Decomposed
+  `src/schedule/` into `events/` (composition pipeline and interaction adapters) and `_shared/`
+  (shell, navigation, and windowed-view infrastructure). No public API changes.
 
 ### Fixed
 

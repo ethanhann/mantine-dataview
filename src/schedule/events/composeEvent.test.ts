@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { DataColumnDef } from "../types/column";
+import type { DataColumnDef } from "../../types/column";
 import { composeEvent } from "./composeEvent";
 
 interface Shift {

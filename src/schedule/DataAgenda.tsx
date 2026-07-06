@@ -14,15 +14,15 @@ import type { ReactNode } from "react";
 import type { DataViewSlots } from "../components/_shared/types";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
+import { ScheduleShell } from "./_shared/ScheduleShell";
+import { useWindowedView } from "./_shared/useWindowedView";
 import { DataAgendaNav } from "./DataAgendaNav";
 import { computeWindow } from "./dateWindow";
 import {
 	type EventClickHandler,
 	makeEventClickHandler,
 	resolveEvents,
-} from "./resolveEvents";
-import { ScheduleShell } from "./ScheduleShell";
-import { useWindowedView } from "./useWindowedView";
+} from "./events/resolveEvents";
 
 export interface DataAgendaProps<TData> {
 	/** The `useDataView` instance to project. */

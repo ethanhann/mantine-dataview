@@ -5,9 +5,13 @@
 // or the URL wins, and so opening via `scheduleInitialState` is a single fetch.
 
 import { useEffect } from "react";
-import type { UseDataViewReturn } from "../types/options";
-import type { DataViewWindow, ScheduleLevel, ViewMode } from "../types/state";
-import { computeWindow, windowMidpoint } from "./dateWindow";
+import type { UseDataViewReturn } from "../../types/options";
+import type {
+	DataViewWindow,
+	ScheduleLevel,
+	ViewMode,
+} from "../../types/state";
+import { computeWindow, windowMidpoint } from "../dateWindow";
 import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
 
 export interface WindowedView {

@@ -5,7 +5,7 @@
 
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
-import { levelLabels, WindowNav } from "./WindowNav";
+import { levelLabels, WindowNav } from "./_shared/WindowNav";
 
 export interface DataAgendaNavProps<TData> {
 	view: UseDataViewReturn<TData>;

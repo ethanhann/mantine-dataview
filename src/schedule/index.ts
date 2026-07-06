@@ -20,11 +20,6 @@ export {
 	type AgendaViewOptions,
 	agendaView,
 } from "./agendaView";
-// Pure row → event composition, exported for custom presentations and tests.
-export {
-	type ComposeEventOptions,
-	composeEvent,
-} from "./composeEvent";
 export {
 	DataAgenda,
 	type DataAgendaProps,
@@ -49,6 +44,11 @@ export {
 export { computeWindow, shiftWindow } from "./dateWindow";
 // Resource-list derivation and facet count overlay, exported for custom resource presentations.
 export { buildResourceCounts, deriveResources } from "./deriveResources";
+// Pure row → event composition, exported for custom presentations and tests.
+export {
+	type ComposeEventOptions,
+	composeEvent,
+} from "./events/composeEvent";
 // Typed interaction callback types, for annotating handlers.
 export type {
 	EventMoveContext,
@@ -57,7 +57,7 @@ export type {
 	RangeSelectHandler,
 	SlotClickHandler,
 	SlotContext,
-} from "./eventInteractions";
+} from "./events/eventInteractions";
 // Shared event helpers, for custom schedule-family presentations.
 export {
 	type EventClickHandler,
@@ -65,12 +65,12 @@ export {
 	type ResolveEventsOptions,
 	resolveEvents,
 	toggleEventSelection,
-} from "./resolveEvents";
+} from "./events/resolveEvents";
+export { composeScheduleEvent } from "./events/scheduleEvent";
 export {
 	type ResourcesViewOptions,
 	resourcesView,
 } from "./resourcesView";
-export { composeScheduleEvent } from "./scheduleEvent";
 export { scheduleInitialState } from "./scheduleInitialState";
 export {
 	type ScheduleViewOptions,

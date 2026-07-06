@@ -5,7 +5,7 @@
 import type { ScheduleEventData } from "@mantine/schedule";
 import dayjs from "dayjs";
 import type { MouseEvent } from "react";
-import type { UseDataViewReturn } from "../types/options";
+import type { UseDataViewReturn } from "../../types/options";
 import { findEventRow } from "./resolveEvents";
 
 /** A start/end pair as `Date`s. */
