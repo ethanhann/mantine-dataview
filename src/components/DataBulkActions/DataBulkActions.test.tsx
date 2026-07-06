@@ -2,12 +2,12 @@ import { Button, MantineProvider } from "@mantine/core";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { useDataView } from "../../core/useDataView";
+import { useDataView } from "../../core/state/useDataView";
 import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
+import type { DataViewSlots } from "../_shared/types";
 import { DataTable } from "../DataTable";
 import { DataViewer } from "../DataViewer";
-import type { DataViewSlots } from "../types";
 import { DataBulkActions } from "./DataBulkActions";
 
 interface User {

@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { useDataView } from "../core/useDataView";
+import { useDataView } from "../core/state/useDataView";
 import { createColumnHelper } from "../index";
 import type { DataColumnDef } from "../types/column";
 import type { DataViewLabels } from "../types/labels";

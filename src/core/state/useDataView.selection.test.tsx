@@ -2,8 +2,8 @@ import { MantineProvider } from "@mantine/core";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import { createColumnHelper } from "../index";
-import type { DataColumnDef } from "../types/column";
+import { createColumnHelper } from "../../index";
+import type { DataColumnDef } from "../../types/column";
 import { useDataView } from "./useDataView";
 
 interface User {

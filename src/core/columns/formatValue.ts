@@ -1,4 +1,4 @@
-import type { ColumnDataType, ColumnFormatOption } from "../types/column";
+import type { ColumnDataType, ColumnFormatOption } from "../../types/column";
 
 type Formatter = (value: unknown) => string;
 

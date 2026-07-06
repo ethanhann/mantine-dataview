@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { DataCards } from "../components/DataCards";
 import { DataTable } from "../components/DataTable";
 import { DataToolbar, FilterControl } from "../components/DataToolbar";
-import { useDataViewFetcher } from "../core/useDataViewFetcher";
+import { useDataViewFetcher } from "../core/state/useDataViewFetcher";
 import { createColumnHelper, type DataColumnDef } from "../index";
 import { columns, createMockFetcher, type Person } from "./data";
 

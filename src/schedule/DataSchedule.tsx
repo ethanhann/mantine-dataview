@@ -15,7 +15,7 @@ import {
 } from "@mantine/schedule";
 import dayjs from "dayjs";
 import type { ReactNode } from "react";
-import type { DataViewSlots } from "../components/types";
+import type { DataViewSlots } from "../components/_shared/types";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
 import { computeWindow } from "./dateWindow";

@@ -15,7 +15,7 @@ import { DataCards } from "../components/DataCards";
 import { DataPagination } from "../components/DataPagination";
 import { DataTable } from "../components/DataTable";
 import { DataToolbar } from "../components/DataToolbar";
-import { useDataView } from "../core/useDataView";
+import { useDataView } from "../core/state/useDataView";
 import { createColumnHelper } from "../index";
 import type { DataColumnDef } from "../types/column";
 import type { UseDataViewReturn } from "../types/options";

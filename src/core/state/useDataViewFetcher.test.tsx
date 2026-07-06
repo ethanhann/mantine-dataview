@@ -2,11 +2,11 @@ import { MantineProvider } from "@mantine/core";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DataTable } from "../components/DataTable";
-import { createColumnHelper } from "../index";
-import type { DataColumnDef } from "../types/column";
-import type { UseDataViewReturn } from "../types/options";
-import type { DataViewRequest, DataViewResponse } from "../types/request";
+import { DataTable } from "../../components/DataTable";
+import { createColumnHelper } from "../../index";
+import type { DataColumnDef } from "../../types/column";
+import type { UseDataViewReturn } from "../../types/options";
+import type { DataViewRequest, DataViewResponse } from "../../types/request";
 import { useDataViewFetcher } from "./useDataViewFetcher";
 
 interface User {

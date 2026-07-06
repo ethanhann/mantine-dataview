@@ -15,7 +15,7 @@ import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { belowBreakpointQuery } from "../../core/useForceCards";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
-import { FilterIcon } from "../icons";
+import { FilterIcon } from "../_shared/icons";
 import { FilterControl } from "./FilterControl";
 
 function ClearFiltersButton<TData>({

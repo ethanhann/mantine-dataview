@@ -4,7 +4,7 @@
 // which is the parity decision to share visibility between the two views.
 
 import type { Column, Table } from "@tanstack/react-table";
-import type { CardRole } from "../types/column";
+import type { CardRole } from "../../types/column";
 import { humanize } from "./colBuilder";
 
 /** Roles that produce a rendered slot; `hidden` columns are dropped from the layout. */

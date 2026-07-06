@@ -6,8 +6,8 @@
 
 import type { Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
-import type { DataViewSelection, UseDataViewReturn } from "../types/options";
-import type { ViewMode } from "../types/state";
+import type { DataViewSelection, UseDataViewReturn } from "../../types/options";
+import type { ViewMode } from "../../types/state";
 import type { GridItemProps } from "./useGridNavigation";
 
 export interface EmptySlotContext {

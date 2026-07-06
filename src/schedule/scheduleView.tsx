@@ -2,7 +2,7 @@
 // `<DataViewer views={[...]} />` (Phase 3) uses to add the schedule body and its switcher option.
 // Bundling the config here keeps the consumer's call site to a single line.
 
-import type { RegisteredView } from "../components/types";
+import type { RegisteredView } from "../components/_shared/types";
 import { DataSchedule, type DataScheduleProps } from "./DataSchedule";
 
 export interface ScheduleViewOptions<TData>

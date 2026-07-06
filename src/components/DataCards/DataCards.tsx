@@ -22,20 +22,23 @@ import {
 	type ComposeCardOptions,
 	composeCardLayout,
 	resolveColumnLabel,
-} from "../../core/cardComposition";
-import { resolveFormatter } from "../../core/formatValue";
+} from "../../core/columns/cardComposition";
+import { resolveFormatter } from "../../core/columns/formatValue";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
-import { nextCardIndex } from "../nextCardIndex";
-import { Slot } from "../Slot";
-import { EmptyContent, ErrorContent } from "../StateMessage";
+import { nextCardIndex } from "../_shared/nextCardIndex";
+import { Slot } from "../_shared/Slot";
+import { EmptyContent, ErrorContent } from "../_shared/StateMessage";
 // @ts-expect-error CSS import has no type declarations
 import "../DataTable/transitions.css";
 // @ts-expect-error CSS import has no type declarations
-import "../grid.css";
-import type { DataViewSlots } from "../types";
-import { type ResolveNext, useGridNavigation } from "../useGridNavigation";
+import "../_shared/grid.css";
+import type { DataViewSlots } from "../_shared/types";
+import {
+	type ResolveNext,
+	useGridNavigation,
+} from "../_shared/useGridNavigation";
 
 const DEFAULT_COLS: SimpleGridProps["cols"] = { base: 1, sm: 2, lg: 3 };
 

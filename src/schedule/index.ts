@@ -9,7 +9,7 @@ export type {
 	ScheduleResourceData,
 	ScheduleResourceGroup,
 } from "@mantine/schedule";
-export type { RegisteredView } from "../components/types";
+export type { RegisteredView } from "../components/_shared/types";
 export type {
 	DataViewEvent,
 	ScheduleFieldMeta,

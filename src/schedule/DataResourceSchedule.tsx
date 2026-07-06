@@ -15,7 +15,7 @@ import {
 } from "@mantine/schedule";
 import dayjs from "dayjs";
 import { type ReactNode, useEffect, useRef } from "react";
-import type { DataViewSlots } from "../components/types";
+import type { DataViewSlots } from "../components/_shared/types";
 import type { UseDataViewReturn } from "../types/options";
 import { computeWindow } from "./dateWindow";
 import { buildResourceCounts, deriveResources } from "./deriveResources";

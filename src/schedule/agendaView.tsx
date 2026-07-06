@@ -1,6 +1,6 @@
 // Registration factory for the agenda presentation, sibling to `scheduleView`/`resourcesView`.
 
-import type { RegisteredView } from "../components/types";
+import type { RegisteredView } from "../components/_shared/types";
 import { DataAgenda, type DataAgendaProps } from "./DataAgenda";
 
 export interface AgendaViewOptions<TData>

@@ -7,8 +7,8 @@
 
 import { Center, Group, Skeleton, Stack } from "@mantine/core";
 import { type ReactNode, useRef } from "react";
-import { EmptyContent, ErrorContent } from "../components/StateMessage";
-import type { DataViewSlots } from "../components/types";
+import { EmptyContent, ErrorContent } from "../components/_shared/StateMessage";
+import type { DataViewSlots } from "../components/_shared/types";
 import type { UseDataViewReturn } from "../types/options";
 
 export interface ScheduleShellProps<TData> {

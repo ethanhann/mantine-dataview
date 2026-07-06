@@ -6,9 +6,9 @@
 // control collapses it to the one chosen column. Multi-sort remains available through the headers.
 
 import { ActionIcon, Group, Select } from "@mantine/core";
-import { resolveColumnLabel } from "../../core/cardComposition";
+import { resolveColumnLabel } from "../../core/columns/cardComposition";
 import type { UseDataViewReturn } from "../../types/options";
-import { SortIcon } from "../icons";
+import { SortIcon } from "../_shared/icons";
 
 export function SortControl<TData>({
 	view,

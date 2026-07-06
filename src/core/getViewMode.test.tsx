@@ -7,7 +7,7 @@ import { createColumnHelper } from "../index";
 import type { DataColumnDef } from "../types/column";
 import type { ViewMode } from "../types/state";
 import { getViewMode } from "./getViewMode";
-import { useDataView } from "./useDataView";
+import { useDataView } from "./state/useDataView";
 
 interface User {
 	id: string;

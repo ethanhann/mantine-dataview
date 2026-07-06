@@ -2,8 +2,8 @@ import { MantineProvider } from "@mantine/core";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import { col } from "../core/colBuilder";
-import { useDataView } from "../core/useDataView";
+import { col } from "../core/columns/colBuilder";
+import { useDataView } from "../core/state/useDataView";
 import { findEventRow, toggleEventSelection } from "./resolveEvents";
 
 interface Shift {

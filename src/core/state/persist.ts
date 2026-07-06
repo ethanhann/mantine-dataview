@@ -6,8 +6,8 @@ import type {
 	PersistedState,
 	PersistOptions,
 	StateStorageAdapter,
-} from "../types/persist";
-import type { DataViewState } from "../types/state";
+} from "../../types/persist";
+import type { DataViewState } from "../../types/state";
 
 export const PERSISTABLE_KEYS: readonly PersistableKey[] = [
 	"columnVisibility",

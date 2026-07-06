@@ -1,6 +1,6 @@
 // Registration factory for the resource presentation, sibling to `scheduleView`/`agendaView`.
 
-import type { RegisteredView } from "../components/types";
+import type { RegisteredView } from "../components/_shared/types";
 import {
 	DataResourceSchedule,
 	type DataResourceScheduleProps,

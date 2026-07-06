@@ -13,8 +13,8 @@ import {
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import { isWindowedView } from "../../types/state";
-import { SearchIcon } from "../icons";
-import type { RegisteredView } from "../types";
+import { SearchIcon } from "../_shared/icons";
+import type { RegisteredView } from "../_shared/types";
 import { FilterControls, useFilterLayout } from "./FilterControls";
 import { SortControl } from "./SortControl";
 import { ViewSwitcher } from "./ViewSwitcher";
