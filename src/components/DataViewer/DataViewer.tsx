@@ -6,13 +6,13 @@
 import { Stack, type StackProps } from "@mantine/core";
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
+import { Slot } from "../_shared/Slot";
+import type { DataViewSlots, RegisteredView } from "../_shared/types";
 import { DataBulkActions, type DataBulkActionsProps } from "../DataBulkActions";
 import { DataCards, type DataCardsProps } from "../DataCards";
 import { DataPagination, type DataPaginationProps } from "../DataPagination";
 import { DataTable, type DataTableProps } from "../DataTable";
 import { DataToolbar, type DataToolbarProps } from "../DataToolbar";
-import { Slot } from "../Slot";
-import type { DataViewSlots, RegisteredView } from "../types";
 import {
 	type DataViewContextValue,
 	DataViewProvider,

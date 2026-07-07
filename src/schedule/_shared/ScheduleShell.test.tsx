@@ -5,8 +5,8 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { UseDataViewReturn } from "../types/options";
-import type { DataViewStatus } from "../types/state";
+import type { UseDataViewReturn } from "../../types/options";
+import type { DataViewStatus } from "../../types/state";
 import { ScheduleShell } from "./ScheduleShell";
 
 function stubView(phase: DataViewStatus["phase"]): UseDataViewReturn<unknown> {

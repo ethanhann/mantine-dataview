@@ -2,7 +2,7 @@ import { Button, Group, Stack, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
 import { DataViewer } from "../components/DataViewer";
-import { useDataViewFetcher } from "../core/useDataViewFetcher";
+import { useDataViewFetcher } from "../core/state/useDataViewFetcher";
 import {
 	agendaView,
 	DataAgenda,

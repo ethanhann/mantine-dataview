@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataToolbar } from "../components/DataToolbar";
 import { createColumnHelper } from "../index";
 import type { DataColumnDef } from "../types/column";
-import { useDataView } from "./useDataView";
+import { useDataView } from "./state/useDataView";
 import { belowBreakpointQuery, useForceCards } from "./useForceCards";
 
 const wrapper = ({ children }: { children: ReactNode }) => (

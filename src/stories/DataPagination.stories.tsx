@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { DataPagination } from "../components/DataPagination";
-import { useDataView } from "../core/useDataView";
+import { useDataView } from "../core/state/useDataView";
 import { columns, type Person, people } from "./data";
 
 /** Pagination controls showing page navigation and a page size selector. Reads `rowCount` and `pageSizeOptions` from the view. */

@@ -2,8 +2,8 @@ import { MantineProvider } from "@mantine/core";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { col } from "../core/colBuilder";
-import { useDataView } from "../core/useDataView";
+import { col } from "../core/columns/colBuilder";
+import { useDataView } from "../core/state/useDataView";
 import type { Status } from "../types/state";
 import { DataAgenda } from "./DataAgenda";
 

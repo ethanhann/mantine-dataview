@@ -13,7 +13,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import type { Column } from "@tanstack/react-table";
-import { resolveColumnLabel } from "../../core/cardComposition";
+import { resolveColumnLabel } from "../../core/columns/cardComposition";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
 import {
@@ -21,7 +21,7 @@ import {
 	ChevronUpIcon,
 	PinLeftIcon,
 	PinRightIcon,
-} from "../icons";
+} from "../_shared/icons";
 
 /** Move a column one position up or down within the materialized leaf order. */
 function MoveControls<TData>({

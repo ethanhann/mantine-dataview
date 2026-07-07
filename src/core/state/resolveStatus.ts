@@ -3,7 +3,7 @@
 // empty, filtered empty, and error) rendering consistently. The logic lives here so both views
 // share it.
 
-import type { DataViewState, DataViewStatus, Status } from "../types/state";
+import type { DataViewState, DataViewStatus, Status } from "../../types/state";
 
 /** True when a filter value actually narrows results (ignores empty strings/arrays/null). */
 function hasActiveValue(value: unknown): boolean {

@@ -15,8 +15,10 @@ import {
 } from "@mantine/schedule";
 import dayjs from "dayjs";
 import { type ReactNode, useEffect, useRef } from "react";
-import type { DataViewSlots } from "../components/types";
+import type { DataViewSlots } from "../components/_shared/types";
 import type { UseDataViewReturn } from "../types/options";
+import { ScheduleShell } from "./_shared/ScheduleShell";
+import { useWindowedView } from "./_shared/useWindowedView";
 import { computeWindow } from "./dateWindow";
 import { buildResourceCounts, deriveResources } from "./deriveResources";
 import {
@@ -26,14 +28,12 @@ import {
 	makeSlotClickHandler,
 	type RangeSelectHandler,
 	type SlotClickHandler,
-} from "./eventInteractions";
+} from "./events/eventInteractions";
 import {
 	type EventClickHandler,
 	makeEventClickHandler,
 	resolveEvents,
-} from "./resolveEvents";
-import { ScheduleShell } from "./ScheduleShell";
-import { useWindowedView } from "./useWindowedView";
+} from "./events/resolveEvents";
 
 export interface DataResourceScheduleProps<TData> {
 	/** The `useDataView` instance to project. */

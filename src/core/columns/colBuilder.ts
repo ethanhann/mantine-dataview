@@ -8,8 +8,8 @@ import type {
 	ColumnFormatOption,
 	DataColumnDef,
 	FilterOption,
-} from "../types/column";
-import type { ScheduleFieldMeta, ScheduleRole } from "../types/schedule";
+} from "../../types/column";
+import type { ScheduleFieldMeta, ScheduleRole } from "../../types/schedule";
 
 type Field<TData> = keyof TData & string;
 

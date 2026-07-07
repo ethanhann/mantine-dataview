@@ -5,7 +5,7 @@ import { SegmentedControl, Tooltip } from "@mantine/core";
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import type { ViewMode } from "../../types/state";
-import type { RegisteredView } from "../types";
+import type { RegisteredView } from "../_shared/types";
 
 export interface ViewSwitcherProps<TData> {
 	view: UseDataViewReturn<TData>;

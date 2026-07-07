@@ -4,10 +4,10 @@
 // through every child.
 
 import { createContext, useContext } from "react";
-import type { ComposeCardOptions } from "../../core/cardComposition";
+import type { ComposeCardOptions } from "../../core/columns/cardComposition";
 import type { UseDataViewReturn } from "../../types/options";
+import type { DataViewSlots, RegisteredView } from "../_shared/types";
 import type { DataCardsProps } from "../DataCards";
-import type { DataViewSlots, RegisteredView } from "../types";
 
 export interface DataViewContextValue<TData> {
 	view: UseDataViewReturn<TData>;

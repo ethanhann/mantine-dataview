@@ -2,10 +2,10 @@ import { MantineProvider } from "@mantine/core";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
-import { createColumnHelper } from "../index";
-import type { DataColumnDef } from "../types/column";
-import type { DataViewRequest } from "../types/request";
-import type { DataViewState, Status } from "../types/state";
+import { createColumnHelper } from "../../index";
+import type { DataColumnDef } from "../../types/column";
+import type { DataViewRequest } from "../../types/request";
+import type { DataViewState, Status } from "../../types/state";
 import { useDataView } from "./useDataView";
 
 type RequestFn = (request: DataViewRequest) => void;

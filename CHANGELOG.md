@@ -3,7 +3,7 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.12.0] - 2026-07-04
+## [0.12.0] - 2026-07-06
 
 ### Added
 
@@ -79,6 +79,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bulk actions, state messages, pagination, and the schedule navigators), merged over the English
   defaults and exposed as `view.labels`. `DataViewLabels` and `DEFAULT_LABELS` are exported.
   Explicit per-component string props keep precedence.
+
+- Internal: reorganized `src/core/` into `state/` and `columns/` subdirectories, moved shared
+  component utilities into `components/_shared/`, and extracted `ExportCsvOptions`/`ExportJsonOptions`
+  into `src/types/export.ts` to break a dependency cycle between `types/` and `core/`. Decomposed
+  `src/schedule/` into `events/` (composition pipeline and interaction adapters) and `_shared/`
+  (shell, navigation, and windowed-view infrastructure). No public API changes.
 
 ### Fixed
 

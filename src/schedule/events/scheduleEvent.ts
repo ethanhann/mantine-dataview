@@ -5,7 +5,7 @@
 
 import type { MantineColor } from "@mantine/core";
 import type { ScheduleEventData } from "@mantine/schedule";
-import type { DataViewEvent } from "../types/schedule";
+import type { DataViewEvent } from "../../types/schedule";
 
 /**
  * Maps a {@link DataViewEvent} to a Mantine `ScheduleEventData`. Mantine accepts `Date` start/end

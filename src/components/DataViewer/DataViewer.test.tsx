@@ -4,11 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
-import { useDataView } from "../../core/useDataView";
+import { useDataView } from "../../core/state/useDataView";
 import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
 import type { DataViewState, Status } from "../../types/state";
-import type { DataViewSlots, RegisteredView } from "../types";
+import type { DataViewSlots, RegisteredView } from "../_shared/types";
 import { DataViewer } from "./DataViewer";
 
 // A registration stub that needs no `@mantine/schedule` dependency, so the orchestrator's view

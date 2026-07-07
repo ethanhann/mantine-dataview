@@ -4,7 +4,7 @@
 
 import { Button, EmptyState } from "@mantine/core";
 import type { Table } from "@tanstack/react-table";
-import type { UseDataViewReturn } from "../types/options";
+import type { UseDataViewReturn } from "../../types/options";
 import { AlertIcon, FilterIcon, InboxIcon } from "./icons";
 import { Slot } from "./Slot";
 import type { DataViewSlots } from "./types";

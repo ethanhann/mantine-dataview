@@ -3,10 +3,10 @@
 // with their own defaults and labels.
 
 import { Button, Group, SegmentedControl } from "@mantine/core";
-import type { DataViewLabels } from "../types/labels";
-import type { UseDataViewReturn } from "../types/options";
-import type { ScheduleLevel } from "../types/state";
-import { computeWindow, shiftWindow, windowMidpoint } from "./dateWindow";
+import type { DataViewLabels } from "../../types/labels";
+import type { UseDataViewReturn } from "../../types/options";
+import type { ScheduleLevel } from "../../types/state";
+import { computeWindow, shiftWindow, windowMidpoint } from "../dateWindow";
 import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
 
 /** Maps the view's string dictionary to the per-level display labels the navs render. */

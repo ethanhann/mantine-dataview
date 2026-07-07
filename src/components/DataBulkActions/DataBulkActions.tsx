@@ -16,8 +16,8 @@ import {
 	VisuallyHidden,
 } from "@mantine/core";
 import type { UseDataViewReturn } from "../../types/options";
-import { Slot } from "../Slot";
-import type { DataViewSlots } from "../types";
+import { Slot } from "../_shared/Slot";
+import type { DataViewSlots } from "../_shared/types";
 
 export interface DataBulkActionsProps<TData>
 	extends Omit<PaperProps, "children"> {

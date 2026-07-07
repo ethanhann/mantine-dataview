@@ -13,7 +13,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ViewSwitcher } from "../components/DataToolbar";
 import { DataViewer } from "../components/DataViewer";
-import { useDataViewFetcher } from "../core/useDataViewFetcher";
+import { useDataViewFetcher } from "../core/state/useDataViewFetcher";
 import {
 	col,
 	createColumnHelper,

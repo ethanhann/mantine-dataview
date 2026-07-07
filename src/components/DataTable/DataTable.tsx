@@ -12,17 +12,17 @@ import {
 } from "@mantine/core";
 import { type Column, flexRender, type Header } from "@tanstack/react-table";
 import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
-import { resolveFormatter } from "../../core/formatValue";
+import { resolveFormatter } from "../../core/columns/formatValue";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
-import { SortIcon } from "../icons";
-import { Slot } from "../Slot";
-import { EmptyContent, ErrorContent } from "../StateMessage";
-import type { DataViewSlots } from "../types";
-import { useGridNavigation } from "../useGridNavigation";
+import { SortIcon } from "../_shared/icons";
+import { Slot } from "../_shared/Slot";
+import { EmptyContent, ErrorContent } from "../_shared/StateMessage";
+import type { DataViewSlots } from "../_shared/types";
+import { useGridNavigation } from "../_shared/useGridNavigation";
 // @ts-expect-error CSS import has no type declarations
-import "../grid.css";
+import "../_shared/grid.css";
 // @ts-expect-error CSS import has no type declarations
 import "./transitions.css";
 

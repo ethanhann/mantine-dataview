@@ -2,7 +2,6 @@
 
 import type { MantineBreakpoint } from "@mantine/core";
 import type { Column, Table } from "@tanstack/react-table";
-import type { ExportCsvOptions, ExportJsonOptions } from "../core/exportCsv";
 // Import URL *types* from the types module (not the `../url` barrel) so a type-only consumer of
 // these options never drags the runtime adapter code into its module graph.
 import type { UrlSerializer, UrlStateAdapter } from "../url/types";
@@ -11,6 +10,7 @@ import type {
 	ColumnFormatOption,
 	DataColumnDef,
 } from "./column";
+import type { ExportCsvOptions, ExportJsonOptions } from "./export";
 import type { FacetData } from "./facets";
 import type { DataViewLabels } from "./labels";
 import type { PersistOptions } from "./persist";

@@ -3,12 +3,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
-import { useDataView } from "../../core/useDataView";
+import { useDataView } from "../../core/state/useDataView";
 import { createColumnHelper } from "../../index";
 import type { DataColumnDef } from "../../types/column";
 import type { DataViewRequest } from "../../types/request";
 import type { DataViewState, Status } from "../../types/state";
-import type { DataViewSlots } from "../types";
+import type { DataViewSlots } from "../_shared/types";
 import { DataTable } from "./DataTable";
 
 interface User {

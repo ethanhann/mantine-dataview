@@ -1,7 +1,10 @@
 import type { Table } from "@tanstack/react-table";
-import type { ColumnDataType, ColumnFormatOption } from "../types/column";
-import { resolveColumnLabel } from "./cardComposition";
-import { resolveFormatter } from "./formatValue";
+
+export type { ExportCsvOptions, ExportJsonOptions } from "../types/export";
+
+import type { ExportCsvOptions, ExportJsonOptions } from "../types/export";
+import { resolveColumnLabel } from "./columns/cardComposition";
+import { resolveFormatter } from "./columns/formatValue";
 
 /** Characters that trigger spreadsheet formula evaluation when they lead a cell. */
 const FORMULA_TRIGGERS = ["=", "+", "-", "@", "\t", "\r"];
@@ -40,20 +43,6 @@ function escapeCsv(
 		return `"${str.replace(/"/g, '""')}"`;
 	}
 	return str;
-}
-
-export interface ExportCsvOptions {
-	filename?: string;
-	separator?: string;
-	/** When true, applies column dataType formatters to exported values. Default: false (raw values). */
-	formatted?: boolean;
-	formatDefaults?: Partial<Record<ColumnDataType, ColumnFormatOption>>;
-	/**
-	 * When true (default), prefixes values that begin with `= + - @` (and tab/CR)
-	 * with a single quote to prevent spreadsheet formula injection. Set to false
-	 * only when the output is consumed by a parser that is not a spreadsheet.
-	 */
-	sanitizeFormulas?: boolean;
 }
 
 export function exportCsv<TData>(
@@ -104,10 +93,6 @@ export function exportCsv<TData>(
 		"text/csv;charset=utf-8;",
 		ensureExtension(filename, "csv"),
 	);
-}
-
-export interface ExportJsonOptions {
-	filename?: string;
 }
 
 /**

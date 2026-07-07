@@ -2,7 +2,7 @@ import { Button, Group, Stack, Table, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { DataTable } from "../components/DataTable";
-import { useDataView } from "../core/useDataView";
+import { useDataView } from "../core/state/useDataView";
 import { columns, type Person, people } from "./data";
 
 /** Table presentation. Renders rows in a Mantine Table with sortable headers, column pinning, and selection checkboxes. */

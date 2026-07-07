@@ -11,6 +11,14 @@ export type {
 // This comes from TanStack so consumers get typed accessor and display columns. It avoids a
 // direct dependency on the table core.
 export { createColumnHelper } from "@tanstack/react-table";
+export type {
+	CardSlotContext,
+	DataViewSlots,
+	EmptySlotContext,
+	ErrorSlotContext,
+	RenderCardContext,
+	RowSlotContext,
+} from "./components/_shared/types";
 // Presentations.
 export {
 	DataBulkActions,
@@ -37,14 +45,6 @@ export {
 	type DataViewerToolbarProps,
 	useDataViewContext,
 } from "./components/DataViewer";
-export type {
-	CardSlotContext,
-	DataViewSlots,
-	EmptySlotContext,
-	ErrorSlotContext,
-	RenderCardContext,
-	RowSlotContext,
-} from "./components/types";
 // Card composition. It supports custom card renderers built on the default layout.
 export {
 	type CardField,
@@ -53,9 +53,9 @@ export {
 	type ComposeCardOptions,
 	composeCardLayout,
 	resolveColumnLabel,
-} from "./core/cardComposition";
+} from "./core/columns/cardComposition";
 // Fluent column builder.
-export { type ColOptions, ColumnBuilder, col } from "./core/colBuilder";
+export { type ColOptions, ColumnBuilder, col } from "./core/columns/colBuilder";
 // CSV and JSON export utilities.
 export {
 	type ExportCsvOptions,
@@ -66,14 +66,14 @@ export {
 // View mode helper for cell renderers.
 export { getViewMode } from "./core/getViewMode";
 // Preference persistence: the storage adapter contract and the localStorage implementation.
-export { localStorageAdapter } from "./core/persist";
+export { localStorageAdapter } from "./core/state/persist";
 // Core hook.
-export { useDataView } from "./core/useDataView";
+export { useDataView } from "./core/state/useDataView";
 // Optional wrapper that manages fetching.
 export {
 	type UseDataViewFetcherOptions,
 	useDataViewFetcher,
-} from "./core/useDataViewFetcher";
+} from "./core/state/useDataViewFetcher";
 // Public types. Importing any of these loads the `ColumnMeta` augmentation.
 export type {
 	CardFieldMeta,

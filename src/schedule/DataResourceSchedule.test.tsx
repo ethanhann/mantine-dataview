@@ -5,8 +5,8 @@ import userEvent from "@testing-library/user-event";
 import dayjs from "dayjs";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { col } from "../core/colBuilder";
-import { useDataView } from "../core/useDataView";
+import { col } from "../core/columns/colBuilder";
+import { useDataView } from "../core/state/useDataView";
 import type { DataViewWindow, Status } from "../types/state";
 import {
 	DataResourceSchedule,

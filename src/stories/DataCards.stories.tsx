@@ -2,7 +2,7 @@ import { Button, Group, Stack, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { DataCards } from "../components/DataCards";
-import { useDataView } from "../core/useDataView";
+import { useDataView } from "../core/state/useDataView";
 import { columns, type Person, people } from "./data";
 
 /** Card grid presentation. Renders each row as a Mantine Card using column meta roles (title, subtitle, badge, meta). */

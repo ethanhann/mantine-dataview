@@ -7,7 +7,7 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
-import { useDataView } from "../core/useDataView";
+import { useDataView } from "../core/state/useDataView";
 import { createColumnHelper } from "../index";
 import type { DataColumnDef } from "../types/column";
 import { DataCards } from "./DataCards";

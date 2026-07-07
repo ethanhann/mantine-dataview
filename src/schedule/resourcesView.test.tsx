@@ -1,8 +1,8 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { col } from "../core/colBuilder";
-import { useDataView } from "../core/useDataView";
+import { col } from "../core/columns/colBuilder";
+import { useDataView } from "../core/state/useDataView";
 import { resourcesView } from "./resourcesView";
 
 // The double surfaces the resolved `resources` so a test can prove options flow through the factory.

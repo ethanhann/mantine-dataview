@@ -9,9 +9,12 @@
 
 import { useDidUpdate } from "@mantine/hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { UseDataViewOptions, UseDataViewReturn } from "../types/options";
-import type { DataViewRequest, DataViewResponse } from "../types/request";
-import type { Status } from "../types/state";
+import type {
+	UseDataViewOptions,
+	UseDataViewReturn,
+} from "../../types/options";
+import type { DataViewRequest, DataViewResponse } from "../../types/request";
+import type { Status } from "../../types/state";
 import { useDataView } from "./useDataView";
 
 const DEFAULT_REVALIDATE_DELAY_MS = 1000;
