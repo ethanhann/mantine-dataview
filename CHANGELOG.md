@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Filter variant on request: each `DataViewRequest` filter entry now carries an optional `variant`
+  field stamped from the column's `meta.filter.variant`. Fetchers can switch on `variant` to choose
+  the correct wire encoding (e.g. expanding a `dateRange` tuple into `_after`/`_before` params)
+  instead of guessing from the value shape. `DataViewState.columnFilters` is unchanged.
+
 - The default empty, filtered-empty, and error states render Mantine's `EmptyState` component
   with state icons (inbox, filter, alert), giving them a title/indicator/action hierarchy in both
   presentations. Slot overrides and all state strings are unchanged.
