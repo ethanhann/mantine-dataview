@@ -483,7 +483,6 @@ export function useDataView<TData>(
 
 	const getFilterMetaRef = useRef(getFilterMeta);
 	getFilterMetaRef.current = getFilterMeta;
-	// biome-ignore lint/correctness/useExhaustiveDependencies: getFilterMetaRef is a stable ref; reading .current avoids re-enriching when only columns identity changes
 	const enrichedFilters = useMemo(
 		() =>
 			resolvedState.columnFilters.map((f) => ({
