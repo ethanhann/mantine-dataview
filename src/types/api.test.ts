@@ -11,7 +11,6 @@ import { assertType, describe, expect, expectTypeOf, it } from "vitest";
 import type {
 	DataColumnDef,
 	DataViewRequest,
-	DataViewRequestFilter,
 	DataViewResponse,
 	DataViewState,
 	UseDataViewOptions,
@@ -107,7 +106,18 @@ describe("public type surface (Phase 1)", () => {
 			pageSize: number;
 		}>();
 		expectTypeOf<DataViewRequest["filters"]>().toEqualTypeOf<
-			DataViewRequestFilter[]
+			Array<{
+				id: string;
+				value: unknown;
+				variant?:
+					| "text"
+					| "select"
+					| "multiselect"
+					| "numberRange"
+					| "date"
+					| "dateRange"
+					| "boolean";
+			}>
 		>();
 		expectTypeOf<DataViewRequest["globalFilter"]>().toEqualTypeOf<string>();
 		expectTypeOf<DataViewResponse<User>["rows"]>().toEqualTypeOf<User[]>();
