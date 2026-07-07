@@ -114,6 +114,7 @@ export type {
 } from "./types/persist";
 export type {
 	DataViewRequest,
+	DataViewRequestFilter,
 	DataViewResponse,
 	FilterParam,
 } from "./types/request";

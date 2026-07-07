@@ -6,6 +6,7 @@
 // cursor-paged backend cannot be mapped statelessly onto `pageIndex`/`pageSize` today. A cursor
 // slice on this contract is planned (see data/roadmap-decisions.md).
 
+import type { FilterVariant } from "./column";
 import type { FacetData } from "./facets";
 import type {
 	DataViewFilter,
@@ -13,6 +14,10 @@ import type {
 	DataViewSort,
 	DataViewWindow,
 } from "./state";
+
+export interface DataViewRequestFilter extends DataViewFilter {
+	variant?: FilterVariant;
+}
 
 /** Allowed value types for external filter parameters. */
 export type FilterParam =
@@ -30,8 +35,8 @@ export type FilterParam =
 export interface DataViewRequest {
 	pagination: DataViewPagination;
 	sorting: DataViewSort[];
-	/** Filters keyed by column. The `value` shape depends on the filter variant. */
-	filters: DataViewFilter[];
+	/** Filters keyed by column, enriched with the column's declared filter variant. */
+	filters: DataViewRequestFilter[];
 	globalFilter: string;
 	/** External parameters passed through from the consumer. A value of `undefined` means "omit". */
 	params: Record<string, FilterParam>;

@@ -481,6 +481,18 @@ export function useDataView<TData>(
 		onColumnOrderChange,
 	});
 
+	const getFilterMetaRef = useRef(getFilterMeta);
+	getFilterMetaRef.current = getFilterMeta;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: getFilterMetaRef is a stable ref; reading .current avoids re-enriching when only columns identity changes
+	const enrichedFilters = useMemo(
+		() =>
+			resolvedState.columnFilters.map((f) => ({
+				...f,
+				variant: getFilterMetaRef.current(f.id)?.variant,
+			})),
+		[resolvedState.columnFilters],
+	);
+
 	// The normalized request holds only the slices the server cares about. View, selection, and
 	// column visibility deliberately stay out of it, so toggling them never triggers a refetch.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: params is stable when paramsKey is stable
@@ -488,7 +500,7 @@ export function useDataView<TData>(
 		() => ({
 			pagination: resolvedState.pagination,
 			sorting: resolvedState.sorting,
-			filters: resolvedState.columnFilters,
+			filters: enrichedFilters,
 			globalFilter: resolvedState.globalFilter,
 			params,
 			// Omit `window` entirely unless a schedule view is active, so table/cards fetchers see no
@@ -498,7 +510,7 @@ export function useDataView<TData>(
 		[
 			resolvedState.pagination,
 			resolvedState.sorting,
-			resolvedState.columnFilters,
+			enrichedFilters,
 			resolvedState.globalFilter,
 			activeWindow,
 			paramsKey,

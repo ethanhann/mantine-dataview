@@ -197,7 +197,7 @@ describe("DataToolbar", () => {
 		renderToolbar({ onRequestChange });
 		selectOption("Status", "Active");
 		expect(lastRequest(onRequestChange).filters).toEqual([
-			{ id: "status", value: "active" },
+			{ id: "status", value: "active", variant: "select" },
 		]);
 	});
 
@@ -294,7 +294,7 @@ describe("DataToolbar", () => {
 		expect(select).toBeVisible();
 		await userEvent.selectOptions(select, "active");
 		expect(lastRequest(onRequestChange).filters).toEqual([
-			{ id: "status", value: "active" },
+			{ id: "status", value: "active", variant: undefined },
 		]);
 	});
 

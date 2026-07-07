@@ -188,7 +188,7 @@ describe("useDataView", () => {
 		expect(onRequestChange).toHaveBeenCalledTimes(1);
 		act(() => vi.advanceTimersByTime(300));
 		expect(onRequestChange.mock.calls.at(-1)?.[0].filters).toEqual([
-			{ id: "status", value: "active" },
+			{ id: "status", value: "active", variant: "select" },
 		]);
 	});
 
@@ -532,7 +532,9 @@ describe("useDataView", () => {
 
 		// Assert: everything the server needs to reproduce the result set, minus the page.
 		expect(exportRequest).not.toHaveProperty("pagination");
-		expect(exportRequest.filters).toEqual([{ id: "status", value: "active" }]);
+		expect(exportRequest.filters).toEqual([
+			{ id: "status", value: "active", variant: "select" },
+		]);
 		expect(exportRequest.globalFilter).toBe("");
 		expect(exportRequest.sorting).toEqual([]);
 	});
