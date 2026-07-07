@@ -481,13 +481,16 @@ export function useDataView<TData>(
 		onColumnOrderChange,
 	});
 
+	const getFilterMetaRef = useRef(getFilterMeta);
+	getFilterMetaRef.current = getFilterMeta;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: getFilterMetaRef is a stable ref; reading .current avoids re-enriching when only columns identity changes
 	const enrichedFilters = useMemo(
 		() =>
 			resolvedState.columnFilters.map((f) => ({
 				...f,
-				variant: getFilterMeta(f.id)?.variant,
+				variant: getFilterMetaRef.current(f.id)?.variant,
 			})),
-		[resolvedState.columnFilters, getFilterMeta],
+		[resolvedState.columnFilters],
 	);
 
 	// The normalized request holds only the slices the server cares about. View, selection, and
