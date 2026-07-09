@@ -1,6 +1,6 @@
 {
 	"name": "@ethanhann/mantine-dataview",
-	"version": "0.12.0",
+	"version": "0.12.1",
 	"description": "A React library that renders server-driven, paginated datasets as a table or card grid, switchable at runtime, built on Mantine v9 and TanStack Table v8",
 	"type": "module",
 	"module": "./dist/index.js",
