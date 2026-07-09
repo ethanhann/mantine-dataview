@@ -3,6 +3,16 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2026-07-09
+
+### Fixed
+
+- `useDataViewFetcher` no longer strands on the loading skeleton when a fetch fails under
+  `React.StrictMode`. Failed requests reliably surface the error state, a fetch cancelled before it
+  settled is re-issued so data still loads, and fetchers that pass `ctx.signal` through to `fetch`
+  behave correctly. Background revalidation classifies failures the same way, so a genuine
+  revalidation error is no longer mistaken for a cancellation.
+
 ## [0.12.0] - 2026-07-06
 
 ### Added
@@ -92,12 +102,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (shell, navigation, and windowed-view infrastructure). No public API changes.
 
 ### Fixed
-
-- `useDataViewFetcher` no longer strands on the loading skeleton when a fetch fails under
-  `React.StrictMode`. The StrictMode cleanup abort was causing the catch guard to discard real
-  errors. Rejections are now classified by error shape (`AbortError`/`CanceledError`) instead of
-  signal state, and a fetch aborted before it settled is re-issued on remount. Fetchers that
-  pass `ctx.signal` through to `fetch` also work correctly now.
 
 - Selection changes are now announced to assistive technology. The bulk-actions bar keeps a
   visually-hidden live region mounted at all times; previously the region mounted together with
