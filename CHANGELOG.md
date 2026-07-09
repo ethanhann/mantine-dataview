@@ -93,6 +93,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `useDataViewFetcher` no longer strands on the loading skeleton when a fetch fails under
+  `React.StrictMode`. The StrictMode cleanup abort was causing the catch guard to discard real
+  errors. Rejections are now classified by error shape (`AbortError`/`CanceledError`) instead of
+  signal state, and a fetch aborted before it settled is re-issued on remount. Fetchers that
+  pass `ctx.signal` through to `fetch` also work correctly now.
+
 - Selection changes are now announced to assistive technology. The bulk-actions bar keeps a
   visually-hidden live region mounted at all times; previously the region mounted together with
   its first message, which screen readers do not announce.

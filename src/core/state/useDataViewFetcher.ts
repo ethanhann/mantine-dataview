@@ -19,6 +19,16 @@ import { useDataView } from "./useDataView";
 
 const DEFAULT_REVALIDATE_DELAY_MS = 1000;
 
+function isAbortRejection(err: unknown): boolean {
+	return (
+		typeof err === "object" &&
+		err !== null &&
+		"name" in err &&
+		((err as { name?: unknown }).name === "AbortError" ||
+			(err as { name?: unknown }).name === "CanceledError")
+	);
+}
+
 export interface UseDataViewFetcherOptions<TData>
 	extends Omit<
 		UseDataViewOptions<TData>,
@@ -80,6 +90,8 @@ export function useDataViewFetcher<TData>({
 	// Aborts the in-flight fetch when a newer one supersedes it (or on unmount), so ignored-anyway
 	// responses stop consuming the wire.
 	const abortRef = useRef<AbortController | null>(null);
+	const pendingIdRef = useRef<number | null>(null);
+	const abortedInFlightRef = useRef(false);
 	// Whether a successful response has landed, i.e. there is something to keep on screen.
 	const hasDataRef = useRef(initialData != null);
 	// Seeded data answers the initial request, so the mount emission must not fetch again.
@@ -108,6 +120,7 @@ export function useDataViewFetcher<TData>({
 			}
 			const signal = nextAbortSignal();
 			const id = ++requestIdRef.current;
+			pendingIdRef.current = id;
 			setIsFetching(true);
 			// With `keepPreviousData` the previous rows stay rendered during the refetch; the first
 			// fetch has nothing to keep, so it still shows the loading state.
@@ -117,6 +130,7 @@ export function useDataViewFetcher<TData>({
 			try {
 				const data = await fetcherRef.current(request, { signal });
 				if (id === requestIdRef.current) {
+					pendingIdRef.current = null;
 					hasDataRef.current = true;
 					setResponse(data);
 					setError(undefined);
@@ -125,12 +139,18 @@ export function useDataViewFetcher<TData>({
 					setIsRevalidating(false);
 				}
 			} catch (err) {
-				// An abort means this request was superseded; the newer one owns the state.
-				if (id === requestIdRef.current && !signal.aborted) {
-					setError(err);
-					setStatus("error");
-					setIsFetching(false);
-					setIsRevalidating(false);
+				if (id === requestIdRef.current) {
+					pendingIdRef.current = null;
+					// An abort (StrictMode cleanup, unmount, or supersession) is not a real
+					// failure, so the fetching flags are left untouched here: on a StrictMode
+					// remount the setup arm re-issues this request and settles them, and a real
+					// unmount has nothing left to settle.
+					if (!isAbortRejection(err)) {
+						setError(err);
+						setStatus("error");
+						setIsFetching(false);
+						setIsRevalidating(false);
+					}
 				}
 			}
 		},
@@ -168,12 +188,14 @@ export function useDataViewFetcher<TData>({
 			if (lastRequestRef.current) {
 				const signal = nextAbortSignal();
 				const id = ++requestIdRef.current;
+				pendingIdRef.current = id;
 				setIsFetching(true);
 				try {
 					const data = await fetcherRef.current(lastRequestRef.current, {
 						signal,
 					});
 					if (id === requestIdRef.current) {
+						pendingIdRef.current = null;
 						hasDataRef.current = true;
 						setResponse(data);
 						setError(undefined);
@@ -185,27 +207,33 @@ export function useDataViewFetcher<TData>({
 						setIsRevalidating(false);
 					}
 				} catch (err) {
-					if (id === requestIdRef.current && !signal.aborted) {
-						// Revalidation failure does not mean the user's write failed —
-						// it means we could not re-confirm it. Keep the optimistic data
-						// (stale-while-revalidate) rather than setting an `error` that
-						// would contradict the displayed `status: "success"`.
-						if (
-							typeof process !== "undefined" &&
-							process.env.NODE_ENV !== "production"
-						) {
-							console.warn(
-								"[mantine-dataview] background revalidation failed; keeping optimistic data",
-								err,
-							);
+					if (id === requestIdRef.current) {
+						pendingIdRef.current = null;
+						// Classify by error shape, not `signal.aborted`, for the same reason
+						// the primary fetch does: a signal-ignoring fetcher that rejects after
+						// the signal aborted still carries a real error.
+						if (!isAbortRejection(err)) {
+							// Revalidation failure does not mean the user's write failed —
+							// it means we could not re-confirm it. Keep the optimistic data
+							// (stale-while-revalidate) rather than setting an `error` that
+							// would contradict the displayed `status: "success"`.
+							if (
+								typeof process !== "undefined" &&
+								process.env.NODE_ENV !== "production"
+							) {
+								console.warn(
+									"[mantine-dataview] background revalidation failed; keeping optimistic data",
+									err,
+								);
+							}
+							// The optimistic data stays on screen, so the status must agree
+							// even when the mutation invalidated an in-flight fetch that
+							// would otherwise have settled it.
+							setStatus("success");
+							setError(undefined);
+							setIsFetching(false);
+							setIsRevalidating(false);
 						}
-						// The optimistic data stays on screen, so the status must agree
-						// even when the mutation invalidated an in-flight fetch that
-						// would otherwise have settled it.
-						setStatus("success");
-						setError(undefined);
-						setIsFetching(false);
-						setIsRevalidating(false);
 					}
 				}
 			} else {
@@ -263,13 +291,23 @@ export function useDataViewFetcher<TData>({
 		[scheduleRevalidate, invalidateInFlight],
 	);
 
-	// Clean up the revalidation timer and abort any in-flight fetch on unmount.
+	// Clean up the revalidation timer and abort any in-flight fetch on unmount. Under React
+	// StrictMode this cleanup runs between the two mount passes, aborting the mount fetch while
+	// the request effect (correctly) re-emits nothing on the second pass. The setup arm re-issues
+	// a fetch the cleanup killed before it settled.
 	useEffect(() => {
+		if (abortedInFlightRef.current) {
+			abortedInFlightRef.current = false;
+			if (lastRequestRef.current) {
+				onRequestChange(lastRequestRef.current);
+			}
+		}
 		return () => {
 			clearTimeout(revalidateTimerRef.current);
+			abortedInFlightRef.current = pendingIdRef.current !== null;
 			abortRef.current?.abort();
 		};
-	}, []);
+	}, [onRequestChange]);
 
 	const result = useDataView<TData>({
 		...options,

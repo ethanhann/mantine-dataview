@@ -356,6 +356,36 @@ describe("fetch cancellation", () => {
 		expect(captured?.status).toBe("success");
 		expect(captured?.error).toBeUndefined();
 	});
+
+	it("drops a superseded fetch's late real error instead of surfacing it", async () => {
+		// Arrange: the mount fetch ignores its signal and rejects late with a real
+		// (non-abort) error; the page-change fetch resolves first. The request-id
+		// guard, not the abort classification, must keep the late error off screen.
+		let call = 0;
+		const fetcher = vi.fn((_r: DataViewRequest) => {
+			call++;
+			if (call === 1) {
+				return new Promise<DataViewResponse<User>>((_resolve, reject) => {
+					setTimeout(() => reject(new Error("late boom")), 60);
+				});
+			}
+			return Promise.resolve({
+				rows: [{ id: "2", name: "Fresh" }],
+				rowCount: 1,
+			});
+		});
+		render(<Harness fetcher={fetcher} />, { wrapper });
+
+		// Act
+		act(() => captured?.table.setPageIndex(1));
+
+		// Assert
+		await waitFor(() => expect(screen.getByText("Fresh")).toBeVisible());
+		await new Promise((r) => setTimeout(r, 80));
+		expect(captured?.status).toBe("success");
+		expect(captured?.error).toBeUndefined();
+		expect(screen.queryByText("Something went wrong.")).toBeNull();
+	});
 });
 
 describe("optimistic reconciliation", () => {
