@@ -3,6 +3,12 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.2] - 2026-09-03
+
+### Fixed
+
+- The `FilterControl`'s `size` prop now applies correctly for a `dateRange` filter. 
+
 ## [0.12.1] - 2026-07-09
 
 ### Fixed
@@ -19,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Filter variant on request: each `DataViewRequest` filter entry now carries an optional `variant`
   field stamped from the column's `meta.filter.variant`. Fetchers can switch on `variant` to choose
-  the correct wire encoding (e.g. expanding a `dateRange` tuple into `_after`/`_before` params)
+  the correct wire encoding (e.g., expanding a `dateRange` tuple into `_after`/`_before` params)
   instead of guessing from the value shape. `DataViewState.columnFilters` is unchanged.
 
 - The default empty, filtered-empty, and error states render Mantine's `EmptyState` component
