@@ -390,6 +390,7 @@ export function FilterControl<TData>({
 						)}
 						<DatePickerInput
 							type="range"
+							size={size}
 							disabled={disabled}
 							popoverProps={{ withinPortal: false }}
 							placeholder={placeholder}
