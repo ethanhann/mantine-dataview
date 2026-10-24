@@ -31,7 +31,7 @@
 		"**/*.css"
 	],
 	"scripts": {
-		"dev": "storybook dev -p 6006",
+		"dev": "storybook dev -p 6006 --disable-telemetry",
 		"build": "vite build",
 		"test": "vitest",
 		"test:run": "vitest run",
@@ -41,7 +41,7 @@
 		"format": "biome format --write .",
 		"lint:package": "publint --strict",
 		"check:exports": "attw --pack . --profile esm-only --exclude-entrypoints styles.css",
-		"storybook:build": "storybook build",
+		"storybook:build": "storybook build --disable-telemetry",
 		"prepublishOnly": "npm run typecheck && npm run test:run && npm run build && npm run lint:package && npm run check:exports"
 	},
 	"peerDependencies": {
@@ -71,9 +71,9 @@
 		"@mantine/dates": "^9.4.1",
 		"@mantine/hooks": "^9.4.1",
 		"@mantine/schedule": "^9.4.1",
-		"@storybook/addon-a11y": "^10.4.2",
-		"@storybook/addon-docs": "^10.4.2",
-		"@storybook/react-vite": "^10.4.2",
+		"@storybook/addon-a11y": "^10.6.3",
+		"@storybook/addon-docs": "^10.6.3",
+		"@storybook/react-vite": "^10.6.3",
 		"@tabler/icons-react": "^3.41.1",
 		"@tanstack/react-table": "^8.21.3",
 		"@testing-library/dom": "^10.4.1",
@@ -94,7 +94,7 @@
 		"publint": "^0.3.21",
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4",
-		"storybook": "^10.4.2",
+		"storybook": "^10.6.3",
 		"typescript": "^6.0.0",
 		"unplugin-dts": "^1.0.2",
 		"vite": "^8.3.5",

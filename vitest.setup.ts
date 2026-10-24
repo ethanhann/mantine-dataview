@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import "vitest-canvas-mock";
 import { expect } from "vitest";
 import * as axeMatchers from "vitest-axe/matchers";
 
@@ -31,3 +32,7 @@ window.ResizeObserver = window.ResizeObserver ?? ResizeObserverStub;
 if (!Element.prototype.scrollIntoView) {
 	Element.prototype.scrollIntoView = () => {};
 }
+
+// jsdom does not implement pseudo-element styles and logs a warning when axe attempts to interact with them.
+const getComputedStyleBase = window.getComputedStyle.bind(window);
+window.getComputedStyle = (element: Element) => getComputedStyleBase(element);
