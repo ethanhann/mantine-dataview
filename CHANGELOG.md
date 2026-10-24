@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The `FilterControl`'s `size` prop now applies correctly for a `dateRange` filter. 
+- The `FilterControl`'s `size` prop now applies correctly for a `dateRange` filter.
 
 ## [0.12.1] - 2026-07-09
 
