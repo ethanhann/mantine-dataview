@@ -192,7 +192,7 @@ export function useGridNavigation({
 	useEffect(() => {
 		const activeId = prevIdsRef.current[activeIndexRef.current];
 		const remapped = activeId == null ? -1 : ids.indexOf(activeId);
-		const target = remapped >= 0 ? remapped : 0;
+		const target = Math.max(remapped, 0);
 		setActiveIndex(target);
 		anchorRef.current = target;
 		rangeRef.current = null;
