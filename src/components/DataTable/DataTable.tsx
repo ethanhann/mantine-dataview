@@ -451,7 +451,6 @@ function HeaderCell<TData>({
 				</span>
 			)}
 			{resizable && (
-				// biome-ignore lint/a11y/useFocusableInteractive: pointer-only affordance; keyboard resizing is not offered, so keeping it out of the tab order beats a focusable control that arrow keys do nothing with.
 				// biome-ignore lint/a11y/useSemanticElements: an <hr> cannot host the drag handlers; `separator` on a div is the established pattern for a column resize handle.
 				<div
 					role="separator"
