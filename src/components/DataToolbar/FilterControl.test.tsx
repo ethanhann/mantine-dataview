@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useDataView } from "../../core/state/useDataView";
@@ -491,6 +491,7 @@ describe("async filter options", () => {
 
 		// Act: type into the searchable select; each keystroke resets the debounce.
 		const input = screen.getByRole("combobox", { name: "City" });
+		act(() => input.focus());
 		fireEvent.change(input, { target: { value: "lo" } });
 		fireEvent.change(input, { target: { value: "lon" } });
 		expect(loadOptions).toHaveBeenCalledTimes(1);
