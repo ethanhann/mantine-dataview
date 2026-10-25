@@ -966,7 +966,8 @@ the bottom of the viewport:
 
 `actionBarProps` accepts the `ActionBar` props except `opened`, `onClose`, `children` and `aria-label`.
 The `PaperProps` apply to the inline bar only, and `actionBarProps` applies to the floating bar only.
-Set the group name with the `bulkActions` label.
+Set the region name with the `bulkActions` label.
+The floating bar has `role="region"`, so screen reader users can reach it from the landmark list.
 The floating bar renders in a portal at the end of `body`, so a keyboard user reaches it after the rest of
 the page. Set `withinPortal: false` in `actionBarProps` to keep it in the page order.
 It sits above most content, so use `position` to move it clear of pagination or a cookie banner.
