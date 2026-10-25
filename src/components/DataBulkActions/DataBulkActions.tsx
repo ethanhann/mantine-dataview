@@ -28,12 +28,12 @@ import { Slot } from "../_shared/Slot";
 import type { DataViewSlots } from "../_shared/types";
 
 /**
- * Props for the floating bar. The library sets `opened`, `onClose`, `children` and the region name,
- * so they are not accepted here. Set the region name with the `bulkActions` label.
+ * Props for the floating bar. The library sets `opened`, `onClose`, `children`, the `region` role and
+ * the region name, so they are not accepted here. Set the region name with the `bulkActions` label.
  */
 export type FloatingBulkActionsProps = Omit<
 	ActionBarProps,
-	"opened" | "onClose" | "children" | "aria-label"
+	"opened" | "onClose" | "children" | "role" | "aria-label" | "aria-labelledby"
 >;
 
 export interface DataBulkActionsProps<TData extends RowData>
@@ -42,12 +42,16 @@ export interface DataBulkActionsProps<TData extends RowData>
 	view: UseDataViewReturn<TData>;
 	slots?: DataViewSlots<TData>;
 	/**
-	 * Render the bar fixed to the viewport as a Mantine `ActionBar` instead of inline. Escape does not
-	 * clear the selection unless `actionBarProps.closeOnEscape` is set, and the bar then listens on
-	 * the whole window. Default: false.
+	 * Set this when you want the bar fixed to the viewport as a Mantine `ActionBar`.
+	 * Escape does not clear the selection unless you set `actionBarProps.closeOnEscape`.
+	 * The bar then listens for Escape on the whole window.
+	 * Default: false.
 	 */
 	floating?: boolean;
-	/** Props for the `ActionBar` in floating mode. The `PaperProps` apply to the inline bar only. */
+	/**
+	 * Props for the `ActionBar` in floating mode.
+	 * The `className` and `style` of the `PaperProps` apply to both modes, and the other `PaperProps` apply to the inline bar only.
+	 */
 	actionBarProps?: FloatingBulkActionsProps;
 }
 
@@ -60,11 +64,11 @@ export function DataBulkActions<TData extends RowData>({
 }: DataBulkActionsProps<TData>) {
 	const { selection, labels } = view;
 	// The floating bar stays on screen while it leaves, so it keeps showing the last real selection
-	// instead of an empty one.
-	const lastSelection = useRef(selection);
-	if (selection.count > 0) lastSelection.current = selection;
+	// instead of an empty one. The bar is inert during the exit, so a click cannot act on a cleared selection.
+	const lastNonEmptySelectionRef = useRef(selection);
+	if (selection.count > 0) lastNonEmptySelectionRef.current = selection;
 	const shownSelection =
-		selection.count > 0 ? selection : lastSelection.current;
+		selection.count > 0 ? selection : lastNonEmptySelectionRef.current;
 
 	// The live region stays mounted even with nothing selected. Assistive technology only
 	// announces content changes inside an existing region, so a region that mounts together with
@@ -80,8 +84,11 @@ export function DataBulkActions<TData extends RowData>({
 			<>
 				{announcement}
 				<ActionBar
-					role="region"
+					className={paperProps.className}
+					style={paperProps.style}
 					{...actionBarProps}
+					role="region"
+					inert={selection.count === 0}
 					opened={selection.count > 0}
 					onClose={selection.clear}
 					aria-label={labels.bulkActions}

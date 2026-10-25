@@ -1,7 +1,7 @@
 import { Button, MantineProvider } from "@mantine/core";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { axe } from "vitest-axe";
 import { useDataView } from "../../core/state/useDataView";
 import { createColumnHelper } from "../../index";
@@ -31,7 +31,9 @@ const rows: User[] = [
 	{ id: "2", name: "Linus" },
 ];
 
-const INSTANT: FloatingBulkActionsProps = { transitionProps: { duration: 0 } };
+const NO_TRANSITION_PROPS: FloatingBulkActionsProps = {
+	transitionProps: { duration: 0 },
+};
 
 function useUsers() {
 	return useDataView<User>({
@@ -45,7 +47,7 @@ function useUsers() {
 
 function StandaloneHarness({
 	slots,
-	actionBarProps = INSTANT,
+	actionBarProps = NO_TRANSITION_PROPS,
 }: {
 	slots?: DataViewSlots<User>;
 	actionBarProps?: FloatingBulkActionsProps;
@@ -76,10 +78,11 @@ function ViewerHarness({
 const renderInProvider = (ui: React.ReactNode) =>
 	render(<MantineProvider>{ui}</MantineProvider>);
 
-const selectFirstRow = () =>
+const selectFirstRowCheckbox = () =>
 	userEvent.click(screen.getAllByLabelText("Select row")[0] as HTMLElement);
 
-const getBar = () => screen.findByRole("region", { name: "Bulk actions" });
+const findBulkActionsRegion = () =>
+	screen.findByRole("region", { name: "Bulk actions" });
 
 describe("DataBulkActions floating mode", () => {
 	it("renders no region when nothing is selected", () => {
@@ -111,10 +114,10 @@ describe("DataBulkActions floating mode", () => {
 		);
 
 		// Act
-		await selectFirstRow();
+		await selectFirstRowCheckbox();
 
 		// Assert
-		const bar = await getBar();
+		const bar = await findBulkActionsRegion();
 		expect(within(bar).getByText("1 selected")).toBeVisible();
 		expect(within(bar).getByRole("button", { name: "Delete 1" })).toBeVisible();
 	});
@@ -124,7 +127,7 @@ describe("DataBulkActions floating mode", () => {
 		const { baseElement } = renderInProvider(<StandaloneHarness />);
 
 		// Act
-		await selectFirstRow();
+		await selectFirstRowCheckbox();
 
 		// Assert
 		const live = baseElement.querySelector('[aria-live="polite"]');
@@ -136,7 +139,7 @@ describe("DataBulkActions floating mode", () => {
 		renderInProvider(<StandaloneHarness />);
 		const checkbox = screen.getAllByLabelText("Select row")[0] as HTMLElement;
 		await userEvent.click(checkbox);
-		const bar = await getBar();
+		const bar = await findBulkActionsRegion();
 
 		// Act
 		await userEvent.click(within(bar).getByRole("button", { name: "Clear" }));
@@ -148,45 +151,58 @@ describe("DataBulkActions floating mode", () => {
 		expect(checkbox).not.toBeChecked();
 	});
 
-	it("keeps the last count visible while the bar leaves", async () => {
+	it("keeps the last selection in the bar and makes it inert while the bar leaves", async () => {
 		// Arrange
 		renderInProvider(
-			<StandaloneHarness actionBarProps={{ keepMounted: false }} />,
+			<StandaloneHarness
+				actionBarProps={{ keepMounted: false }}
+				slots={{
+					BulkActions: (selection) => <Button>Delete {selection.count}</Button>,
+				}}
+			/>,
 		);
-		await selectFirstRow();
-		const bar = await getBar();
+		await selectFirstRowCheckbox();
+		const bar = await findBulkActionsRegion();
+		expect(bar).not.toHaveAttribute("inert");
 
 		// Act
 		await userEvent.click(within(bar).getByRole("button", { name: "Clear" }));
 
 		// Assert
-		expect(screen.queryByText("0 selected")).toBeNull();
+		expect(bar).toBeInTheDocument();
+		expect(bar).toHaveAttribute("inert");
 		expect(within(bar).getByText("1 selected")).toBeInTheDocument();
+		expect(
+			within(bar).getByRole("button", { name: "Delete 1" }),
+		).toBeInTheDocument();
+		expect(screen.queryByText("0 selected")).toBeNull();
 	});
 
 	it("passes actionBarProps to the bar", async () => {
 		// Arrange
 		renderInProvider(
-			<StandaloneHarness actionBarProps={{ ...INSTANT, id: "floating-bar" }} />,
+			<StandaloneHarness
+				actionBarProps={{ ...NO_TRANSITION_PROPS, id: "floating-bar" }}
+			/>,
 		);
 
 		// Act
-		await selectFirstRow();
+		await selectFirstRowCheckbox();
 
 		// Assert
-		expect(await getBar()).toHaveAttribute("id", "floating-bar");
+		expect(await findBulkActionsRegion()).toHaveAttribute("id", "floating-bar");
 	});
 
 	it("clears the selection on Escape when closeOnEscape is set", async () => {
 		// Arrange
 		renderInProvider(
 			<StandaloneHarness
-				actionBarProps={{ ...INSTANT, closeOnEscape: true }}
+				actionBarProps={{ ...NO_TRANSITION_PROPS, closeOnEscape: true }}
 			/>,
 		);
 		const checkbox = screen.getAllByLabelText("Select row")[0] as HTMLElement;
 		await userEvent.click(checkbox);
-		await getBar();
+		await findBulkActionsRegion();
 
 		// Act
 		await userEvent.keyboard("{Escape}");
@@ -200,7 +216,7 @@ describe("DataBulkActions floating mode", () => {
 		renderInProvider(<StandaloneHarness />);
 		const checkbox = screen.getAllByLabelText("Select row")[0] as HTMLElement;
 		await userEvent.click(checkbox);
-		await getBar();
+		await findBulkActionsRegion();
 
 		// Act
 		await userEvent.keyboard("{Escape}");
@@ -212,8 +228,8 @@ describe("DataBulkActions floating mode", () => {
 	it("has no accessibility violations with a selection", async () => {
 		// Arrange
 		renderInProvider(<StandaloneHarness />);
-		await selectFirstRow();
-		await getBar();
+		await selectFirstRowCheckbox();
+		await findBulkActionsRegion();
 
 		// Act
 		const results = await axe(document.body, {
@@ -224,15 +240,68 @@ describe("DataBulkActions floating mode", () => {
 		expect(results).toHaveNoViolations();
 	});
 
-	it("rejects the props the library controls", () => {
-		// Arrange / Act
-		// @ts-expect-error onClose is set by the library
-		const withOnClose: FloatingBulkActionsProps = { onClose: () => {} };
-		// @ts-expect-error aria-label is set by the library
-		const withLabel: FloatingBulkActionsProps = { "aria-label": "x" };
+	it("does not accept the props the library controls", () => {
+		// Arrange
+		type Key = keyof FloatingBulkActionsProps;
+
+		// Act
+		const controlled = [
+			"opened",
+			"onClose",
+			"children",
+			"role",
+			"aria-label",
+			"aria-labelledby",
+		] as const;
 
 		// Assert
-		expect([withOnClose, withLabel]).toHaveLength(2);
+		expectTypeOf<
+			Extract<Key, (typeof controlled)[number]>
+		>().toEqualTypeOf<never>();
+	});
+
+	it("keeps the region role when the consumer passes a role at runtime", async () => {
+		// Arrange
+		const untyped = {
+			...NO_TRANSITION_PROPS,
+			role: "toolbar",
+		} as FloatingBulkActionsProps;
+		renderInProvider(<StandaloneHarness actionBarProps={untyped} />);
+
+		// Act
+		await selectFirstRowCheckbox();
+
+		// Assert
+		expect(await findBulkActionsRegion()).toBeVisible();
+		expect(screen.queryByRole("toolbar")).toBeNull();
+	});
+
+	it("applies className and style from the component props to the bar", async () => {
+		// Arrange
+		function Styled() {
+			const view = useUsers();
+			return (
+				<>
+					<DataBulkActions
+						view={view}
+						floating
+						actionBarProps={NO_TRANSITION_PROPS}
+						className="custom-bar"
+						style={{ opacity: 0.9 }}
+					/>
+					<DataTable view={view} />
+				</>
+			);
+		}
+		renderInProvider(<Styled />);
+
+		// Act
+		await selectFirstRowCheckbox();
+
+		// Assert
+		const bar = await findBulkActionsRegion();
+		expect(bar).toHaveClass("custom-bar");
+		expect(bar).toHaveStyle({ opacity: "0.9" });
 	});
 });
 
@@ -241,15 +310,18 @@ describe("DataViewer floating bulk actions", () => {
 		// Arrange
 		const { container } = renderInProvider(
 			<ViewerHarness
-				bulkActionsProps={{ floating: true, actionBarProps: INSTANT }}
+				bulkActionsProps={{
+					floating: true,
+					actionBarProps: NO_TRANSITION_PROPS,
+				}}
 			/>,
 		);
 
 		// Act
-		await selectFirstRow();
+		await selectFirstRowCheckbox();
 
 		// Assert
-		const bar = await getBar();
+		const bar = await findBulkActionsRegion();
 		expect(bar).toBeVisible();
 		expect(container.contains(bar)).toBe(false);
 	});
@@ -259,7 +331,7 @@ describe("DataViewer floating bulk actions", () => {
 		const { container } = renderInProvider(<ViewerHarness />);
 
 		// Act
-		await selectFirstRow();
+		await selectFirstRowCheckbox();
 
 		// Assert
 		const bar = screen.getByRole("region", { name: "Bulk actions" });
@@ -273,7 +345,10 @@ describe("DataViewer floating bulk actions", () => {
 			const view = useUsers();
 			return (
 				<DataViewer view={view}>
-					<DataViewer.BulkActions floating actionBarProps={INSTANT} />
+					<DataViewer.BulkActions
+						floating
+						actionBarProps={NO_TRANSITION_PROPS}
+					/>
 					<DataViewer.Body />
 				</DataViewer>
 			);
@@ -281,9 +356,87 @@ describe("DataViewer floating bulk actions", () => {
 		renderInProvider(<Compound />);
 
 		// Act
-		await selectFirstRow();
+		await selectFirstRowCheckbox();
 
 		// Assert
-		expect(await getBar()).toBeVisible();
+		expect(await findBulkActionsRegion()).toBeVisible();
+	});
+
+	it("lets the compound part turn floating on over the viewer setting", async () => {
+		// Arrange
+		function Compound() {
+			const view = useUsers();
+			return (
+				<DataViewer view={view} bulkActionsProps={{ floating: false }}>
+					<DataViewer.BulkActions
+						floating
+						actionBarProps={NO_TRANSITION_PROPS}
+					/>
+					<DataViewer.Body />
+				</DataViewer>
+			);
+		}
+		const { container } = renderInProvider(<Compound />);
+
+		// Act
+		await selectFirstRowCheckbox();
+
+		// Assert
+		expect(container.contains(await findBulkActionsRegion())).toBe(false);
+	});
+
+	it("lets the compound part turn floating off over the viewer setting", async () => {
+		// Arrange
+		function Compound() {
+			const view = useUsers();
+			return (
+				<DataViewer
+					view={view}
+					bulkActionsProps={{
+						floating: true,
+						actionBarProps: NO_TRANSITION_PROPS,
+					}}
+				>
+					<DataViewer.BulkActions floating={false} />
+					<DataViewer.Body />
+				</DataViewer>
+			);
+		}
+		const { container } = renderInProvider(<Compound />);
+
+		// Act
+		await selectFirstRowCheckbox();
+
+		// Assert
+		expect(container.contains(await findBulkActionsRegion())).toBe(true);
+	});
+
+	it("replaces the viewer actionBarProps as a whole with the compound part actionBarProps", async () => {
+		// Arrange
+		function Compound() {
+			const view = useUsers();
+			return (
+				<DataViewer
+					view={view}
+					bulkActionsProps={{
+						floating: true,
+						actionBarProps: { ...NO_TRANSITION_PROPS, id: "from-viewer" },
+					}}
+				>
+					<DataViewer.BulkActions actionBarProps={NO_TRANSITION_PROPS} />
+					<DataViewer.Body />
+				</DataViewer>
+			);
+		}
+		renderInProvider(<Compound />);
+
+		// Act
+		await selectFirstRowCheckbox();
+
+		// Assert
+		expect(await findBulkActionsRegion()).not.toHaveAttribute(
+			"id",
+			"from-viewer",
+		);
 	});
 });
