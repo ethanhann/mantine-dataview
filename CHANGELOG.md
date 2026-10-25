@@ -15,13 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A floating bulk action bar.
   Set `floating` on `DataBulkActions`, or `bulkActionsProps={{ floating: true }}` on `DataViewer`, to render it as a Mantine `ActionBar` fixed to the viewport.
   `actionBarProps` passes props to the bar, and the type `FloatingBulkActionsProps` is exported.
+  The bar has `role="region"` and renders in a portal.
+  `ActionBar` needs Mantine 9.6 or later.
   The default stays the inline bar.
+- Documentation for the Mantine 9.7 schedule placement rules.
+  The library already forwards them through `scheduleProps` and `resourcesProps`.
+- A Direction control in the Storybook toolbar and a `PlacementRules` story.
 
 ### Changed
 
 - **Breaking:** The Mantine peer range is now `^9.7.0` for `@mantine/core`, `@mantine/dates`, `@mantine/hooks` and `@mantine/schedule`.
   The pin buttons and the floating bulk action bar need components that Mantine added in 9.6 and 9.7.
 - The pin buttons in the Columns menu are `Toggle` buttons and expose a pressed state to screen readers.
+  `Toggle` needs Mantine 9.7 or later.
+- The pin icons mirror in right to left layouts, so the start icon always points to the start edge.
+  Wrap your app in the Mantine `DirectionProvider` for this to apply.
 - **Breaking:** The library requires `@tanstack/react-table` version 9 (`^9.0.0`) and no longer supports version 8.
 - **Breaking:** Replace the import of `createColumnHelper` from `@tanstack/react-table` with the import from `@ethanhann/mantine-dataview`.
 - **Breaking:** Row types must satisfy TanStack's `RowData`, which in version 9 is an object or an array.
