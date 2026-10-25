@@ -1,4 +1,4 @@
-import { type ColumnMeta, createColumnHelper } from "@tanstack/react-table";
+import type { ColumnMeta } from "@tanstack/react-table";
 import type {
 	CardFieldMeta,
 	CardRole,
@@ -10,13 +10,18 @@ import type {
 	FilterOption,
 } from "../../types/column";
 import type { ScheduleFieldMeta, ScheduleRole } from "../../types/schedule";
+import type { DataViewFeatures, RowData } from "../../types/table";
+import { createColumnHelper } from "./columnHelper";
 
-type Field<TData> = keyof TData & string;
+type Field<TData extends RowData> = keyof TData & string;
 
 // biome-ignore lint/suspicious/noExplicitAny: cell renderer generic varies per column
-type CellFn<TData> = DataColumnDef<TData> extends { cell?: infer C } ? C : any;
+type AnyCell = any;
 
-export interface ColOptions<TData> {
+type CellFn<TData extends RowData> =
+	DataColumnDef<TData> extends { cell?: infer C } ? C : AnyCell;
+
+export interface ColOptions<TData extends RowData> {
 	header?: string;
 	card?: CardRole;
 	cardOrder?: number;
@@ -71,7 +76,7 @@ const PRESETS: Record<string, PresetConfig> = {
 	multiselect: { dataType: "text", filterVariant: "multiselect" },
 };
 
-export class ColumnBuilder<TData> {
+export class ColumnBuilder<TData extends RowData> {
 	private cols: DataColumnDef<TData>[] = [];
 	private helper = createColumnHelper<TData>();
 
@@ -114,7 +119,7 @@ export class ColumnBuilder<TData> {
 				: typeof opts.schedule === "string"
 					? { role: opts.schedule }
 					: opts.schedule;
-		const meta: ColumnMeta<TData, unknown> = {
+		const meta: ColumnMeta<DataViewFeatures, TData, unknown> = {
 			label,
 			...(config.dataType ? { dataType: config.dataType } : {}),
 			...(align ? { align } : {}),
@@ -181,6 +186,6 @@ export class ColumnBuilder<TData> {
 	}
 }
 
-export function col<TData>(): ColumnBuilder<TData> {
+export function col<TData extends RowData>(): ColumnBuilder<TData> {
 	return new ColumnBuilder<TData>();
 }

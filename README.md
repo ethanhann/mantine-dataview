@@ -9,7 +9,7 @@
 A reusable React library that renders **server-driven, paginated datasets** as either a
 **table** or a **card grid**, switchable at runtime, with full feature parity between the two.
 
-Built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack.com/table) v8.
+Built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack.com/table) v9.
 
 ## Changelog
 
@@ -26,7 +26,7 @@ See CHANGELOG.md
 - Seven filter variants with smart controls: `SegmentedControl` for booleans, `RangeSlider` for bounded numbers,
   `DatePickerInput` for dates.
 - Custom filter components. Bring your own UI per column.
-- Column pinning (left/right) with sticky positioning.
+- Column pinning (start/end) with sticky positioning.
 - CSV export with optional formatted output.
 - Router-agnostic URL state sync with a default History-API adapter.
 - Cross-page row selection + a shared bulk-action bar.
@@ -597,7 +597,7 @@ programmatically with `view.table.setColumnOrder([...])`. The order persists wit
 
 ## Column pinning
 
-Pin columns to the left or right edge so they stay visible while scrolling horizontally.
+Pin columns to the start or end edge so they stay visible while scrolling horizontally.
 
 ### Via initial state
 
@@ -607,23 +607,51 @@ const view = useDataViewFetcher<User>({
 	getRowId,
 	fetcher,
 	initialState: {
-		columnPinning: { left: ["name"], right: ["actions"] },
+		columnPinning: { start: ["name"], end: ["actions"] },
 	},
 });
 ```
 
 ### Via the UI
 
-The **Columns** dropdown in the toolbar includes pin toggle buttons (left/right) next to each
+The **Columns** dropdown in the toolbar includes pin toggle buttons (start/end) next to each
 column's visibility checkbox. Clicking a pin button freezes that column to the corresponding
-edge; clicking it again unpins.
+edge. Clicking it again unpins.
+The button labels are `pinColumnStart` and `pinColumnEnd` in the `labels` option.
 
 ### Programmatic
 
 ```tsx
-view.table.getColumn("name")?.pin("left");
+view.table.getColumn("name")?.pin("start");
 view.table.getColumn("name")?.pin(false); // unpin
 ```
+
+## Typing the table
+
+TanStack Table version 9 makes every table type generic over the table features.
+The library applies its own features, so the aliases take only your row type.
+
+```tsx
+import type {
+	DataViewCellContext,
+	DataViewRow,
+	DataViewTable,
+} from "@ethanhann/mantine-dataview";
+
+function firstRowName(table: DataViewTable<User>) {
+	const row: DataViewRow<User> | undefined = table.getRowModel().rows[0];
+	return row?.original.name;
+}
+
+const renderName = (ctx: DataViewCellContext<User, string>) => ctx.getValue();
+```
+
+If you augment `ColumnMeta` or `TableMeta` in your own code, give them the same type parameters as TanStack version 9.
+`ColumnMeta` takes the feature set, the row type and the value type.
+`TableMeta` takes the feature set and the row type.
+
+Read table state with `view.table.state`, as in `view.table.state.pagination`.
+Row types must be an object or an array.
 
 ## Filters
 
@@ -1638,6 +1666,8 @@ occurrence resolve back to the series row.
 | `col`                                                                  | Fluent column builder factory                                                                                                                                                           |
 | `getViewMode`                                                          | Detect table vs cards from cell context                                                                                                                                                 |
 | `createColumnHelper`, `composeCardLayout`, `resolveColumnLabel`        | Column helpers                                                                                                                                                                          |
+| `DataViewTable`, `DataViewRow`, `DataViewColumn`, `DataViewHeader`     | Table types that take only your row type (see [Typing the table](#typing-the-table))                                                                                                    |
+| `DataViewCellContext`, `DataViewHeaderContext`                         | Argument types of a column `cell` and `header` renderer                                                                                                                                 |
 | `@ethanhann/mantine-dataview/url`                                      | `windowHistoryAdapter` + serializer utilities                                                                                                                                           |
 | `@ethanhann/mantine-dataview/schedule`                                 | Opt-in calendar / agenda / resources: `scheduleView` · `agendaView` · `resourcesView` (and `DataSchedule` / `DataAgenda` / `DataResourceSchedule`, `DataScheduleNav` / `DataAgendaNav`) |
 
@@ -1749,8 +1779,9 @@ Deliberate positions on commonly requested capabilities, so scope questions have
   cursor slice in a future release.
 - **Schedule times are browser-local.** Date windows and event times render in the browser's
   timezone. Named-timezone rendering awaits downstream `@mantine/schedule` support.
-- **RTL is untested.** Column pinning uses physical left/right offsets and card arrow-key
-  navigation is physical, so right-to-left locales will have inverted affordances.
+- **RTL is untested.** Column pinning uses logical start and end offsets, and column resizing reads
+  the Mantine direction, so both follow the reading direction. Card arrow-key navigation is physical, so right-to-left locales will have
+  inverted affordances in the cards view.
 
 ## Development
 

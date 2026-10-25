@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import type { DataViewSlots } from "../components/_shared/types";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
+import type { RowData } from "../types/table";
 import { ScheduleShell } from "./_shared/ScheduleShell";
 import { useWindowedView } from "./_shared/useWindowedView";
 import { computeWindow } from "./dateWindow";
@@ -35,7 +36,7 @@ import {
 	resolveEvents,
 } from "./events/resolveEvents";
 
-export interface DataScheduleProps<TData> {
+export interface DataScheduleProps<TData extends RowData> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
 	/**
@@ -79,7 +80,7 @@ export interface DataScheduleProps<TData> {
 	rightSection?: ReactNode;
 }
 
-export function DataSchedule<TData>({
+export function DataSchedule<TData extends RowData>({
 	view,
 	toEvent,
 	defaultDuration,

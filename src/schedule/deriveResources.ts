@@ -6,6 +6,7 @@
 import type { ScheduleResourceData } from "@mantine/schedule";
 import type { DataColumnDef } from "../types/column";
 import type { FacetData } from "../types/facets";
+import type { RowData } from "../types/table";
 
 /**
  * Maps the `resource`-role column's filter `options` (`{ value, label }`) to Mantine
@@ -13,7 +14,7 @@ import type { FacetData } from "../types/facets";
  * resource column or no options are found, and leaves any dev warning to the caller (which can warn
  * once per mount rather than on every render).
  */
-export function deriveResources<TData>(
+export function deriveResources<TData extends RowData>(
 	columns: DataColumnDef<TData>[],
 ): ScheduleResourceData[] {
 	const resourceCol = columns.find(

@@ -1,4 +1,4 @@
-import { MantineProvider } from "@mantine/core";
+import { DirectionProvider, MantineProvider } from "@mantine/core";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -246,12 +246,32 @@ describe("DataTable", () => {
 		// Act: drag the handle 50px to the right from the default 150px width.
 		fireEvent.mouseDown(handle, { clientX: 100 });
 		fireEvent.mouseMove(document, { clientX: 150 });
-		fireEvent.mouseUp(document);
+		fireEvent.mouseUp(document, { clientX: 150 });
 
 		// Assert
 		expect(screen.getByTestId("sizing")).toHaveTextContent('{"name":200}');
 		const header = screen.getByRole("columnheader", { name: /Name/ });
 		expect(header.style.width).toBe("200px");
+	});
+
+	it("resizes a column toward the inline end in a right-to-left page", () => {
+		// Arrange
+		render(
+			<DirectionProvider initialDirection="rtl">
+				<MantineProvider>
+					<Harness enableColumnResizing />
+				</MantineProvider>
+			</DirectionProvider>,
+		);
+		const handle = screen.getByLabelText("Resize Name");
+
+		// Act: drag the handle 50px to the right, which is toward the inline start.
+		fireEvent.mouseDown(handle, { clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 150 });
+		fireEvent.mouseUp(document, { clientX: 150 });
+
+		// Assert
+		expect(screen.getByTestId("sizing")).toHaveTextContent('{"name":100}');
 	});
 
 	it("resets a column to its default size on handle double-click", () => {

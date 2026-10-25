@@ -1,11 +1,15 @@
 import { MantineProvider } from "@mantine/core";
-import type { CellContext, HeaderContext, Table } from "@tanstack/react-table";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { createColumnHelper } from "../index";
 import type { DataColumnDef } from "../types/column";
 import type { ViewMode } from "../types/state";
+import type {
+	DataViewCellContext,
+	DataViewHeaderContext,
+	DataViewTable,
+} from "../types/table";
 import { getViewMode } from "./getViewMode";
 import { useDataView } from "./state/useDataView";
 
@@ -23,7 +27,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 );
 
 /** Builds a real TanStack table (via the core hook) pinned to a given view mode. */
-function renderTable(defaultView: ViewMode): Table<User> {
+function renderTable(defaultView: ViewMode): DataViewTable<User> {
 	const { result } = renderHook(
 		() =>
 			useDataView<User>({
@@ -40,7 +44,9 @@ function renderTable(defaultView: ViewMode): Table<User> {
 }
 
 /** Pulls a real CellContext off the first cell of the first row. */
-function firstCellContext(table: Table<User>): CellContext<User, unknown> {
+function firstCellContext(
+	table: DataViewTable<User>,
+): DataViewCellContext<User, unknown> {
 	const row = table.getRowModel().rows[0];
 	if (!row) throw new Error("expected the fixture table to have a row");
 	const cell = row.getAllCells()[0];
@@ -49,15 +55,17 @@ function firstCellContext(table: Table<User>): CellContext<User, unknown> {
 }
 
 /** Pulls a real HeaderContext off the first header of the first header group. */
-function firstHeaderContext(table: Table<User>): HeaderContext<User, unknown> {
+function firstHeaderContext(
+	table: DataViewTable<User>,
+): DataViewHeaderContext<User, unknown> {
 	const header = table.getHeaderGroups()[0]?.headers[0];
 	if (!header) throw new Error("expected the fixture table to have a header");
 	return header.getContext();
 }
 
 /** A minimal table-shaped stub carrying only the `options.meta` the function reads. */
-function stubTable(meta: unknown): Table<User> {
-	return { options: { meta } } as unknown as Table<User>;
+function stubTable(meta: unknown): DataViewTable<User> {
+	return { options: { meta } } as unknown as DataViewTable<User>;
 }
 
 describe("getViewMode", () => {

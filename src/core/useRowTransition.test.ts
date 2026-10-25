@@ -1,10 +1,10 @@
-import type { Row } from "@tanstack/react-table";
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { DataViewRow, RowData } from "../types/table";
 import { useRowTransition } from "./useRowTransition";
 
 // The hook only reads `row.id`, so a minimal stand-in is enough.
-const row = (id: string) => ({ id }) as Row<unknown>;
+const row = (id: string) => ({ id }) as DataViewRow<RowData>;
 const rowsOf = (...ids: string[]) => ids.map(row);
 
 function entering(result: { current: { entering: Set<string> } }): string[] {

@@ -5,9 +5,10 @@ import { SegmentedControl, Tooltip } from "@mantine/core";
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import type { ViewMode } from "../../types/state";
+import type { RowData } from "../../types/table";
 import type { RegisteredView } from "../_shared/types";
 
-export interface ViewSwitcherProps<TData> {
+export interface ViewSwitcherProps<TData extends RowData> {
 	view: UseDataViewReturn<TData>;
 	lockSwitcherOnMobile?: boolean;
 	/** Disable the control (e.g. while data is loading). */
@@ -20,10 +21,10 @@ export interface ViewSwitcherProps<TData> {
 	 * Opt-in presentations to append after the built-in table/cards options. Only their `id` and
 	 * `label` are used, so the schedule chip appears only when its view is registered.
 	 */
-	views?: ReadonlyArray<Pick<RegisteredView<unknown>, "id" | "label">>;
+	views?: ReadonlyArray<Pick<RegisteredView<RowData>, "id" | "label">>;
 }
 
-export function ViewSwitcher<TData>({
+export function ViewSwitcher<TData extends RowData>({
 	view,
 	lockSwitcherOnMobile,
 	disabled,

@@ -23,8 +23,8 @@ export interface DataViewLabels {
 	toggleSortDirection: string;
 	/** The column visibility/pinning menu trigger. */
 	columns: string;
-	pinColumnLeft: (column: string) => string;
-	pinColumnRight: (column: string) => string;
+	pinColumnStart: (column: string) => string;
+	pinColumnEnd: (column: string) => string;
 	moveColumnUp: (column: string) => string;
 	moveColumnDown: (column: string) => string;
 	/** Accessible name of the view switcher. */
@@ -97,8 +97,8 @@ export const DEFAULT_LABELS: DataViewLabels = {
 	sortBy: "Sort by",
 	toggleSortDirection: "Toggle sort direction",
 	columns: "Columns",
-	pinColumnLeft: (column) => `Pin ${column} left`,
-	pinColumnRight: (column) => `Pin ${column} right`,
+	pinColumnStart: (column) => `Pin ${column} to start`,
+	pinColumnEnd: (column) => `Pin ${column} to end`,
 	moveColumnUp: (column) => `Move ${column} up`,
 	moveColumnDown: (column) => `Move ${column} down`,
 	view: "View",

@@ -17,6 +17,7 @@ import dayjs from "dayjs";
 import { type ReactNode, useEffect, useRef } from "react";
 import type { DataViewSlots } from "../components/_shared/types";
 import type { UseDataViewReturn } from "../types/options";
+import type { RowData } from "../types/table";
 import { ScheduleShell } from "./_shared/ScheduleShell";
 import { useWindowedView } from "./_shared/useWindowedView";
 import { computeWindow } from "./dateWindow";
@@ -35,7 +36,7 @@ import {
 	resolveEvents,
 } from "./events/resolveEvents";
 
-export interface DataResourceScheduleProps<TData> {
+export interface DataResourceScheduleProps<TData extends RowData> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
 	/**
@@ -85,7 +86,7 @@ export interface DataResourceScheduleProps<TData> {
 	rightSection?: ReactNode;
 }
 
-export function DataResourceSchedule<TData>({
+export function DataResourceSchedule<TData extends RowData>({
 	view,
 	resources,
 	groups,

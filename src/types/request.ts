@@ -14,6 +14,7 @@ import type {
 	DataViewSort,
 	DataViewWindow,
 } from "./state";
+import type { RowData } from "./table";
 
 export interface DataViewRequestFilter extends DataViewFilter {
 	variant?: FilterVariant;
@@ -49,7 +50,7 @@ export interface DataViewRequest {
 }
 
 /** What the consumer feeds back in for the current page. */
-export interface DataViewResponse<TData> {
+export interface DataViewResponse<TData extends RowData> {
 	rows: TData[];
 	/** Total rows across all pages, used for page math. */
 	rowCount: number;

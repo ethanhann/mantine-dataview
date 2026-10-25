@@ -6,6 +6,7 @@
 import type { MantineColor } from "@mantine/core";
 import type { ScheduleEventData } from "@mantine/schedule";
 import type { DataViewEvent } from "../../types/schedule";
+import type { RowData } from "../../types/table";
 
 /**
  * Maps a {@link DataViewEvent} to a Mantine `ScheduleEventData`. Mantine accepts `Date` start/end
@@ -13,7 +14,7 @@ import type { DataViewEvent } from "../../types/schedule";
  * color falls back to `defaultColor`. The originating row (and any `allDay` flag, which Mantine has
  * no first-class field for) is preserved on `payload` for custom renderers and click handlers.
  */
-export function composeScheduleEvent<TData>(
+export function composeScheduleEvent<TData extends RowData>(
 	event: DataViewEvent<TData>,
 	defaultColor: MantineColor,
 ): ScheduleEventData {

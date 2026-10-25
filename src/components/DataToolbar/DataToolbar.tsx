@@ -13,6 +13,7 @@ import {
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
 import { isWindowedView } from "../../types/state";
+import type { RowData } from "../../types/table";
 import { SearchIcon } from "../_shared/icons";
 import type { RegisteredView } from "../_shared/types";
 import { FilterControls, useFilterLayout } from "./FilterControls";
@@ -20,7 +21,8 @@ import { SortControl } from "./SortControl";
 import { ViewSwitcher } from "./ViewSwitcher";
 import { VisibilityMenu } from "./VisibilityMenu";
 
-export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
+export interface DataToolbarProps<TData extends RowData>
+	extends Omit<GroupProps, "children"> {
 	/** The `useDataView` instance to drive. */
 	view: UseDataViewReturn<TData>;
 	searchPlaceholder?: string;
@@ -47,10 +49,10 @@ export interface DataToolbarProps<TData> extends Omit<GroupProps, "children"> {
 	/** Content injected at the end of the right control group (after view switcher). */
 	rightSection?: ReactNode;
 	/** Opt-in presentations to offer in the view switcher (e.g. the schedule view). */
-	views?: ReadonlyArray<Pick<RegisteredView<unknown>, "id" | "label">>;
+	views?: ReadonlyArray<Pick<RegisteredView<RowData>, "id" | "label">>;
 }
 
-export function DataToolbar<TData>({
+export function DataToolbar<TData extends RowData>({
 	view,
 	searchPlaceholder,
 	filterInlineThreshold = 3,

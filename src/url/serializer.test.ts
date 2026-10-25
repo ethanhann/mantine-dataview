@@ -28,7 +28,7 @@ const base: DataViewState = {
 	globalFilter: "",
 	rowSelection: {},
 	columnVisibility: {},
-	columnPinning: { left: [], right: [] },
+	columnPinning: { start: [], end: [] },
 	columnSizing: {},
 	columnOrder: [],
 	view: "table",

@@ -15,10 +15,11 @@ import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { belowBreakpointQuery } from "../../core/useForceCards";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
+import type { RowData } from "../../types/table";
 import { FilterIcon } from "../_shared/icons";
 import { FilterControl } from "./FilterControl";
 
-function ClearFiltersButton<TData>({
+function ClearFiltersButton<TData extends RowData>({
 	view,
 }: {
 	view: UseDataViewReturn<TData>;
@@ -47,7 +48,7 @@ function filterButtonLabel(
 		: labels.filters;
 }
 
-function FilterStack<TData>({
+function FilterStack<TData extends RowData>({
 	view,
 	controls,
 }: {
@@ -69,7 +70,7 @@ function FilterStack<TData>({
  * toolbar can reserve matching label space on its other controls only when filters render inline
  * (and therefore show a label above each input).
  */
-export function useFilterLayout<TData>(
+export function useFilterLayout<TData extends RowData>(
 	view: UseDataViewReturn<TData>,
 	inlineThreshold: number,
 ) {
@@ -84,7 +85,7 @@ export function useFilterLayout<TData>(
 	return { isMobile, columns, isInline };
 }
 
-export function FilterControls<TData>({
+export function FilterControls<TData extends RowData>({
 	view,
 	inlineThreshold,
 	disabled,

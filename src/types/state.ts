@@ -1,9 +1,9 @@
 // Core state shapes and the derived presentation status.
 //
-// The small shapes below are structurally identical to TanStack Table v8's PaginationState,
-// SortingState, ColumnFiltersState, RowSelectionState, and VisibilityState. That lets
-// `DataViewState` go straight into `useReactTable` without conversion. They are declared here
-// rather than pulled in from the table core. That keeps the public surface easy to read and
+// The small shapes below match the TanStack PaginationState, SortingState, ColumnFiltersState, and
+// ColumnVisibilityState, so those slices go into `useTable` as they are. Row selection and column
+// pinning differ in small ways, so `tableStateBoundary.ts` converts them. The shapes are declared
+// here rather than imported from the table core. That keeps the public surface easy to read and
 // stable if the table core changes in a future major version.
 
 /**
@@ -102,10 +102,10 @@ export interface DataViewFilter {
  * The single source of truth for every feature. All affordances such as table headers, card
  * overlays, and toolbar controls are projections of this object, keyed by column id.
  */
-/** Columns pinned to the left or right edge of the table. */
+/** Columns pinned to the start or end edge of the table. */
 export interface DataViewColumnPinning {
-	left?: string[];
-	right?: string[];
+	start?: string[];
+	end?: string[];
 }
 
 export interface DataViewState {

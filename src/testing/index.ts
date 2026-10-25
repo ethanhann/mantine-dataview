@@ -4,8 +4,9 @@
 
 import type { FacetData } from "../types/facets";
 import type { DataViewRequest, DataViewResponse } from "../types/request";
+import type { RowData } from "../types/table";
 
-export interface MockFetcherOptions<TData> {
+export interface MockFetcherOptions<TData extends RowData> {
 	/** Artificial delay in milliseconds before resolving, to exercise loading states. */
 	latency?: number;
 	/** Compute facets from the filtered (pre-pagination) rows. */
@@ -89,7 +90,7 @@ export function createMockFetcher<TData extends object>(
 }
 
 /** A `DataViewResponse` with `rowCount` derived from the rows; override any field. */
-export function buildResponse<TData>(
+export function buildResponse<TData extends RowData>(
 	rows: TData[],
 	overrides: Partial<DataViewResponse<TData>> = {},
 ): DataViewResponse<TData> {

@@ -1,6 +1,6 @@
 // Pagination. This single pager is shared by both presentations. It reads `pagination` state
 // and `rowCount` from the core, so the table and cards page in lockstep. Page math comes from
-// the v8 instance through `getPageCount` and `getRowCount`, which derive it from `rowCount`.
+// the table instance through `getPageCount` and `getRowCount`, which derive it from `rowCount`.
 
 import {
 	Group,
@@ -11,8 +11,9 @@ import {
 } from "@mantine/core";
 import type { UseDataViewReturn } from "../../types/options";
 import { isWindowedView } from "../../types/state";
+import type { RowData } from "../../types/table";
 
-export interface DataPaginationProps<TData>
+export interface DataPaginationProps<TData extends RowData>
 	extends Omit<GroupProps, "children"> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
@@ -25,7 +26,7 @@ export interface DataPaginationProps<TData>
 	pageSizeLabel?: string;
 }
 
-export function DataPagination<TData>({
+export function DataPagination<TData extends RowData>({
 	view,
 	pageSizeOptions,
 	showPageSize = true,

@@ -39,7 +39,7 @@ function Harness(props: {
 	enableSelection?: boolean;
 	onRowActivate?: (row: User) => void;
 	slots?: DataTableProps<User>["slots"];
-	pinnedLeft?: string[];
+	pinnedStart?: string[];
 	initialRowSelection?: Record<string, boolean>;
 	enableRowSelection?: (row: User) => boolean;
 }) {
@@ -52,11 +52,11 @@ function Harness(props: {
 		...(props.enableRowSelection
 			? { enableRowSelection: props.enableRowSelection }
 			: {}),
-		...(props.pinnedLeft || props.initialRowSelection
+		...(props.pinnedStart || props.initialRowSelection
 			? {
 					initialState: {
-						...(props.pinnedLeft
-							? { columnPinning: { left: props.pinnedLeft } }
+						...(props.pinnedStart
+							? { columnPinning: { start: props.pinnedStart } }
 							: {}),
 						...(props.initialRowSelection
 							? { rowSelection: props.initialRowSelection }
@@ -431,7 +431,7 @@ describe("DataTable keyboard navigation", () => {
 	it("keeps the selection tint on a pinned cell of a selected row", async () => {
 		// Arrange
 		const user = userEvent.setup();
-		renderTable({ pinnedLeft: ["name"] });
+		renderTable({ pinnedStart: ["name"] });
 		const pinnedCell = () =>
 			within(bodyRows()[0] as HTMLElement)
 				.getByText("Ada")

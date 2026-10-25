@@ -8,9 +8,10 @@
 import { ActionIcon, Group, Select } from "@mantine/core";
 import { resolveColumnLabel } from "../../core/columns/cardComposition";
 import type { UseDataViewReturn } from "../../types/options";
+import type { RowData } from "../../types/table";
 import { SortIcon } from "../_shared/icons";
 
-export function SortControl<TData>({
+export function SortControl<TData extends RowData>({
 	view,
 	disabled,
 }: {

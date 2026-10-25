@@ -22,13 +22,16 @@ import {
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
 import { useDebouncedCallback } from "@mantine/hooks";
-import type { Column } from "@tanstack/react-table";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { resolveColumnLabel } from "../../core/columns/cardComposition";
 import { resolveFormatter } from "../../core/columns/formatValue";
-import type { FilterOption } from "../../types/column";
+import type {
+	CustomFilterComponentProps,
+	FilterOption,
+} from "../../types/column";
 import type { FacetData, ValueFacet } from "../../types/facets";
 import { type DataViewLabels, DEFAULT_LABELS } from "../../types/labels";
+import type { DataViewColumn, RowData } from "../../types/table";
 import { FacetBuckets } from "./FacetBuckets";
 
 // Deliberately no `import "@mantine/dates/styles.css"` here: a bare CSS import in library code
@@ -148,14 +151,14 @@ function useAsyncOptions(load?: (query: string) => Promise<FilterOption[]>) {
 	};
 }
 
-export function FilterControl<TData>({
+export function FilterControl<TData extends RowData>({
 	column,
 	facet,
 	disabled,
 	size = "xs",
 	labels = DEFAULT_LABELS,
 }: {
-	column: Column<TData>;
+	column: DataViewColumn<TData>;
 	facet?: FacetData;
 	disabled?: boolean;
 	size?: MantineSize;
@@ -179,7 +182,7 @@ export function FilterControl<TData>({
 				className="meta-component-filter"
 				size={size}
 			>
-				<Custom value={value} onChange={set} column={column} />
+				<Custom value={value} onChange={set} column={widenColumn(column)} />
 			</Input.Wrapper>
 		);
 	}
@@ -419,4 +422,14 @@ export function FilterControl<TData>({
 				/>
 			);
 	}
+}
+
+/**
+ * Gives a custom filter component the column without its row type. The table types are invariant
+ * in the row type, so a column of a specific row type does not fit the shared prop type.
+ */
+function widenColumn<TData extends RowData>(
+	column: DataViewColumn<TData>,
+): CustomFilterComponentProps["column"] {
+	return column as unknown as CustomFilterComponentProps["column"];
 }

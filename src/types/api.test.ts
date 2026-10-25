@@ -2,10 +2,10 @@ import type {
 	ColumnOrderState,
 	ColumnPinningState,
 	ColumnSizingState,
+	ColumnVisibilityState,
 	PaginationState,
 	RowSelectionState,
 	SortingState,
-	VisibilityState,
 } from "@tanstack/react-table";
 import { assertType, describe, expect, expectTypeOf, it } from "vitest";
 import type {
@@ -17,16 +17,17 @@ import type {
 } from "../index";
 import { createColumnHelper } from "../index";
 
-// Compile-time conformance: `DataViewState`'s slices must remain assignment-compatible with the
-// TanStack v8 shapes they mirror, so they can flow straight into `useReactTable` without conversion.
-// If TanStack changes one of these shapes, one of these assignments fails to compile — catching the
-// drift at build time rather than at a distance.
+// Compile-time conformance: most of `DataViewState`'s slices must remain assignment-compatible with
+// the TanStack shapes they mirror, so they can flow straight into `useTable` without conversion.
+// The selection and pinning slices are looser than the table's shapes (they allow `false` entries
+// and a missing side), so only the table to library direction is checked for them. If TanStack
+// changes one of these shapes, one of these assignments fails to compile, which catches the drift
+// at build time rather than at a distance.
 () => {
 	const _pagination: PaginationState = {} as DataViewState["pagination"];
 	const _sorting: SortingState = {} as DataViewState["sorting"];
-	const _selection: RowSelectionState = {} as DataViewState["rowSelection"];
-	const _visibility: VisibilityState = {} as DataViewState["columnVisibility"];
-	const _pinning: ColumnPinningState = {} as DataViewState["columnPinning"];
+	const _visibility: ColumnVisibilityState =
+		{} as DataViewState["columnVisibility"];
 	const _sizing: ColumnSizingState = {} as DataViewState["columnSizing"];
 	const _order: ColumnOrderState = {} as DataViewState["columnOrder"];
 	// And the reverse direction, so the shapes stay structurally equal (not just one-way assignable).
@@ -34,18 +35,20 @@ import { createColumnHelper } from "../index";
 	const _sorting2: DataViewState["sorting"] = {} as SortingState;
 	const _sizing2: DataViewState["columnSizing"] = {} as ColumnSizingState;
 	const _order2: DataViewState["columnOrder"] = {} as ColumnOrderState;
+	const _selection2: DataViewState["rowSelection"] = {} as RowSelectionState;
+	const _pinning2: DataViewState["columnPinning"] = {} as ColumnPinningState;
 	void [
 		_pagination,
 		_sorting,
-		_selection,
 		_visibility,
-		_pinning,
 		_sizing,
 		_order,
 		_pagination2,
 		_sorting2,
 		_sizing2,
 		_order2,
+		_selection2,
+		_pinning2,
 	];
 };
 

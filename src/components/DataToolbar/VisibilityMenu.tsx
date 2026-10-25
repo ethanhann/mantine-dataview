@@ -1,5 +1,5 @@
 // Column visibility and pinning menu. Toggling a column hides both its table column and its
-// card field. Pin controls let users freeze columns to the left or right edge of the table.
+// card field. Pin controls let users freeze columns to the start or end edge of the table.
 // A Popover with a labeled checkbox group, not a Mantine Menu: `role="menu"` may only contain
 // menu items, and these are checkboxes and pin buttons.
 
@@ -12,19 +12,19 @@ import {
 	Stack,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import type { Column } from "@tanstack/react-table";
 import { resolveColumnLabel } from "../../core/columns/cardComposition";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
+import type { DataViewColumn, RowData } from "../../types/table";
 import {
 	ChevronDownIcon,
 	ChevronUpIcon,
-	PinLeftIcon,
-	PinRightIcon,
+	PinEndIcon,
+	PinStartIcon,
 } from "../_shared/icons";
 
 /** Move a column one position up or down within the materialized leaf order. */
-function MoveControls<TData>({
+function MoveControls<TData extends RowData>({
 	view,
 	column,
 	index,
@@ -32,7 +32,7 @@ function MoveControls<TData>({
 	labels,
 }: {
 	view: UseDataViewReturn<TData>;
-	column: Column<TData>;
+	column: DataViewColumn<TData>;
 	index: number;
 	count: number;
 	labels: DataViewLabels;
@@ -75,11 +75,11 @@ function MoveControls<TData>({
 	);
 }
 
-function PinControls<TData>({
+function PinControls<TData extends RowData>({
 	column,
 	labels,
 }: {
-	column: Column<TData>;
+	column: DataViewColumn<TData>;
 	labels: DataViewLabels;
 }) {
 	if (!column.getCanPin()) return null;
@@ -88,27 +88,27 @@ function PinControls<TData>({
 		<Group gap={2}>
 			<ActionIcon
 				size="xs"
-				variant={pinned === "left" ? "filled" : "subtle"}
-				color={pinned === "left" ? "blue" : "gray"}
-				aria-label={labels.pinColumnLeft(resolveColumnLabel(column))}
-				onClick={() => column.pin(pinned === "left" ? false : "left")}
+				variant={pinned === "start" ? "filled" : "subtle"}
+				color={pinned === "start" ? "blue" : "gray"}
+				aria-label={labels.pinColumnStart(resolveColumnLabel(column))}
+				onClick={() => column.pin(pinned === "start" ? false : "start")}
 			>
-				<PinLeftIcon />
+				<PinStartIcon />
 			</ActionIcon>
 			<ActionIcon
 				size="xs"
-				variant={pinned === "right" ? "filled" : "subtle"}
-				color={pinned === "right" ? "blue" : "gray"}
-				aria-label={labels.pinColumnRight(resolveColumnLabel(column))}
-				onClick={() => column.pin(pinned === "right" ? false : "right")}
+				variant={pinned === "end" ? "filled" : "subtle"}
+				color={pinned === "end" ? "blue" : "gray"}
+				aria-label={labels.pinColumnEnd(resolveColumnLabel(column))}
+				onClick={() => column.pin(pinned === "end" ? false : "end")}
 			>
-				<PinRightIcon />
+				<PinEndIcon />
 			</ActionIcon>
 		</Group>
 	);
 }
 
-export function VisibilityMenu<TData>({
+export function VisibilityMenu<TData extends RowData>({
 	view,
 	disabled,
 }: {

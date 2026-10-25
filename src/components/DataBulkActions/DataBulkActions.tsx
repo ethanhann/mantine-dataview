@@ -16,17 +16,18 @@ import {
 	VisuallyHidden,
 } from "@mantine/core";
 import type { UseDataViewReturn } from "../../types/options";
+import type { RowData } from "../../types/table";
 import { Slot } from "../_shared/Slot";
 import type { DataViewSlots } from "../_shared/types";
 
-export interface DataBulkActionsProps<TData>
+export interface DataBulkActionsProps<TData extends RowData>
 	extends Omit<PaperProps, "children"> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
 	slots?: DataViewSlots<TData>;
 }
 
-export function DataBulkActions<TData>({
+export function DataBulkActions<TData extends RowData>({
 	view,
 	slots,
 	...paperProps

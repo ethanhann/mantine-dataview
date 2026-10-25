@@ -275,7 +275,7 @@ export const CsvExport: Story = {
 	},
 };
 
-/** Column pinning: Name pinned left, Location pinned right. Scroll horizontally to see the effect. */
+/** Column pinning: Name pinned to the start, Location pinned to the end. Scroll horizontally to see the effect. */
 export const ColumnPinning: Story = {
 	render: () => {
 		function Example() {
@@ -285,15 +285,15 @@ export const ColumnPinning: Story = {
 				getRowId,
 				fetcher,
 				initialState: {
-					columnPinning: { left: ["name"], right: ["location"] },
+					columnPinning: { start: ["name"], end: ["location"] },
 				},
 			});
 			return (
 				<Stack gap="xs">
 					<Text size="sm" c="dimmed">
-						Name is pinned left, Location is pinned right. Use the Columns menu
-						to change pinning, or scroll horizontally to see the sticky
-						behavior.
+						Name is pinned to the start, Location is pinned to the end. Use the
+						Columns menu to change pinning, or scroll horizontally to see the
+						sticky behavior.
 					</Text>
 					<div style={{ maxWidth: 600 }}>
 						<DataViewer view={view} />

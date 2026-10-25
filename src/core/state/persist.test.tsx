@@ -64,7 +64,7 @@ describe("state persistence", () => {
 		// Arrange
 		const { adapter } = memoryAdapter({
 			columnVisibility: { email: false },
-			columnPinning: { left: ["name"], right: [] },
+			columnPinning: { start: ["name"], end: [] },
 			columnSizing: { name: 240 },
 			pageSize: 25,
 		});
@@ -75,8 +75,8 @@ describe("state persistence", () => {
 		// Assert
 		expect(result.current.state.columnVisibility).toEqual({ email: false });
 		expect(result.current.state.columnPinning).toEqual({
-			left: ["name"],
-			right: [],
+			start: ["name"],
+			end: [],
 		});
 		expect(result.current.state.columnSizing).toEqual({ name: 240 });
 		expect(result.current.state.pagination).toEqual({

@@ -7,12 +7,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { UseDataViewReturn } from "../../types/options";
 import type { DataViewStatus } from "../../types/state";
+import type { RowData } from "../../types/table";
 import { ScheduleShell } from "./ScheduleShell";
 
-function stubView(phase: DataViewStatus["phase"]): UseDataViewReturn<unknown> {
+function stubView(phase: DataViewStatus["phase"]): UseDataViewReturn<RowData> {
 	return {
 		renderStatus: { phase } as DataViewStatus,
-	} as unknown as UseDataViewReturn<unknown>;
+	} as unknown as UseDataViewReturn<RowData>;
 }
 
 const skeletonCount = () =>

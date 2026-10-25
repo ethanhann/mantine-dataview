@@ -96,10 +96,10 @@ export function ChevronUpIcon() {
 	return <Glyph d="M6 15l6-6 6 6" />;
 }
 
-export function PinLeftIcon() {
+export function PinStartIcon() {
 	return <Glyph d="M4 4v16M9 8h8M9 12h6M9 16h8" />;
 }
 
-export function PinRightIcon() {
+export function PinEndIcon() {
 	return <Glyph d="M20 4v16M7 8h8M9 12h6M7 16h8" />;
 }

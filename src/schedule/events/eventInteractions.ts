@@ -6,6 +6,7 @@ import type { ScheduleEventData } from "@mantine/schedule";
 import dayjs from "dayjs";
 import type { MouseEvent } from "react";
 import type { UseDataViewReturn } from "../../types/options";
+import type { RowData } from "../../types/table";
 import { findEventRow } from "./resolveEvents";
 
 /** A start/end pair as `Date`s. */
@@ -25,7 +26,7 @@ export interface SlotContext {
 	resourceId?: string | number;
 }
 
-export type EventMoveHandler<TData> = (
+export type EventMoveHandler<TData extends RowData> = (
 	row: TData,
 	range: EventRange,
 	ctx: EventMoveContext,
@@ -50,7 +51,7 @@ interface DragResizeData {
 }
 
 /** Adapts `onEventDrop`/`onEventResize` (same shape) → `handler(row, range, ctx)`. */
-export function makeMoveHandler<TData>(
+export function makeMoveHandler<TData extends RowData>(
 	view: UseDataViewReturn<TData>,
 	handler: EventMoveHandler<TData> | undefined,
 ) {

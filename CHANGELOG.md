@@ -3,6 +3,45 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-10-27
+
+### Added
+
+- Table type aliases with the library's table features already applied. Each takes only your row type, so you never write the version 9 feature argument.
+  `DataViewTable`, `DataViewRow`, `DataViewColumn`, `DataViewHeader`, `DataViewCellContext` and `DataViewHeaderContext`.
+  `DataViewFeatures` is the feature set type.
+- `createColumnHelper` is now exported from this library and takes only your row type, as in `createColumnHelper<User>()`.
+- Pin button labels `pinColumnStart` and `pinColumnEnd`.
+
+### Changed
+
+- **Breaking:** The library requires `@tanstack/react-table` version 9 (`^9.0.0`) and no longer supports version 8.
+- **Breaking:** Replace the import of `createColumnHelper` from `@tanstack/react-table` with the import from `@ethanhann/mantine-dataview`.
+- **Breaking:** Row types must satisfy TanStack's `RowData`, which in version 9 is an object or an array.
+  Interfaces and object types work.
+  A row type of `unknown` no longer compiles.
+- **Breaking:** Column pinning uses `start` and `end` in place of `left` and `right`.
+  This applies to `DataViewColumnPinning`, `initialState.columnPinning`, `PersistedState.columnPinning` and `column.pin()`.
+  Pinned columns are positioned with the logical `inset-inline-start` and `inset-inline-end` properties, so they follow the reading direction.
+  Stored preferences that use the old `left` and `right` keys still load, and the next write stores the new keys.
+- **Breaking:** The pin button labels `pinColumnLeft` and `pinColumnRight` are renamed to `pinColumnStart` and `pinColumnEnd`.
+  The English text is now "Pin Name to start" and "Pin Name to end".
+  If you override these labels, rename the keys.
+- The global augmentation of `TableMeta` and `ColumnMeta` takes the table feature set as its first type parameter.
+  If you augment these interfaces yourself, add the same parameter.
+- If you read table state in your own code, use `view.table.state` in place of `view.table.getState()`, which version 9 removed.
+  `VisibilityState` is now `ColumnVisibilityState`.
+- Dragging a column resize handle in a right-to-left page now resizes in the reading direction.
+
+### Removed
+
+- **Breaking:** The TanStack types `Column`, `ColumnDef`, `Row` and `Table` are no longer re-exported.
+  Use the replacements.
+  - `Column` becomes `DataViewColumn`
+  - `ColumnDef` becomes `DataColumnDef`
+  - `Row` becomes `DataViewRow`
+  - `Table` becomes `DataViewTable`
+
 ## [0.12.2] - 2026-09-03
 
 ### Fixed

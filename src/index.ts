@@ -1,16 +1,7 @@
 // Public entry for @ethanhann/mantine-dataview.
 // It exports the components and the `useDataView` hook.
 
-export type {
-	Column,
-	ColumnDef,
-	Row,
-	RowData,
-	Table,
-} from "@tanstack/react-table";
-// This comes from TanStack so consumers get typed accessor and display columns. It avoids a
-// direct dependency on the table core.
-export { createColumnHelper } from "@tanstack/react-table";
+export type { RowData } from "@tanstack/react-table";
 export type {
 	CardSlotContext,
 	DataViewSlots,
@@ -56,6 +47,8 @@ export {
 } from "./core/columns/cardComposition";
 // Fluent column builder.
 export { type ColOptions, ColumnBuilder, col } from "./core/columns/colBuilder";
+// Typed accessor and display columns, with the library's table features already applied.
+export { createColumnHelper } from "./core/columns/columnHelper";
 // CSV and JSON export utilities.
 export {
 	type ExportCsvOptions,
@@ -139,5 +132,14 @@ export type {
 } from "./types/state";
 // Windowed-view helpers, for custom layouts that branch on whether a date-window view is active.
 export { isWindowedView, WINDOWED_VIEWS } from "./types/state";
+export type {
+	DataViewCellContext,
+	DataViewColumn,
+	DataViewFeatures,
+	DataViewHeader,
+	DataViewHeaderContext,
+	DataViewRow,
+	DataViewTable,
+} from "./types/table";
 // URL sync contracts. The runtime adapter ships from the `/url` subpath.
 export type { UrlSerializer, UrlStateAdapter } from "./url/types";

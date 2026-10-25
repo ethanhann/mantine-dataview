@@ -1,7 +1,6 @@
 // Public hook surface. These are the `useDataView` options and its return value.
 
 import type { MantineBreakpoint } from "@mantine/core";
-import type { Column, Table } from "@tanstack/react-table";
 // Import URL *types* from the types module (not the `../url` barrel) so a type-only consumer of
 // these options never drags the runtime adapter code into its module graph.
 import type { UrlSerializer, UrlStateAdapter } from "../url/types";
@@ -22,6 +21,7 @@ import type {
 	Status,
 	ViewMode,
 } from "./state";
+import type { DataViewColumn, DataViewTable, RowData } from "./table";
 
 /** Force cards at or below a Mantine breakpoint. Cards are the preferred view on small screens. */
 export interface ResponsiveOptions {
@@ -52,7 +52,7 @@ export type DebounceOptions =
 	| number
 	| { globalFilter?: number; columnFilters?: number };
 
-export interface UseDataViewOptions<TData> {
+export interface UseDataViewOptions<TData extends RowData> {
 	columns: DataColumnDef<TData>[];
 
 	// Data for the current page, supplied by the server. The core is controlled.
@@ -122,7 +122,7 @@ export interface UseDataViewOptions<TData> {
 }
 
 /** Current selection, derived from `rowSelection` keyed by `getRowId`. */
-export interface DataViewSelection<TData> {
+export interface DataViewSelection<TData extends RowData> {
 	count: number;
 	/** Ids of every selected row across all pages. This is the stable basis for bulk actions. */
 	ids: string[];
@@ -155,9 +155,9 @@ export interface DataViewSelection<TData> {
 	isSelected: (id: string) => boolean;
 }
 
-export interface UseDataViewReturn<TData> {
-	/** The underlying v8 instance, offered as an escape hatch. */
-	table: Table<TData>;
+export interface UseDataViewReturn<TData extends RowData> {
+	/** The underlying TanStack table instance, offered as an escape hatch. */
+	table: DataViewTable<TData>;
 	/** Current normalized request. */
 	request: DataViewRequest;
 	state: DataViewState;
@@ -182,8 +182,8 @@ export interface UseDataViewReturn<TData> {
 	/** Resolved page size choices for the pager. The default is `[10, 25, 50, 100]`. */
 	pageSizeOptions: number[];
 	// Derived helpers used by the toolbar and presentations.
-	sortableColumns: Column<TData>[];
-	filterableColumns: Column<TData>[];
+	sortableColumns: DataViewColumn<TData>[];
+	filterableColumns: DataViewColumn<TData>[];
 	selection: DataViewSelection<TData>;
 	/** Export visible columns and current page rows as a CSV file download. */
 	exportCsv: (options?: ExportCsvOptions) => void;

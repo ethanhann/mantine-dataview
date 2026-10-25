@@ -2,10 +2,16 @@
 // labels live on the column itself through module augmentation of TanStack's `ColumnMeta`. That
 // gives one source of truth, which is what makes parity between the table and the cards automatic.
 
-import type { Column, ColumnDef, RowData } from "@tanstack/react-table";
+import type {
+	CellData,
+	ColumnDef,
+	RowData,
+	TableFeatures,
+} from "@tanstack/react-table";
 import type { ComponentType } from "react";
 import type { ScheduleFieldMeta } from "./schedule";
 import type { ViewMode } from "./state";
+import type { DataViewColumn, DataViewFeatures } from "./table";
 
 /**
  * The column definition consumers author. Use it with `satisfies DataColumnDef<T>[]`.
@@ -15,8 +21,12 @@ import type { ViewMode } from "./state";
  * without variance errors, and it would break the `satisfies` pattern. Consumers still get full
  * `TData` typing and the augmented `meta` below.
  */
-// biome-ignore lint/suspicious/noExplicitAny: matches @tanstack/react-table's columns type
-export type DataColumnDef<TData> = ColumnDef<TData, any>;
+export type DataColumnDef<TData extends RowData> = ColumnDef<
+	DataViewFeatures,
+	TData,
+	// biome-ignore lint/suspicious/noExplicitAny: matches @tanstack/react-table's columns type
+	any
+>;
 
 /** Where a column's value lands in the default card composition. */
 export type CardRole =
@@ -80,7 +90,7 @@ export interface CustomFilterComponentProps {
 	/** Update the filter value. Pass `undefined` to clear. */
 	onChange: (value: unknown) => void;
 	// biome-ignore lint/suspicious/noExplicitAny: column generic varies per column
-	column: Column<any>;
+	column: DataViewColumn<any>;
 }
 
 /**
@@ -119,14 +129,21 @@ export type ColumnFilterMeta =
 	  };
 
 declare module "@tanstack/react-table" {
-	interface TableMeta<TData extends RowData> {
+	interface TableMeta<
+		in out TFeatures extends TableFeatures,
+		in out TData extends RowData,
+	> {
 		/** Current view mode, available in cell renderers via `ctx.table.options.meta?.viewMode`. */
 		viewMode?: ViewMode;
 	}
 
 	// The type parameters are required to match TanStack's declaration for merging, even
 	// though this augmentation does not reference them.
-	interface ColumnMeta<TData extends RowData, TValue> {
+	interface ColumnMeta<
+		in out TFeatures extends TableFeatures,
+		in out TData extends RowData,
+		TValue extends CellData = CellData,
+	> {
 		/** Human label used by the toolbar, sort control, and card field labels. */
 		label?: string;
 		/** Controls how this column appears in card view. */
