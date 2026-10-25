@@ -1,6 +1,6 @@
 import { Button, Group, Stack, Text } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DataViewer } from "../components/DataViewer";
 import { useDataViewFetcher } from "../core/state/useDataViewFetcher";
 import {
@@ -177,6 +177,67 @@ export const EditableEvents: Story = {
 			};
 			return (
 				<DataSchedule view={view} onEventMove={apply} onEventResize={apply} />
+			);
+		}
+		return <Example />;
+	},
+};
+
+/**
+ * Placement rules from Mantine's schedule, passed through `scheduleProps`. A drop or resize that
+ * overlaps another event is rejected, and `canDropEvent` also refuses weekends. The message above
+ * the calendar shows why the last placement was rejected. Drag and resize events to try it.
+ */
+export const PlacementRules: Story = {
+	render: () => {
+		function Example() {
+			const data = useMemo(() => bookings.map((b) => ({ ...b })), []);
+			const fetcher = useMemo(() => createEventFetcher(data), [data]);
+			const [message, setMessage] = useState("No placement rejected yet.");
+			const view = useDataViewFetcher<Booking>({
+				columns: eventColumns,
+				getRowId,
+				fetcher,
+			});
+			const apply = (
+				row: Booking,
+				{ start, end }: { start: Date; end: Date },
+			) => {
+				const target = data.find((b) => b.id === row.id);
+				if (target) {
+					target.start = start.toISOString();
+					target.end = end.toISOString();
+				}
+				view.patchRow({
+					...row,
+					start: start.toISOString(),
+					end: end.toISOString(),
+				});
+			};
+			return (
+				<Stack>
+					<Text size="sm" role="status">
+						{message}
+					</Text>
+					<DataSchedule
+						view={view}
+						onEventMove={apply}
+						onEventResize={apply}
+						scheduleProps={{
+							preventEventOverlap: true,
+							canDropEvent: ({ start }) => {
+								const day = new Date(start).getDay();
+								return day !== 0 && day !== 6;
+							},
+							onEventPlacementRejected: ({ action, reason, conflicts }) =>
+								setMessage(
+									reason === "overlap"
+										? `Rejected ${action}: overlaps ${conflicts.length} event(s).`
+										: `Rejected ${action}: weekends are not allowed.`,
+								),
+						}}
+					/>
+				</Stack>
 			);
 		}
 		return <Example />;
