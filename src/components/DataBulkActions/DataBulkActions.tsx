@@ -4,7 +4,8 @@
 // announced). Consumer actions come from the `BulkActions` slot.
 //
 // The bar has two modes. The default mode is an inline `region` that sits in the page flow. The
-// floating mode is a Mantine `ActionBar`, a `group` fixed to the viewport and rendered in a portal.
+// floating mode is a Mantine `ActionBar` fixed to the viewport and rendered in a portal. It uses
+// `role="region"` instead of the default `group`, so screen reader users can find it as a landmark.
 //
 // Selection is scoped to a page in v1, so there is no select all across pages. `selection.ids`
 // still spans every page the user has selected on, so actions can use the full id set even
@@ -27,8 +28,8 @@ import { Slot } from "../_shared/Slot";
 import type { DataViewSlots } from "../_shared/types";
 
 /**
- * Props for the floating bar. The library sets `opened`, `onClose`, `children` and the group name,
- * so they are not accepted here. Set the group name with the `bulkActions` label.
+ * Props for the floating bar. The library sets `opened`, `onClose`, `children` and the region name,
+ * so they are not accepted here. Set the region name with the `bulkActions` label.
  */
 export type FloatingBulkActionsProps = Omit<
 	ActionBarProps,
@@ -79,6 +80,7 @@ export function DataBulkActions<TData extends RowData>({
 			<>
 				{announcement}
 				<ActionBar
+					role="region"
 					{...actionBarProps}
 					opened={selection.count > 0}
 					onClose={selection.clear}

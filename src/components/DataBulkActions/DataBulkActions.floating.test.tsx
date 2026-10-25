@@ -79,15 +79,14 @@ const renderInProvider = (ui: React.ReactNode) =>
 const selectFirstRow = () =>
 	userEvent.click(screen.getAllByLabelText("Select row")[0] as HTMLElement);
 
-const getBar = () => screen.findByRole("group", { name: "Bulk actions" });
+const getBar = () => screen.findByRole("region", { name: "Bulk actions" });
 
 describe("DataBulkActions floating mode", () => {
-	it("renders no group and no inline region when nothing is selected", () => {
+	it("renders no region when nothing is selected", () => {
 		// Arrange / Act
 		renderInProvider(<StandaloneHarness />);
 
 		// Assert
-		expect(screen.queryByRole("group", { name: "Bulk actions" })).toBeNull();
 		expect(screen.queryByRole("region", { name: "Bulk actions" })).toBeNull();
 	});
 
@@ -99,7 +98,7 @@ describe("DataBulkActions floating mode", () => {
 		expect(baseElement.querySelector('[aria-live="polite"]')).not.toBeNull();
 	});
 
-	it("shows the count and the consumer actions in a group once rows are selected", async () => {
+	it("shows the count and the consumer actions in a region once rows are selected", async () => {
 		// Arrange
 		renderInProvider(
 			<StandaloneHarness
@@ -132,7 +131,7 @@ describe("DataBulkActions floating mode", () => {
 		expect(live).toHaveTextContent("1 selected");
 	});
 
-	it("clears the selection and removes the group with the close button", async () => {
+	it("clears the selection and removes the region with the close button", async () => {
 		// Arrange
 		renderInProvider(<StandaloneHarness />);
 		const checkbox = screen.getAllByLabelText("Select row")[0] as HTMLElement;
@@ -144,7 +143,7 @@ describe("DataBulkActions floating mode", () => {
 
 		// Assert
 		await waitFor(() =>
-			expect(screen.queryByRole("group", { name: "Bulk actions" })).toBeNull(),
+			expect(screen.queryByRole("region", { name: "Bulk actions" })).toBeNull(),
 		);
 		expect(checkbox).not.toBeChecked();
 	});
@@ -238,9 +237,9 @@ describe("DataBulkActions floating mode", () => {
 });
 
 describe("DataViewer floating bulk actions", () => {
-	it("renders the floating group through bulkActionsProps on the default layout", async () => {
+	it("renders the floating region through bulkActionsProps on the default layout", async () => {
 		// Arrange
-		renderInProvider(
+		const { container } = renderInProvider(
 			<ViewerHarness
 				bulkActionsProps={{ floating: true, actionBarProps: INSTANT }}
 			/>,
@@ -250,23 +249,25 @@ describe("DataViewer floating bulk actions", () => {
 		await selectFirstRow();
 
 		// Assert
-		expect(await getBar()).toBeVisible();
-		expect(screen.queryByRole("region", { name: "Bulk actions" })).toBeNull();
+		const bar = await getBar();
+		expect(bar).toBeVisible();
+		expect(container.contains(bar)).toBe(false);
 	});
 
 	it("renders the inline region on the default layout without bulkActionsProps", async () => {
 		// Arrange
-		renderInProvider(<ViewerHarness />);
+		const { container } = renderInProvider(<ViewerHarness />);
 
 		// Act
 		await selectFirstRow();
 
 		// Assert
-		expect(screen.getByRole("region", { name: "Bulk actions" })).toBeVisible();
-		expect(screen.queryByRole("group", { name: "Bulk actions" })).toBeNull();
+		const bar = screen.getByRole("region", { name: "Bulk actions" });
+		expect(bar).toBeVisible();
+		expect(container.contains(bar)).toBe(true);
 	});
 
-	it("renders the floating group through the compound part", async () => {
+	it("renders the floating region through the compound part", async () => {
 		// Arrange
 		function Compound() {
 			const view = useUsers();
