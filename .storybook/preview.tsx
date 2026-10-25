@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 
-function ApplyDirection({ dir }: { dir: "ltr" | "rtl" }) {
+function SyncDocumentDirection({ dir }: { dir: "ltr" | "rtl" }) {
 	useEffect(() => {
 		document.documentElement.setAttribute("dir", dir);
 	}, [dir]);
@@ -63,7 +63,7 @@ const preview: Preview = {
 					detectDirection={false}
 				>
 					<MantineProvider forceColorScheme={scheme}>
-						<ApplyDirection dir={dir} />
+						<SyncDocumentDirection dir={dir} />
 						<Story />
 					</MantineProvider>
 				</DirectionProvider>
