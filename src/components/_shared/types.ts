@@ -4,10 +4,10 @@
 // component (not called inline), so a slot may safely use hooks and appears as a real node in the
 // React tree (visible to error boundaries and DevTools).
 
-import type { Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import type { DataViewSelection, UseDataViewReturn } from "../../types/options";
 import type { ViewMode } from "../../types/state";
+import type { DataViewRow, RowData } from "../../types/table";
 import type { GridItemProps } from "./useGridNavigation";
 
 export interface EmptySlotContext {
@@ -23,8 +23,8 @@ export interface ErrorSlotContext {
 	retry: () => void;
 }
 
-export interface RowSlotContext<TData> {
-	row: Row<TData>;
+export interface RowSlotContext<TData extends RowData> {
+	row: DataViewRow<TData>;
 	/** The cells for this row that the library renders by default, both selection and data. */
 	cells: ReactNode;
 	/**
@@ -36,15 +36,16 @@ export interface RowSlotContext<TData> {
 }
 
 /** Full per card escape hatch. It bypasses the default composition entirely. */
-export interface RenderCardContext<TData> {
-	row: Row<TData>;
+export interface RenderCardContext<TData extends RowData> {
+	row: DataViewRow<TData>;
 	data: TData;
 	selected: boolean;
 	toggleSelected: () => void;
 }
 
 /** Card slot. It wraps the default composed content rather than replacing it. */
-export interface CardSlotContext<TData> extends RenderCardContext<TData> {
+export interface CardSlotContext<TData extends RowData>
+	extends RenderCardContext<TData> {
 	/** The card body composed by default, including the selection overlay and role slots. */
 	children: ReactNode;
 }
@@ -54,7 +55,7 @@ export interface CardSlotContext<TData> extends RenderCardContext<TData> {
  * cards views are always present; additional views (e.g. the schedule presentation from the
  * `/schedule` subpath) are supplied as these descriptors so the core never has to import them.
  */
-export interface RegisteredView<TData> {
+export interface RegisteredView<TData extends RowData> {
 	/** View id, matched against `view.view` to decide which body renders. */
 	id: ViewMode;
 	/** Label shown in the view switcher. */
@@ -64,7 +65,7 @@ export interface RegisteredView<TData> {
 }
 
 /** Customization slots shared by the presentations. */
-export interface DataViewSlots<TData> {
+export interface DataViewSlots<TData extends RowData> {
 	/** Empty and filtered empty states share one slot, told apart by `filtered`. */
 	Empty?: (ctx: EmptySlotContext) => ReactNode;
 	ErrorState?: (ctx: ErrorSlotContext) => ReactNode;

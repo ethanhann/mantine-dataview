@@ -6,6 +6,7 @@
 import { Stack, type StackProps } from "@mantine/core";
 import type { ReactNode } from "react";
 import type { UseDataViewReturn } from "../../types/options";
+import type { RowData } from "../../types/table";
 import { Slot } from "../_shared/Slot";
 import type { DataViewSlots, RegisteredView } from "../_shared/types";
 import { DataBulkActions, type DataBulkActionsProps } from "../DataBulkActions";
@@ -19,7 +20,8 @@ import {
 	useDataViewContext,
 } from "./context";
 
-export interface DataViewerProps<TData> extends Omit<StackProps, "children"> {
+export interface DataViewerProps<TData extends RowData>
+	extends Omit<StackProps, "children"> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
 	slots?: DataViewSlots<TData>;
@@ -35,6 +37,11 @@ export interface DataViewerProps<TData> extends Omit<StackProps, "children"> {
 	 */
 	views?: RegisteredView<TData>[];
 	/**
+	 * Props for the default bulk action bar. For example `{ floating: true }` renders it as a floating
+	 * `ActionBar`. With custom `children`, pass the props to `<DataViewer.BulkActions />` instead.
+	 */
+	bulkActionsProps?: Omit<DataBulkActionsProps<TData>, "view" | "slots">;
+	/**
 	 * Custom composition. It defaults to Toolbar, BulkActions, Body, and Pagination. To pass
 	 * `tableProps`/`cardsProps` to the body or props to the pagination, compose manually with the
 	 * compound parts, e.g. `<DataViewer.Body tableProps={...} />` — these aren't exposed on the
@@ -43,7 +50,7 @@ export interface DataViewerProps<TData> extends Omit<StackProps, "children"> {
 	children?: ReactNode;
 }
 
-export function DataViewer<TData>({
+export function DataViewer<TData extends RowData>({
 	view,
 	slots,
 	renderCard,
@@ -51,6 +58,7 @@ export function DataViewer<TData>({
 	lockSwitcherOnMobile,
 	animateRows,
 	views,
+	bulkActionsProps,
 	children,
 	...stackProps
 }: DataViewerProps<TData>) {
@@ -65,10 +73,11 @@ export function DataViewer<TData>({
 		lockSwitcherOnMobile,
 		animateRows,
 		views,
+		bulkActionsProps,
 	};
 
 	return (
-		<DataViewProvider value={ctx as DataViewContextValue<unknown>}>
+		<DataViewProvider value={ctx as DataViewContextValue<RowData>}>
 			<Stack {...stackProps}>
 				{children ?? (
 					<>
@@ -83,12 +92,14 @@ export function DataViewer<TData>({
 	);
 }
 
-export type DataViewerToolbarProps<TData> = Omit<
+export type DataViewerToolbarProps<TData extends RowData> = Omit<
 	DataToolbarProps<TData>,
 	"view"
 >;
 
-function DataViewToolbar<TData>(props: DataViewerToolbarProps<TData>) {
+function DataViewToolbar<TData extends RowData>(
+	props: DataViewerToolbarProps<TData>,
+) {
 	const { view, lockSwitcherOnMobile, views } = useDataViewContext<TData>();
 	return (
 		<DataToolbar
@@ -100,7 +111,7 @@ function DataViewToolbar<TData>(props: DataViewerToolbarProps<TData>) {
 	);
 }
 
-export interface DataViewerBodyProps<TData> {
+export interface DataViewerBodyProps<TData extends RowData> {
 	tableProps?: Omit<DataTableProps<TData>, "view" | "slots">;
 	cardsProps?: Omit<
 		DataCardsProps<TData>,
@@ -108,7 +119,7 @@ export interface DataViewerBodyProps<TData> {
 	>;
 }
 
-function DataViewBody<TData>({
+function DataViewBody<TData extends RowData>({
 	tableProps,
 	cardsProps,
 }: DataViewerBodyProps<TData>) {
@@ -142,18 +153,25 @@ function DataViewBody<TData>({
 	);
 }
 
-function DataViewPagination<TData>(
+function DataViewPagination<TData extends RowData>(
 	props: Omit<DataPaginationProps<TData>, "view">,
 ) {
 	const { view } = useDataViewContext<TData>();
 	return <DataPagination view={view} {...props} />;
 }
 
-function DataViewBulkActions<TData>(
+function DataViewBulkActions<TData extends RowData>(
 	props: Omit<DataBulkActionsProps<TData>, "view" | "slots">,
 ) {
-	const { view, slots } = useDataViewContext<TData>();
-	return <DataBulkActions view={view} slots={slots} {...props} />;
+	const { view, slots, bulkActionsProps } = useDataViewContext<TData>();
+	return (
+		<DataBulkActions
+			view={view}
+			slots={slots}
+			{...bulkActionsProps}
+			{...props}
+		/>
+	);
 }
 
 DataViewer.Toolbar = DataViewToolbar;

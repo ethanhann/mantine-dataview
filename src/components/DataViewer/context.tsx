@@ -6,28 +6,34 @@
 import { createContext, useContext } from "react";
 import type { ComposeCardOptions } from "../../core/columns/cardComposition";
 import type { UseDataViewReturn } from "../../types/options";
+import type { RowData } from "../../types/table";
 import type { DataViewSlots, RegisteredView } from "../_shared/types";
+import type { DataBulkActionsProps } from "../DataBulkActions";
 import type { DataCardsProps } from "../DataCards";
 
-export interface DataViewContextValue<TData> {
+export interface DataViewContextValue<TData extends RowData> {
 	view: UseDataViewReturn<TData>;
 	slots?: DataViewSlots<TData>;
 	renderCard?: DataCardsProps<TData>["renderCard"];
 	fallbackRole?: ComposeCardOptions["fallbackRole"];
 	lockSwitcherOnMobile?: boolean;
 	animateRows?: boolean;
+	/** Props for the default bulk action bar, such as `floating`. */
+	bulkActionsProps?: Omit<DataBulkActionsProps<TData>, "view" | "slots">;
 	/** Opt-in presentations (e.g. the schedule view) registered by the consumer. */
 	views?: RegisteredView<TData>[];
 }
 
 // React context cannot be generic. Store it as `unknown` and narrow it again in the hook.
-const DataViewContext = createContext<DataViewContextValue<unknown> | null>(
+const DataViewContext = createContext<DataViewContextValue<RowData> | null>(
 	null,
 );
 
 export const DataViewProvider = DataViewContext.Provider;
 
-export function useDataViewContext<TData>(): DataViewContextValue<TData> {
+export function useDataViewContext<
+	TData extends RowData,
+>(): DataViewContextValue<TData> {
 	const ctx = useContext(DataViewContext);
 	if (!ctx) {
 		throw new Error(

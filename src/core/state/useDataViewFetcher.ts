@@ -15,6 +15,7 @@ import type {
 } from "../../types/options";
 import type { DataViewRequest, DataViewResponse } from "../../types/request";
 import type { Status } from "../../types/state";
+import type { RowData } from "../../types/table";
 import { useDataView } from "./useDataView";
 
 const DEFAULT_REVALIDATE_DELAY_MS = 1000;
@@ -29,7 +30,7 @@ function isAbortRejection(err: unknown): boolean {
 	);
 }
 
-export interface UseDataViewFetcherOptions<TData>
+export interface UseDataViewFetcherOptions<TData extends RowData>
 	extends Omit<
 		UseDataViewOptions<TData>,
 		"rows" | "rowCount" | "status" | "error" | "onRequestChange"
@@ -65,7 +66,7 @@ export interface UseDataViewFetcherOptions<TData>
 	initialData?: DataViewResponse<NoInfer<TData>>;
 }
 
-export function useDataViewFetcher<TData>({
+export function useDataViewFetcher<TData extends RowData>({
 	fetcher,
 	deps,
 	revalidateDelay = DEFAULT_REVALIDATE_DELAY_MS,

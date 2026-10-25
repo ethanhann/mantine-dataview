@@ -1,6 +1,7 @@
 // Minimal inline SVG icons. The library ships no icon dependency to stay lean. Consumers are
 // free to bring something like @tabler/icons-react for their own cells and actions.
 
+import { useDirection } from "@mantine/core";
 import type { SortDirection } from "@tanstack/react-table";
 
 /**
@@ -96,10 +97,17 @@ export function ChevronUpIcon() {
 	return <Glyph d="M6 15l6-6 6 6" />;
 }
 
-export function PinLeftIcon() {
-	return <Glyph d="M4 4v16M9 8h8M9 12h6M9 16h8" />;
+const BAR_LEFT = "M4 4v16M9 8h8M9 12h6M9 16h8";
+const BAR_RIGHT = "M20 4v16M7 8h8M9 12h6M7 16h8";
+
+/** The bar sits on the start edge, so it flips to the right in right to left. */
+export function PinStartIcon() {
+	const { dir } = useDirection();
+	return <Glyph d={dir === "rtl" ? BAR_RIGHT : BAR_LEFT} />;
 }
 
-export function PinRightIcon() {
-	return <Glyph d="M20 4v16M7 8h8M9 12h6M7 16h8" />;
+/** The bar sits on the end edge, so it flips to the left in right to left. */
+export function PinEndIcon() {
+	const { dir } = useDirection();
+	return <Glyph d={dir === "rtl" ? BAR_LEFT : BAR_RIGHT} />;
 }

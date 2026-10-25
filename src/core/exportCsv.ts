@@ -1,4 +1,4 @@
-import type { Table } from "@tanstack/react-table";
+import type { DataViewTable, RowData } from "../types/table";
 
 export type { ExportCsvOptions, ExportJsonOptions } from "../types/export";
 
@@ -45,8 +45,8 @@ function escapeCsv(
 	return str;
 }
 
-export function exportCsv<TData>(
-	table: Table<TData>,
+export function exportCsv<TData extends RowData>(
+	table: DataViewTable<TData>,
 	options?: ExportCsvOptions,
 ): void {
 	if (typeof document === "undefined") {
@@ -99,8 +99,8 @@ export function exportCsv<TData>(
  * Downloads the current page's visible columns as a JSON array of objects keyed by column id.
  * Values are raw (machine-facing), matching `exportCsv`'s default.
  */
-export function exportJson<TData>(
-	table: Table<TData>,
+export function exportJson<TData extends RowData>(
+	table: DataViewTable<TData>,
 	options?: ExportJsonOptions,
 ): void {
 	if (typeof document === "undefined") {

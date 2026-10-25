@@ -3,14 +3,16 @@
 // spanning every column, and for the card grid it is a centered box.
 
 import { Button, EmptyState } from "@mantine/core";
-import type { Table } from "@tanstack/react-table";
 import type { UseDataViewReturn } from "../../types/options";
+import type { DataViewTable, RowData } from "../../types/table";
 import { AlertIcon, FilterIcon, InboxIcon } from "./icons";
 import { Slot } from "./Slot";
 import type { DataViewSlots } from "./types";
 
 /** Resets all column filters and the global search. This is the clear action for filtered empty. */
-export function clearAllFilters<TData>(table: Table<TData>): void {
+export function clearAllFilters<TData extends RowData>(
+	table: DataViewTable<TData>,
+): void {
 	table.resetColumnFilters();
 	table.setGlobalFilter("");
 	// Return to the first page; the high page the user was on no longer exists once filters clear,
@@ -18,12 +20,15 @@ export function clearAllFilters<TData>(table: Table<TData>): void {
 	table.setPageIndex(0);
 }
 
-interface StateProps<TData> {
+interface StateProps<TData extends RowData> {
 	view: UseDataViewReturn<TData>;
 	slots?: DataViewSlots<TData>;
 }
 
-export function ErrorContent<TData>({ view, slots }: StateProps<TData>) {
+export function ErrorContent<TData extends RowData>({
+	view,
+	slots,
+}: StateProps<TData>) {
 	if (slots?.ErrorState) {
 		return (
 			<Slot
@@ -57,7 +62,10 @@ export function ErrorContent<TData>({ view, slots }: StateProps<TData>) {
 	);
 }
 
-export function EmptyContent<TData>({ view, slots }: StateProps<TData>) {
+export function EmptyContent<TData extends RowData>({
+	view,
+	slots,
+}: StateProps<TData>) {
 	const filtered = view.renderStatus.phase === "empty-filtered";
 	const clearFilters = () => clearAllFilters(view.table);
 	if (slots?.Empty) {

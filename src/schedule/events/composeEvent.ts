@@ -9,8 +9,9 @@ import type {
 	ScheduleFieldMeta,
 	ScheduleRole,
 } from "../../types/schedule";
+import type { RowData } from "../../types/table";
 
-export interface ComposeEventOptions<TData> {
+export interface ComposeEventOptions<TData extends RowData> {
 	columns: DataColumnDef<TData>[];
 	/** Stable id for the event, normally the core's `getRowId`. */
 	getRowId: (row: TData) => string;
@@ -28,7 +29,10 @@ function isDev(): boolean {
 }
 
 /** Reads a column's value from a raw row via its accessor (function, key, or dotted key path). */
-function readValue<TData>(col: DataColumnDef<TData>, row: TData): unknown {
+function readValue<TData extends RowData>(
+	col: DataColumnDef<TData>,
+	row: TData,
+): unknown {
 	// biome-ignore lint/suspicious/noExplicitAny: column defs are heterogeneously typed
 	const anyCol = col as any;
 	if (typeof anyCol.accessorFn === "function") return anyCol.accessorFn(row, 0);
@@ -79,13 +83,13 @@ function toDurationMinutes(value: unknown): number | null {
 	);
 }
 
-interface RoleColumn<TData> {
+interface RoleColumn<TData extends RowData> {
 	col: DataColumnDef<TData>;
 	meta: ScheduleFieldMeta;
 }
 
 /** First column per role wins; later duplicates are ignored (warned in dev). */
-function indexRoles<TData>(
+function indexRoles<TData extends RowData>(
 	columns: DataColumnDef<TData>[],
 ): Partial<Record<ScheduleRole, RoleColumn<TData>>> {
 	const byRole: Partial<Record<ScheduleRole, RoleColumn<TData>>> = {};
@@ -105,7 +109,7 @@ function indexRoles<TData>(
 	return byRole;
 }
 
-function resolve<TData>(
+function resolve<TData extends RowData>(
 	rc: RoleColumn<TData> | undefined,
 	row: TData,
 ): unknown {
@@ -120,7 +124,7 @@ function resolve<TData>(
  * dev when a column set tags both `end` and `duration` (an ambiguous spec); in production the
  * `end` role wins.
  */
-export function composeEvent<TData>(
+export function composeEvent<TData extends RowData>(
 	row: TData,
 	options: ComposeEventOptions<TData>,
 ): DataViewEvent<TData> | null {

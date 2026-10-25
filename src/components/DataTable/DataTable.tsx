@@ -10,12 +10,17 @@ import {
 	type TableProps,
 	UnstyledButton,
 } from "@mantine/core";
-import { type Column, flexRender, type Header } from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
 import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
 import { resolveFormatter } from "../../core/columns/formatValue";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
+import type {
+	DataViewColumn,
+	DataViewHeader,
+	RowData,
+} from "../../types/table";
 import { SortIcon } from "../_shared/icons";
 import { Slot } from "../_shared/Slot";
 import { EmptyContent, ErrorContent } from "../_shared/StateMessage";
@@ -29,16 +34,17 @@ import "./transitions.css";
 /** Width of the leading selection checkbox column, shared by header and body cells. */
 const SELECTION_COLUMN_WIDTH = 40;
 
-function pinningStyle<TData>(
-	column: Column<TData>,
+function pinningStyle<TData extends RowData>(
+	column: DataViewColumn<TData>,
 	selected?: boolean,
 ): CSSProperties | undefined {
 	const pinned = column.getIsPinned();
 	if (!pinned) return undefined;
 	return {
 		position: "sticky",
-		[pinned]:
-			pinned === "left" ? column.getStart("left") : column.getAfter("right"),
+		...(pinned === "start"
+			? { insetInlineStart: column.getStart("start") }
+			: { insetInlineEnd: column.getAfter("end") }),
 		zIndex: 1,
 		// A pinned cell needs an opaque background to mask the content scrolling behind it, which would
 		// otherwise hide the selected-row tint that the stylesheet paints on ordinary cells. Layer the
@@ -53,7 +59,7 @@ function pinningStyle<TData>(
 	};
 }
 
-export interface DataTableProps<TData>
+export interface DataTableProps<TData extends RowData>
 	extends Omit<TableProps, "data" | "children"> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
@@ -83,7 +89,7 @@ export interface DataTableProps<TData>
 	onRowActivate?: (row: TData, event: SyntheticEvent) => void;
 }
 
-export function DataTable<TData>({
+export function DataTable<TData extends RowData>({
 	view,
 	slots,
 	enableSelection,
@@ -107,7 +113,7 @@ export function DataTable<TData>({
 	// aria-rowcount/aria-rowindex describe the full paginated set. The header row is row 1, so the count
 	// includes it and the first body row on the page is offset past both the header and prior pages.
 	const headerRowCount = table.getHeaderGroups().length;
-	const { pageIndex, pageSize } = table.getState().pagination;
+	const { pageIndex, pageSize } = table.state.pagination;
 
 	const nav = useGridNavigation({
 		enabled: keyboardNavigation,
@@ -304,13 +310,13 @@ export function DataTable<TData>({
  * `dataType`). The row stays outside the keyboard grid's roving model: it is not focusable and
  * carries no `aria-rowindex`, matching a plain table footer.
  */
-function SummaryFoot<TData>({
+function SummaryFoot<TData extends RowData>({
 	view,
 	columns,
 	selectionEnabled,
 }: {
 	view: UseDataViewReturn<TData>;
-	columns: Column<TData>[];
+	columns: DataViewColumn<TData>[];
 	selectionEnabled: boolean;
 }) {
 	const { summary } = view;
@@ -367,12 +373,12 @@ function MessageBody({
 // NOTE: deliberately NOT wrapped in `memo`. TanStack reuses header objects across sorting-state
 // changes (headers only rebuild on column visibility/pinning/order changes), so memoizing on the
 // `header` prop would drop reactivity to derived sort state (`aria-sort` would go stale).
-function HeaderCell<TData>({
+function HeaderCell<TData extends RowData>({
 	header,
 	disabled,
 	labels,
 }: {
-	header: Header<TData, unknown>;
+	header: DataViewHeader<TData>;
 	disabled?: boolean;
 	labels: DataViewLabels;
 }) {
@@ -451,7 +457,6 @@ function HeaderCell<TData>({
 				</span>
 			)}
 			{resizable && (
-				// biome-ignore lint/a11y/useFocusableInteractive: pointer-only affordance; keyboard resizing is not offered, so keeping it out of the tab order beats a focusable control that arrow keys do nothing with.
 				// biome-ignore lint/a11y/useSemanticElements: an <hr> cannot host the drag handlers; `separator` on a div is the established pattern for a column resize handle.
 				<div
 					role="separator"

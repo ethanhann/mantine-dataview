@@ -3,23 +3,23 @@
 // `columnVisibility` on their own. The same toggle hides a table column and its card field,
 // which is the parity decision to share visibility between the two views.
 
-import type { Column, Table } from "@tanstack/react-table";
 import type { CardRole } from "../../types/column";
+import type { DataViewColumn, DataViewTable, RowData } from "../../types/table";
 import { humanize } from "./colBuilder";
 
 /** Roles that produce a rendered slot; `hidden` columns are dropped from the layout. */
 export type CardLayoutRole = Exclude<CardRole, "hidden">;
 
-export interface CardField<TData> {
+export interface CardField<TData extends RowData> {
 	id: string;
-	column: Column<TData>;
+	column: DataViewColumn<TData>;
 	/** Resolved display label. It prefers meta.label, then a string header, then the column id. */
 	label: string;
 	/** Whether to render the label beside the value as a pair. */
 	showLabel: boolean;
 }
 
-export interface CardLayout<TData> {
+export interface CardLayout<TData extends RowData> {
 	title: CardField<TData>[];
 	subtitle: CardField<TData>[];
 	media: CardField<TData>[];
@@ -37,7 +37,9 @@ export interface ComposeCardOptions {
 }
 
 /** The label used by card fields, the sort control, and toolbar filters. It is the one source. */
-export function resolveColumnLabel<TData>(column: Column<TData>): string {
+export function resolveColumnLabel<TData extends RowData>(
+	column: DataViewColumn<TData>,
+): string {
 	const { meta, header } = column.columnDef;
 	if (meta?.label) return meta.label;
 	if (typeof header === "string") return header;
@@ -46,8 +48,8 @@ export function resolveColumnLabel<TData>(column: Column<TData>): string {
 	return humanize(column.id);
 }
 
-function resolveRole<TData>(
-	column: Column<TData>,
+function resolveRole<TData extends RowData>(
+	column: DataViewColumn<TData>,
 	explicit: CardRole | undefined,
 	fallback: CardLayoutRole | "hidden",
 ): CardLayoutRole | null {
@@ -57,7 +59,7 @@ function resolveRole<TData>(
 	return fallback === "hidden" ? null : fallback;
 }
 
-interface Ranked<TData> {
+interface Ranked<TData extends RowData> {
 	field: CardField<TData>;
 	/** Explicit `meta.card.order`, or `undefined` when the field relies on natural position. */
 	order: number | undefined;
@@ -68,8 +70,8 @@ interface Ranked<TData> {
  * Builds the card layout from the columns that are currently visible. Within each role group the
  * fields are ordered by `meta.card.order`, falling back to the column's declared position.
  */
-export function composeCardLayout<TData>(
-	table: Table<TData>,
+export function composeCardLayout<TData extends RowData>(
+	table: DataViewTable<TData>,
 	options: ComposeCardOptions = {},
 ): CardLayout<TData> {
 	const fallback = options.fallbackRole ?? "meta";

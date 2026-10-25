@@ -13,8 +13,9 @@ import {
 } from "../../components/_shared/StateMessage";
 import type { DataViewSlots } from "../../components/_shared/types";
 import type { UseDataViewReturn } from "../../types/options";
+import type { RowData } from "../../types/table";
 
-export interface ScheduleShellProps<TData> {
+export interface ScheduleShellProps<TData extends RowData> {
 	view: UseDataViewReturn<TData>;
 	slots?: Pick<DataViewSlots<TData>, "Empty" | "ErrorState">;
 	leftSection?: ReactNode;
@@ -25,7 +26,7 @@ export interface ScheduleShellProps<TData> {
 	children: ReactNode;
 }
 
-export function ScheduleShell<TData>({
+export function ScheduleShell<TData extends RowData>({
 	view,
 	slots,
 	leftSection,

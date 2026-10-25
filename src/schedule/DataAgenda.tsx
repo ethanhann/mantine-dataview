@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import type { DataViewSlots } from "../components/_shared/types";
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
+import type { RowData } from "../types/table";
 import { ScheduleShell } from "./_shared/ScheduleShell";
 import { useWindowedView } from "./_shared/useWindowedView";
 import { DataAgendaNav } from "./DataAgendaNav";
@@ -24,7 +25,7 @@ import {
 	resolveEvents,
 } from "./events/resolveEvents";
 
-export interface DataAgendaProps<TData> {
+export interface DataAgendaProps<TData extends RowData> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
 	/** Override the declarative `meta.schedule` mapping; returns a Mantine event directly. */
@@ -53,7 +54,7 @@ export interface DataAgendaProps<TData> {
 	rightSection?: ReactNode;
 }
 
-export function DataAgenda<TData>({
+export function DataAgenda<TData extends RowData>({
 	view,
 	toEvent,
 	defaultDuration,

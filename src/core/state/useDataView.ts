@@ -1,27 +1,13 @@
-// The headless core. It owns all feature state and wraps TanStack Table v8 with every `manual*`
+// The headless core. It owns all feature state and wraps TanStack Table with every `manual*`
 // flag turned on. It emits a normalized `DataViewRequest` whenever the state the server cares
 // about changes. The presentations and the toolbar are pure projections of what it returns.
 
+import { useDirection } from "@mantine/core";
 import { useDebouncedCallback, useDidUpdate } from "@mantine/hooks";
-import {
-	type ColumnFiltersState,
-	type ColumnOrderState,
-	type ColumnPinningState,
-	type ColumnSizingState,
-	functionalUpdate,
-	getCoreRowModel,
-	type OnChangeFn,
-	type PaginationState,
-	type RowSelectionState,
-	type SortingState,
-	useReactTable,
-	type VisibilityState,
-} from "@tanstack/react-table";
+import { type PaginationState, useTable } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ColumnFilterMeta, DataColumnDef } from "../../types/column";
 import { resolveLabels } from "../../types/labels";
 import type {
-	DebounceOptions,
 	UseDataViewOptions,
 	UseDataViewReturn,
 } from "../../types/options";
@@ -32,110 +18,39 @@ import {
 	isWindowedView,
 	type ViewMode,
 } from "../../types/state";
+import type { DataViewFeatures, RowData } from "../../types/table";
 import {
 	hydrateFromUrl,
 	resolveUrlConfig,
 	useUrlSync,
 } from "../../url/useUrlSync";
-import { resolveFormatter } from "../columns/formatValue";
+import { applyDefaultFormatters } from "../columns/applyDefaultFormatters";
 import {
 	exportCsv as exportCsvFn,
 	exportJson as exportJsonFn,
 } from "../exportCsv";
 import { useForceCards } from "../useForceCards";
+import {
+	buildDefaultState,
+	buildFilterMetaLookup,
+	DEFAULT_PAGE_SIZE,
+	type ResolvedDebounce,
+	resolveDebounce,
+	resolvePageSizeOptions,
+} from "./dataViewDefaults";
+import { dataViewFeatures } from "./dataViewFeatures";
 import { extractPersisted, hydrateFromStorage } from "./persist";
 import { resolveDataViewStatus } from "./resolveStatus";
+import {
+	toTableColumnPinning,
+	toTableRowSelection,
+} from "./tableStateBoundary";
+import { useDataViewSelection } from "./useDataViewSelection";
+import { useTableStateHandlers } from "./useTableStateHandlers";
 
-/** Default debounce in milliseconds for each field when emitting filter and search requests. */
-const DEFAULT_DEBOUNCE_MS = 300;
-const DEFAULT_PAGE_SIZES = [10, 25, 50, 100];
-const DEFAULT_PAGE_SIZE = 10;
 const PERSIST_WRITE_DEBOUNCE_MS = 250;
 
-interface ResolvedDebounce {
-	globalFilter: number;
-	columnFilters: number;
-}
-
-function resolveDebounce(
-	debounce: DebounceOptions | undefined,
-): ResolvedDebounce {
-	if (debounce == null) {
-		return {
-			globalFilter: DEFAULT_DEBOUNCE_MS,
-			columnFilters: DEFAULT_DEBOUNCE_MS,
-		};
-	}
-	if (typeof debounce === "number") {
-		return { globalFilter: debounce, columnFilters: debounce };
-	}
-	return {
-		globalFilter: debounce.globalFilter ?? DEFAULT_DEBOUNCE_MS,
-		columnFilters: debounce.columnFilters ?? DEFAULT_DEBOUNCE_MS,
-	};
-}
-
-function resolveColumnId<TData>(col: DataColumnDef<TData>): string | undefined {
-	if (col.id) return col.id;
-	if ("accessorKey" in col && col.accessorKey != null) {
-		return String(col.accessorKey);
-	}
-	return undefined;
-}
-
-/** Maps a column id to its filter meta so the URL serializer can pick the codec for each variant. */
-function buildFilterMetaLookup<TData>(
-	columns: DataColumnDef<TData>[],
-): (id: string) => ColumnFilterMeta | undefined {
-	const map = new Map<string, ColumnFilterMeta>();
-	for (const col of columns) {
-		const id = resolveColumnId(col);
-		const filter = col.meta?.filter;
-		if (id && filter) {
-			if (
-				map.has(id) &&
-				typeof process !== "undefined" &&
-				process.env.NODE_ENV !== "production"
-			) {
-				console.warn(
-					`[mantine-dataview] duplicate column id "${id}"; its filter meta will shadow the earlier one.`,
-				);
-			}
-			map.set(id, filter);
-		}
-	}
-	return (id) => map.get(id);
-}
-
-/** The configured page-size choices, falling back to defaults when none (or an empty list) is given. */
-function resolvePageSizeOptions<TData>(
-	options: UseDataViewOptions<TData>,
-): number[] {
-	return options.pageSizeOptions?.length
-		? options.pageSizeOptions
-		: DEFAULT_PAGE_SIZES;
-}
-
-function buildDefaultState<TData>(
-	options: UseDataViewOptions<TData>,
-): DataViewState {
-	const pageSize = resolvePageSizeOptions(options)[0] ?? DEFAULT_PAGE_SIZE;
-	return {
-		pagination: { pageIndex: 0, pageSize },
-		sorting: [],
-		columnFilters: [],
-		globalFilter: "",
-		rowSelection: {},
-		columnVisibility: {},
-		columnPinning: { left: [], right: [] },
-		columnSizing: {},
-		columnOrder: [],
-		view: options.defaultView ?? "table",
-		...options.initialState,
-	};
-}
-
-export function useDataView<TData>(
+export function useDataView<TData extends RowData>(
 	options: UseDataViewOptions<TData>,
 ): UseDataViewReturn<TData> {
 	const {
@@ -173,20 +88,7 @@ export function useDataView<TData>(
 	const params = useMemo(() => paramsInput ?? {}, [paramsKey]);
 
 	const columns = useMemo(
-		() =>
-			rawColumns.map((col) => {
-				const dataType = col.meta?.dataType;
-				if (!dataType || col.cell) return col;
-				const formatter = resolveFormatter(
-					dataType,
-					col.meta?.format,
-					formatDefaults,
-				);
-				return {
-					...col,
-					cell: (ctx: { getValue: () => unknown }) => formatter(ctx.getValue()),
-				};
-			}),
+		() => applyDefaultFormatters(rawColumns, formatDefaults),
 		[rawColumns, formatDefaults],
 	);
 
@@ -304,127 +206,45 @@ export function useDataView<TData>(
 		});
 	}, [persistEnabled, applyPatch]);
 
-	// Changing what the server sees (sort, filter, or search) resets to the first page. This
-	// keeps a filtered result set from stranding the user on a page that is now empty.
-	const resetPagination = useCallback(
-		(): PaginationState => ({
-			...resolvedStateRef.current.pagination,
-			pageIndex: 0,
+	// Reads the state as of the latest synchronous update, ahead of the next render. Handlers that
+	// run several times in one tick use it so each call builds on the one before.
+	const getLiveState = useCallback(
+		(): DataViewState => ({
+			...internalStateRef.current,
+			...controlledStateRef.current,
 		}),
 		[],
 	);
 
+	// Changing what the server sees (sort, filter, or search) resets to the first page. This
+	// keeps a filtered result set from stranding the user on a page that is now empty.
+	const paginationAtFirstPage = useCallback(
+		(): PaginationState => ({
+			...getLiveState().pagination,
+			pageIndex: 0,
+		}),
+		[getLiveState],
+	);
+
 	useDidUpdate(() => {
-		applyPatch({ pagination: resetPagination() });
+		applyPatch({ pagination: paginationAtFirstPage() });
 	}, [paramsKey]);
 
-	const onPaginationChange = useCallback<OnChangeFn<PaginationState>>(
-		(updater) => {
-			applyPatch({
-				pagination: functionalUpdate(
-					updater,
-					resolvedStateRef.current.pagination,
-				),
-			});
-		},
-		[applyPatch],
-	);
-
-	const onSortingChange = useCallback<OnChangeFn<SortingState>>(
-		(updater) => {
-			applyPatch({
-				sorting: functionalUpdate(updater, resolvedStateRef.current.sorting),
-				pagination: resetPagination(),
-			});
-		},
-		[applyPatch, resetPagination],
-	);
-
-	const onColumnFiltersChange = useCallback<OnChangeFn<ColumnFiltersState>>(
-		(updater) => {
-			applyPatch({
-				columnFilters: functionalUpdate(
-					updater,
-					resolvedStateRef.current.columnFilters,
-				),
-				pagination: resetPagination(),
-			});
-		},
-		[applyPatch, resetPagination],
-	);
-
-	const onGlobalFilterChange = useCallback<OnChangeFn<string>>(
-		(updater) => {
-			applyPatch({
-				globalFilter: functionalUpdate(
-					updater,
-					resolvedStateRef.current.globalFilter,
-				),
-				pagination: resetPagination(),
-			});
-		},
-		[applyPatch, resetPagination],
-	);
-
-	const onRowSelectionChange = useCallback<OnChangeFn<RowSelectionState>>(
-		(updater) => {
-			applyPatch({
-				rowSelection: functionalUpdate(
-					updater,
-					resolvedStateRef.current.rowSelection,
-				),
-			});
-		},
-		[applyPatch],
-	);
-
-	const onColumnVisibilityChange = useCallback<OnChangeFn<VisibilityState>>(
-		(updater) => {
-			applyPatch({
-				columnVisibility: functionalUpdate(
-					updater,
-					resolvedStateRef.current.columnVisibility,
-				),
-			});
-		},
-		[applyPatch],
-	);
-
-	const onColumnPinningChange = useCallback<OnChangeFn<ColumnPinningState>>(
-		(updater) => {
-			applyPatch({
-				columnPinning: functionalUpdate(
-					updater,
-					resolvedStateRef.current.columnPinning,
-				),
-			});
-		},
-		[applyPatch],
-	);
-
-	const onColumnSizingChange = useCallback<OnChangeFn<ColumnSizingState>>(
-		(updater) => {
-			applyPatch({
-				columnSizing: functionalUpdate(
-					updater,
-					resolvedStateRef.current.columnSizing,
-				),
-			});
-		},
-		[applyPatch],
-	);
-
-	const onColumnOrderChange = useCallback<OnChangeFn<ColumnOrderState>>(
-		(updater) => {
-			applyPatch({
-				columnOrder: functionalUpdate(
-					updater,
-					resolvedStateRef.current.columnOrder,
-				),
-			});
-		},
-		[applyPatch],
-	);
+	const {
+		onPaginationChange,
+		onSortingChange,
+		onColumnFiltersChange,
+		onGlobalFilterChange,
+		onRowSelectionChange,
+		onColumnVisibilityChange,
+		onColumnPinningChange,
+		onColumnSizingChange,
+		onColumnOrderChange,
+	} = useTableStateHandlers({
+		applyPatch,
+		getLiveState,
+		paginationAtFirstPage,
+	});
 
 	const isMobileForced = useForceCards(responsive);
 	const view: ViewMode = isMobileForced ? "cards" : resolvedState.view;
@@ -437,11 +257,20 @@ export function useDataView<TData>(
 	// memo doesn't recompute.
 	const activeWindow = isWindowedView(view) ? resolvedState.window : undefined;
 
-	const table = useReactTable<TData>({
+	const { dir } = useDirection();
+	const tableRowSelection = useMemo(
+		() => toTableRowSelection(resolvedState.rowSelection),
+		[resolvedState.rowSelection],
+	);
+	const tableColumnPinning = useMemo(
+		() => toTableColumnPinning(resolvedState.columnPinning),
+		[resolvedState.columnPinning],
+	);
+	const table = useTable<DataViewFeatures, TData>({
+		features: dataViewFeatures,
 		data: rows,
 		meta: { viewMode: view },
 		columns,
-		getCoreRowModel: getCoreRowModel(),
 		// The server owns sorting, filtering, and pagination. The core never processes data.
 		manualPagination: true,
 		manualSorting: true,
@@ -459,14 +288,15 @@ export function useDataView<TData>(
 		// opt-in so the presentation only renders handles (and per-column widths) when asked.
 		enableColumnResizing,
 		columnResizeMode: "onChange",
+		columnResizeDirection: dir,
 		state: {
 			pagination: resolvedState.pagination,
 			sorting: resolvedState.sorting,
 			columnFilters: resolvedState.columnFilters,
 			globalFilter: resolvedState.globalFilter,
-			rowSelection: resolvedState.rowSelection,
+			rowSelection: tableRowSelection,
 			columnVisibility: resolvedState.columnVisibility,
-			columnPinning: resolvedState.columnPinning,
+			columnPinning: tableColumnPinning,
 			columnSizing: resolvedState.columnSizing,
 			columnOrder: resolvedState.columnOrder,
 		},
@@ -480,6 +310,9 @@ export function useDataView<TData>(
 		onColumnSizingChange,
 		onColumnOrderChange,
 	});
+
+	const tableRef = useRef(table);
+	tableRef.current = table;
 
 	const getFilterMetaRef = useRef(getFilterMeta);
 	getFilterMetaRef.current = getFilterMeta;
@@ -641,125 +474,32 @@ export function useDataView<TData>(
 
 	const pageSizeOptions = resolvePageSizeOptions(options);
 
-	// Derived helpers for the toolbar and presentations. The TanStack `table` is a stable
-	// reference that mutates internally. These are computed every render (cheap over a small
-	// column set) instead of memoized on `table`, which would never notice column changes.
+	// Derived helpers for the toolbar and presentations. They are computed every render (cheap over
+	// a small column set) instead of memoized on `table`, whose identity changes with every render.
 	const allColumns = table.getAllColumns();
 	const sortableColumns = allColumns.filter((c) => c.getCanSort());
 	const filterableColumns = allColumns.filter(
 		(c) => c.columnDef.meta?.filter != null,
 	);
 
-	const clearSelection = useCallback(
-		() => applyPatch({ rowSelection: {} }),
-		[applyPatch],
-	);
-	// Id-based mutators, keyed by `getRowId` and spanning pages like `selection.ids`. They read the
-	// live selection from the synchronously-advanced refs (not the render snapshot) so several calls in
-	// one tick compose instead of overwriting each other. Single-select mode
-	// (`enableMultiRowSelection: false`) collapses to a single id. They do not consult the per-row
-	// `enableRowSelection` predicate, which cannot be evaluated for an id off the current page; gating
-	// non-selectable rows is the caller's job.
-	const liveRowSelection = useCallback(
-		(): RowSelectionState =>
-			({ ...internalStateRef.current, ...controlledStateRef.current })
-				.rowSelection,
-		[],
-	);
-	const isMultiSelect = useCallback(
-		() => table.options.enableMultiRowSelection !== false,
-		[table],
-	);
-	const selectIds = useCallback(
-		(id: string | string[]) => {
-			const ids = Array.isArray(id) ? id : [id];
-			if (ids.length === 0) return;
-			if (!isMultiSelect()) {
-				applyPatch({ rowSelection: { [ids[ids.length - 1] as string]: true } });
-				return;
-			}
-			const next = { ...liveRowSelection() };
-			for (const i of ids) next[i] = true;
-			applyPatch({ rowSelection: next });
-		},
-		[applyPatch, isMultiSelect, liveRowSelection],
-	);
-	const deselectIds = useCallback(
-		(id: string | string[]) => {
-			const ids = Array.isArray(id) ? id : [id];
-			if (ids.length === 0) return;
-			const next = { ...liveRowSelection() };
-			for (const i of ids) delete next[i];
-			applyPatch({ rowSelection: next });
-		},
-		[applyPatch, liveRowSelection],
-	);
-	const toggleId = useCallback(
-		(id: string) => {
-			const current = liveRowSelection();
-			if (current[id]) {
-				const next = { ...current };
-				delete next[id];
-				applyPatch({ rowSelection: next });
-				return;
-			}
-			const next = isMultiSelect() ? { ...current } : {};
-			next[id] = true;
-			applyPatch({ rowSelection: next });
-		},
-		[applyPatch, isMultiSelect, liveRowSelection],
-	);
-	const setSelection = useCallback(
-		(ids: string[]) => {
-			const list = isMultiSelect() ? ids : ids.slice(-1);
-			const next: RowSelectionState = {};
-			for (const i of list) next[i] = true;
-			applyPatch({ rowSelection: next });
-		},
-		[applyPatch, isMultiSelect],
-	);
-	const isSelected = useCallback(
-		(id: string) => resolvedStateRef.current.rowSelection[id] === true,
-		[],
-	);
-	const selection = useMemo(() => {
-		const map = resolvedState.rowSelection;
-		// Ids span every page because they are keyed by id. Rows are only the ones currently on
-		// the page, taken straight from `rows`, since the core never holds data for other pages.
-		const selectedIds = Object.keys(map).filter((k) => map[k]);
-		const selectedRows = rows.filter((row) => map[getRowId(row)] === true);
-		return {
-			count: selectedIds.length,
-			ids: selectedIds,
-			pageRows: selectedRows,
-			// Deprecated alias of `pageRows`; kept for back-compat.
-			rows: selectedRows,
-			clear: clearSelection,
-			select: selectIds,
-			deselect: deselectIds,
-			toggle: toggleId,
-			set: setSelection,
-			isSelected,
-		};
-	}, [
-		resolvedState.rowSelection,
+	const selection = useDataViewSelection({
+		isMultiSelect: enableMultiRowSelection ?? true,
 		rows,
 		getRowId,
-		clearSelection,
-		selectIds,
-		deselectIds,
-		toggleId,
-		setSelection,
-		isSelected,
-	]);
+		rowSelection: resolvedState.rowSelection,
+		applyPatch,
+		getLiveState,
+	});
 
 	const exportCsv = useCallback(
-		(opts?: Parameters<typeof exportCsvFn>[1]) => exportCsvFn(table, opts),
-		[table],
+		(opts?: Parameters<typeof exportCsvFn>[1]) =>
+			exportCsvFn(tableRef.current, opts),
+		[],
 	);
 	const exportJson = useCallback(
-		(opts?: Parameters<typeof exportJsonFn>[1]) => exportJsonFn(table, opts),
-		[table],
+		(opts?: Parameters<typeof exportJsonFn>[1]) =>
+			exportJsonFn(tableRef.current, opts),
+		[],
 	);
 	// Everything the server needs to reproduce the full result set, minus the page: hand it to a
 	// backend export endpoint for export-all-pages.
@@ -769,13 +509,14 @@ export function useDataView<TData>(
 	}, [request]);
 
 	const resetFilter = useCallback(
-		(columnId: string) => table.getColumn(columnId)?.setFilterValue(undefined),
-		[table],
+		(columnId: string) =>
+			tableRef.current.getColumn(columnId)?.setFilterValue(undefined),
+		[],
 	);
 
 	const resetAllFilters = useCallback(
-		() => table.resetColumnFilters(),
-		[table],
+		() => tableRef.current.resetColumnFilters(),
+		[],
 	);
 
 	// In the bare (fully controlled) hook there is no owned cache to mutate, so the optimistic
@@ -794,14 +535,15 @@ export function useDataView<TData>(
 		},
 		[refetch],
 	);
+	const deselectRow = selection.deselect;
 	const removeRow = useCallback(
 		(id: string) => {
 			// A removed row must not linger in the id-keyed selection, where a bulk
 			// action would still submit it.
-			deselectIds(id);
+			deselectRow(id);
 			refetch();
 		},
-		[deselectIds, refetch],
+		[deselectRow, refetch],
 	);
 
 	return {

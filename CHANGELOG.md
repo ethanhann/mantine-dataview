@@ -3,11 +3,65 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-10-27
+
+### Added
+
+- Table type aliases with the library's table features already applied. Each takes only your row type, so you never write the version 9 feature argument.
+  `DataViewTable`, `DataViewRow`, `DataViewColumn`, `DataViewHeader`, `DataViewCellContext` and `DataViewHeaderContext`.
+  `DataViewFeatures` is the feature set type.
+- `createColumnHelper` is now exported from this library and takes only your row type, as in `createColumnHelper<User>()`.
+- Pin button labels `pinColumnStart` and `pinColumnEnd`.
+- A floating bulk action bar.
+  Set `floating` on `DataBulkActions`, or `bulkActionsProps={{ floating: true }}` on `DataViewer`, to render it as a Mantine `ActionBar` fixed to the viewport.
+  `actionBarProps` passes props to the bar, and the type `FloatingBulkActionsProps` is exported.
+  The bar has `role="region"` and renders in a portal.
+  `ActionBar` needs Mantine 9.6 or later.
+  The default stays the inline bar.
+- Documentation for the Mantine 9.7 schedule placement rules.
+  The library already forwards them through `scheduleProps` and `resourcesProps`.
+- A Direction control in the Storybook toolbar and a `PlacementRules` story.
+
+### Changed
+
+- **Breaking:** The Mantine peer range is now `^9.7.0` for `@mantine/core`, `@mantine/dates`, `@mantine/hooks` and `@mantine/schedule`.
+  The pin buttons and the floating bulk action bar need components that Mantine added in 9.6 and 9.7.
+- The pin buttons in the Columns menu are `Toggle` buttons and expose a pressed state to screen readers.
+  `Toggle` needs Mantine 9.7 or later.
+- The pin icons mirror in right to left layouts, so the start icon always points to the start edge.
+  Wrap your app in the Mantine `DirectionProvider` for this to apply.
+- **Breaking:** The library requires `@tanstack/react-table` version 9 (`^9.0.0`) and no longer supports version 8.
+- **Breaking:** Replace the import of `createColumnHelper` from `@tanstack/react-table` with the import from `@ethanhann/mantine-dataview`.
+- **Breaking:** Row types must satisfy TanStack's `RowData`, which in version 9 is an object or an array.
+  Interfaces and object types work.
+  A row type of `unknown` no longer compiles.
+- **Breaking:** Column pinning uses `start` and `end` in place of `left` and `right`.
+  This applies to `DataViewColumnPinning`, `initialState.columnPinning`, `PersistedState.columnPinning` and `column.pin()`.
+  Pinned columns are positioned with the logical `inset-inline-start` and `inset-inline-end` properties, so they follow the reading direction.
+  Stored preferences that use the old `left` and `right` keys still load, and the next write stores the new keys.
+- **Breaking:** The pin button labels `pinColumnLeft` and `pinColumnRight` are renamed to `pinColumnStart` and `pinColumnEnd`.
+  The English text is now "Pin Name to start" and "Pin Name to end".
+  If you override these labels, rename the keys.
+- The global augmentation of `TableMeta` and `ColumnMeta` takes the table feature set as its first type parameter.
+  If you augment these interfaces yourself, add the same parameter.
+- If you read table state in your own code, use `view.table.state` in place of `view.table.getState()`, which version 9 removed.
+  `VisibilityState` is now `ColumnVisibilityState`.
+- Dragging a column resize handle in a right-to-left page now resizes in the reading direction.
+
+### Removed
+
+- **Breaking:** The TanStack types `Column`, `ColumnDef`, `Row` and `Table` are no longer re-exported.
+  Use the replacements.
+  - `Column` becomes `DataViewColumn`
+  - `ColumnDef` becomes `DataColumnDef`
+  - `Row` becomes `DataViewRow`
+  - `Table` becomes `DataViewTable`
+
 ## [0.12.2] - 2026-09-03
 
 ### Fixed
 
-- The `FilterControl`'s `size` prop now applies correctly for a `dateRange` filter. 
+- The `FilterControl`'s `size` prop now applies correctly for a `dateRange` filter.
 
 ## [0.12.1] - 2026-07-09
 

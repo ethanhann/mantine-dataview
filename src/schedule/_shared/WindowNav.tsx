@@ -6,6 +6,7 @@ import { Button, Group, SegmentedControl } from "@mantine/core";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
 import type { ScheduleLevel } from "../../types/state";
+import type { RowData } from "../../types/table";
 import { computeWindow, shiftWindow, windowMidpoint } from "../dateWindow";
 import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
 
@@ -21,7 +22,7 @@ export function levelLabels(
 	};
 }
 
-export interface WindowNavProps<TData> {
+export interface WindowNavProps<TData extends RowData> {
 	view: UseDataViewReturn<TData>;
 	/** Level used when no window is set yet. */
 	defaultLevel: ScheduleLevel;
@@ -35,7 +36,7 @@ export interface WindowNavProps<TData> {
 	disabled?: boolean;
 }
 
-export function WindowNav<TData>({
+export function WindowNav<TData extends RowData>({
 	view,
 	defaultLevel,
 	levels,

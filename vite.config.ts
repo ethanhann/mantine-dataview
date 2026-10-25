@@ -27,9 +27,9 @@ export default defineConfig({
 				// unplugin-dts may emit under `dist/` directly rather than `dist/src/`.
 				const srcDir = dirname(
 					resolve(
-						__dirname,
+						import.meta.dirname,
 						"src",
-						relative(resolve(__dirname, "dist"), flattened),
+						relative(resolve(import.meta.dirname, "dist"), flattened),
 					),
 				);
 				const rewritten = content.replace(
@@ -50,10 +50,10 @@ export default defineConfig({
 	build: {
 		lib: {
 			entry: {
-				index: resolve(__dirname, "src/index.ts"),
-				"url/index": resolve(__dirname, "src/url/index.ts"),
-				"schedule/index": resolve(__dirname, "src/schedule/index.ts"),
-				"testing/index": resolve(__dirname, "src/testing/index.ts"),
+				index: resolve(import.meta.dirname, "src/index.ts"),
+				"url/index": resolve(import.meta.dirname, "src/url/index.ts"),
+				"schedule/index": resolve(import.meta.dirname, "src/schedule/index.ts"),
+				"testing/index": resolve(import.meta.dirname, "src/testing/index.ts"),
 			},
 			formats: ["es"],
 			fileName: (_format, entryName) => `${entryName}.js`,
@@ -84,6 +84,7 @@ export default defineConfig({
 	test: {
 		globals: true,
 		environment: "jsdom",
+		pool: "vmThreads",
 		setupFiles: ["./vitest.setup.ts"],
 		css: true,
 		coverage: {

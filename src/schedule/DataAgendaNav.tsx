@@ -5,9 +5,10 @@
 
 import type { UseDataViewReturn } from "../types/options";
 import type { ScheduleLevel } from "../types/state";
+import type { RowData } from "../types/table";
 import { levelLabels, WindowNav } from "./_shared/WindowNav";
 
-export interface DataAgendaNavProps<TData> {
+export interface DataAgendaNavProps<TData extends RowData> {
 	view: UseDataViewReturn<TData>;
 	/** Range used when no window is set yet. Default `"week"`. */
 	defaultLevel?: ScheduleLevel;
@@ -17,7 +18,7 @@ export interface DataAgendaNavProps<TData> {
 	disabled?: boolean;
 }
 
-export function DataAgendaNav<TData>({
+export function DataAgendaNav<TData extends RowData>({
 	view,
 	defaultLevel = "week",
 	levels = ["day", "week", "month"],

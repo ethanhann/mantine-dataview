@@ -4,6 +4,8 @@
 // is type-only and imports nothing from `@mantine/schedule`, so the main bundle stays free of the
 // scheduler dependency.
 
+import type { RowData } from "./table";
+
 /**
  * The part of a calendar event a column supplies.
  *
@@ -42,7 +44,7 @@ export interface ScheduleFieldMeta {
  * Keeping the intermediate shape free of any Mantine import is what lets `composeEvent` stay pure
  * and unit-testable without the optional dependency.
  */
-export interface DataViewEvent<TData = unknown> {
+export interface DataViewEvent<TData extends RowData = RowData> {
 	/** Stable id, from the core's `getRowId`. */
 	id: string;
 	title: string;

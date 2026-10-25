@@ -3,9 +3,10 @@
 // Bundling the config here keeps the consumer's call site to a single line.
 
 import type { RegisteredView } from "../components/_shared/types";
+import type { RowData } from "../types/table";
 import { DataSchedule, type DataScheduleProps } from "./DataSchedule";
 
-export interface ScheduleViewOptions<TData>
+export interface ScheduleViewOptions<TData extends RowData>
 	extends Omit<DataScheduleProps<TData>, "view"> {
 	/** Switcher label. Default `"Schedule"`. */
 	label?: RegisteredView<TData>["label"];
@@ -18,7 +19,7 @@ export interface ScheduleViewOptions<TData>
  * <DataViewer view={view} views={[scheduleView({ toEvent })]} />
  * ```
  */
-export function scheduleView<TData>(
+export function scheduleView<TData extends RowData>(
 	options: ScheduleViewOptions<TData> = {},
 ): RegisteredView<TData> {
 	const { label = "Schedule", ...scheduleProps } = options;

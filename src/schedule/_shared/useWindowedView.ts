@@ -11,6 +11,7 @@ import type {
 	ScheduleLevel,
 	ViewMode,
 } from "../../types/state";
+import type { RowData } from "../../types/table";
 import { computeWindow, windowMidpoint } from "../dateWindow";
 import { useFirstDayOfWeek } from "./useFirstDayOfWeek";
 
@@ -23,7 +24,7 @@ export interface WindowedView {
 	firstDayOfWeek: number;
 }
 
-export function useWindowedView<TData>(
+export function useWindowedView<TData extends RowData>(
 	view: UseDataViewReturn<TData>,
 	viewId: ViewMode,
 	defaultLevel: ScheduleLevel,

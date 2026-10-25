@@ -221,6 +221,38 @@ export const BulkActions: Story = {
 	},
 };
 
+/** The bulk action bar fixed to the bottom of the viewport. Select rows to reveal it. */
+export const FloatingBulkActions: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const view = useDataViewFetcher<Person>({ columns, getRowId, fetcher });
+			return (
+				<DataViewer
+					view={view}
+					bulkActionsProps={{ floating: true }}
+					slots={{
+						BulkActions: (selection) => (
+							<Button
+								size="xs"
+								color="red"
+								variant="light"
+								onClick={() => {
+									window.alert(`Delete ${selection.ids.join(", ")}`);
+									selection.clear();
+								}}
+							>
+								Delete {selection.count}
+							</Button>
+						),
+					}}
+				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
 /** Multi-sort: Shift+click column headers to add secondary sort keys. */
 export const MultiSort: Story = {
 	render: () => {
@@ -275,7 +307,7 @@ export const CsvExport: Story = {
 	},
 };
 
-/** Column pinning: Name pinned left, Location pinned right. Scroll horizontally to see the effect. */
+/** Column pinning: Name pinned to the start, Location pinned to the end. Scroll horizontally to see the effect. */
 export const ColumnPinning: Story = {
 	render: () => {
 		function Example() {
@@ -285,15 +317,15 @@ export const ColumnPinning: Story = {
 				getRowId,
 				fetcher,
 				initialState: {
-					columnPinning: { left: ["name"], right: ["location"] },
+					columnPinning: { start: ["name"], end: ["location"] },
 				},
 			});
 			return (
 				<Stack gap="xs">
 					<Text size="sm" c="dimmed">
-						Name is pinned left, Location is pinned right. Use the Columns menu
-						to change pinning, or scroll horizontally to see the sticky
-						behavior.
+						Name is pinned to the start, Location is pinned to the end. Use the
+						Columns menu to change pinning, or scroll horizontally to see the
+						sticky behavior.
 					</Text>
 					<div style={{ maxWidth: 600 }}>
 						<DataViewer view={view} />

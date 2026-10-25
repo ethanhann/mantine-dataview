@@ -15,7 +15,7 @@ import {
 	Stack,
 	Text,
 } from "@mantine/core";
-import { flexRender, type Row } from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
 import { Fragment, type ReactNode, type SyntheticEvent, useMemo } from "react";
 import {
 	type CardField,
@@ -27,6 +27,7 @@ import { resolveFormatter } from "../../core/columns/formatValue";
 import { useRowTransition } from "../../core/useRowTransition";
 import type { DataViewLabels } from "../../types/labels";
 import type { UseDataViewReturn } from "../../types/options";
+import type { DataViewRow, RowData } from "../../types/table";
 import { nextCardIndex } from "../_shared/nextCardIndex";
 import { Slot } from "../_shared/Slot";
 import { EmptyContent, ErrorContent } from "../_shared/StateMessage";
@@ -48,7 +49,7 @@ const DEFAULT_COLS: SimpleGridProps["cols"] = { base: 1, sm: 2, lg: 3 };
 const cardResolver: ResolveNext = (direction, active, count, getRects) =>
 	nextCardIndex(direction, active, getRects().slice(0, count));
 
-export interface DataCardsProps<TData>
+export interface DataCardsProps<TData extends RowData>
 	extends Omit<SimpleGridProps, "children"> {
 	/** The `useDataView` instance to project. */
 	view: UseDataViewReturn<TData>;
@@ -59,7 +60,7 @@ export interface DataCardsProps<TData>
 	 * Use the provided `selected`/`toggleSelected` to wire it.
 	 */
 	renderCard?: (ctx: {
-		row: Row<TData>;
+		row: DataViewRow<TData>;
 		data: TData;
 		selected: boolean;
 		toggleSelected: () => void;
@@ -84,7 +85,7 @@ export interface DataCardsProps<TData>
 	onCardActivate?: (row: TData, event: SyntheticEvent) => void;
 }
 
-export function DataCards<TData>({
+export function DataCards<TData extends RowData>({
 	view,
 	slots,
 	renderCard,
@@ -106,7 +107,7 @@ export function DataCards<TData>({
 	const transition = useRowTransition(table.getRowModel().rows, animateRows);
 	// aria-rowcount/aria-rowindex describe the full paginated set. Cards have no header row, so the
 	// first card on the page is offset only by the prior pages.
-	const { pageIndex, pageSize } = table.getState().pagination;
+	const { pageIndex, pageSize } = table.state.pagination;
 
 	const nav = useGridNavigation({
 		enabled: keyboardNavigation,
@@ -264,7 +265,11 @@ export function DataCards<TData>({
  * The card grid's analog of the table's summary footer: label and value pairs for every visible
  * column with a server-computed aggregate, formatted by the column's dataType.
  */
-function CardsSummary<TData>({ view }: { view: UseDataViewReturn<TData> }) {
+function CardsSummary<TData extends RowData>({
+	view,
+}: {
+	view: UseDataViewReturn<TData>;
+}) {
 	const { summary, table } = view;
 	const columns = table
 		.getVisibleLeafColumns()
@@ -299,13 +304,13 @@ function CardsSummary<TData>({ view }: { view: UseDataViewReturn<TData> }) {
 // row objects across selection-state changes, so memoizing on the `row` prop would drop reactivity
 // to the selection checkbox. The per-row cell map below is memoized instead (cells don't change
 // with selection).
-function DefaultCardBody<TData>({
+function DefaultCardBody<TData extends RowData>({
 	row,
 	layout,
 	selectionEnabled,
 	labels,
 }: {
-	row: Row<TData>;
+	row: DataViewRow<TData>;
 	layout: ReturnType<typeof composeCardLayout<TData>>;
 	selectionEnabled: boolean;
 	labels: DataViewLabels;

@@ -7,7 +7,7 @@
 /** The stored shape. `pageSize` is flat because the page index is never persisted. */
 export interface PersistedState {
 	columnVisibility?: Record<string, boolean>;
-	columnPinning?: { left?: string[]; right?: string[] };
+	columnPinning?: { start?: string[]; end?: string[] };
 	columnSizing?: Record<string, number>;
 	columnOrder?: string[];
 	pageSize?: number;

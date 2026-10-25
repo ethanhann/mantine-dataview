@@ -5,10 +5,11 @@ import type { MantineColor } from "@mantine/core";
 import type { ScheduleEventData } from "@mantine/schedule";
 import type { MouseEvent } from "react";
 import type { UseDataViewReturn } from "../../types/options";
+import type { RowData } from "../../types/table";
 import { composeEvent } from "./composeEvent";
 import { composeScheduleEvent } from "./scheduleEvent";
 
-export interface ResolveEventsOptions<TData> {
+export interface ResolveEventsOptions<TData extends RowData> {
 	/** Override declarative `meta.schedule` mapping; returns a Mantine event directly. */
 	toEvent?: (row: TData) => ScheduleEventData;
 	/** Fallback event length in minutes when only a start is resolvable. Default `60`. */
@@ -22,7 +23,7 @@ export interface ResolveEventsOptions<TData> {
  * the declarative `meta.schedule` roles via `composeEvent` → `composeScheduleEvent`. Computed every
  * render over a single page of rows (cheap), matching how the core derives its other helpers.
  */
-export function resolveEvents<TData>(
+export function resolveEvents<TData extends RowData>(
 	view: UseDataViewReturn<TData>,
 	{
 		toEvent,
@@ -53,7 +54,10 @@ export function resolveEvents<TData>(
  * id is `${event.id}::${recurrenceId}`, so when the exact id has no match, retry with the portion
  * before the last `::` — otherwise every interaction on a generated occurrence would miss its row.
  */
-function findTableRow<TData>(view: UseDataViewReturn<TData>, eventId: string) {
+function findTableRow<TData extends RowData>(
+	view: UseDataViewReturn<TData>,
+	eventId: string,
+) {
 	const rows = view.table.getRowModel().rows;
 	const exact = rows.find((r) => r.id === eventId);
 	if (exact) return exact;
@@ -64,7 +68,7 @@ function findTableRow<TData>(view: UseDataViewReturn<TData>, eventId: string) {
 }
 
 /** The shared `onEventClick` handler: toggle selection for the row backing an event id. */
-export function toggleEventSelection<TData>(
+export function toggleEventSelection<TData extends RowData>(
 	view: UseDataViewReturn<TData>,
 	eventId: string | number,
 ): void {
@@ -72,7 +76,7 @@ export function toggleEventSelection<TData>(
 }
 
 /** The original row backing an event id, or `undefined` if it isn't on the current page. */
-export function findEventRow<TData>(
+export function findEventRow<TData extends RowData>(
 	view: UseDataViewReturn<TData>,
 	eventId: string | number,
 ): TData | undefined {
@@ -80,7 +84,7 @@ export function findEventRow<TData>(
 }
 
 /** A first-class event-click handler that receives the typed original row. */
-export type EventClickHandler<TData> = (
+export type EventClickHandler<TData extends RowData> = (
 	row: TData,
 	event: ScheduleEventData,
 	nativeEvent: MouseEvent<HTMLButtonElement>,
@@ -91,7 +95,7 @@ export type EventClickHandler<TData> = (
  * is called with the resolved row; otherwise the default toggles row selection (feeding bulk
  * actions). A handler in `*Props` still overrides this entirely, since it is spread afterward.
  */
-export function makeEventClickHandler<TData>(
+export function makeEventClickHandler<TData extends RowData>(
 	view: UseDataViewReturn<TData>,
 	onEventClick: EventClickHandler<TData> | undefined,
 ) {

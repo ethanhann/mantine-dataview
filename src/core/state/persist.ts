@@ -33,6 +33,33 @@ function isStringArray(value: unknown): value is string[] {
 	return Array.isArray(value) && value.every((v) => typeof v === "string");
 }
 
+const INVALID = Symbol("invalid pinning side");
+
+/** Takes the first stored list that is valid, `undefined` when none is stored, else `INVALID`. */
+function pickSide(
+	current: unknown,
+	legacy: unknown,
+): string[] | undefined | typeof INVALID {
+	for (const candidate of [current, legacy]) {
+		if (isStringArray(candidate)) return candidate;
+	}
+	const stored = current ?? legacy;
+	return stored === undefined || stored === null ? undefined : INVALID;
+}
+
+/**
+ * Reads the stored pinning sides. Earlier releases stored them as `left` and `right`, so those
+ * keys still load, and `start` and `end` win when both are present.
+ */
+function sanitizePinning(raw: unknown): PersistedState["columnPinning"] {
+	if (typeof raw !== "object" || raw === null) return undefined;
+	const stored = raw as Record<string, unknown>;
+	const start = pickSide(stored.start, stored.left);
+	const end = pickSide(stored.end, stored.right);
+	if (start === INVALID || end === INVALID) return undefined;
+	return { start, end };
+}
+
 /**
  * Validates an untrusted stored value field by field, dropping anything malformed. Storage can
  * be edited by hand or written by an older release, so a bad field must degrade to the default
@@ -44,15 +71,8 @@ export function sanitizePersisted(raw: PersistedState | null): PersistedState {
 	if (isRecordOf(raw.columnVisibility, (v) => typeof v === "boolean")) {
 		out.columnVisibility = raw.columnVisibility;
 	}
-	const pinning = raw.columnPinning;
-	if (
-		typeof pinning === "object" &&
-		pinning !== null &&
-		(pinning.left === undefined || isStringArray(pinning.left)) &&
-		(pinning.right === undefined || isStringArray(pinning.right))
-	) {
-		out.columnPinning = pinning;
-	}
+	const pinning = sanitizePinning(raw.columnPinning);
+	if (pinning) out.columnPinning = pinning;
 	if (
 		isRecordOf(
 			raw.columnSizing,
@@ -94,8 +114,8 @@ export function hydrateFromStorage(
 	}
 	if (include.includes("columnPinning") && stored.columnPinning) {
 		patch.columnPinning = {
-			left: stored.columnPinning.left ?? [],
-			right: stored.columnPinning.right ?? [],
+			start: stored.columnPinning.start ?? [],
+			end: stored.columnPinning.end ?? [],
 		};
 	}
 	if (include.includes("columnSizing") && stored.columnSizing) {
