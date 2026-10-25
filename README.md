@@ -620,6 +620,7 @@ The **Columns** dropdown in the toolbar includes pin toggle buttons (start/end) 
 column's visibility checkbox. Clicking a pin button freezes that column to the corresponding
 edge. Clicking it again unpins.
 The pin buttons are toggle buttons, so a screen reader announces which one is pressed.
+The toggle buttons need Mantine 9.7 or later.
 The button labels are `pinColumnStart` and `pinColumnEnd` in the `labels` option.
 
 ### Programmatic
@@ -952,8 +953,9 @@ Provide a `BulkActions` slot to add actions when rows are selected:
 />;
 ```
 
-By default the bar sits in the page flow. Set `floating` to render it as a Mantine `ActionBar` fixed to
-the bottom of the viewport:
+By default the bar sits in the page flow.
+Set `floating` to render it as a Mantine `ActionBar` fixed to the bottom of the viewport.
+`ActionBar` needs Mantine 9.6 or later.
 
 ```tsx
 <DataViewer view={view} bulkActionsProps={{ floating: true }} slots={slots} />;
@@ -964,17 +966,27 @@ the bottom of the viewport:
 />;
 ```
 
-`actionBarProps` accepts the `ActionBar` props except `opened`, `onClose`, `children` and `aria-label`.
-The `PaperProps` apply to the inline bar only, and `actionBarProps` applies to the floating bar only.
-Set the region name with the `bulkActions` label.
+`actionBarProps` accepts the `ActionBar` props except `opened`, `onClose`, `children`, `role`, `aria-label` and `aria-labelledby`.
+The library sets those props.
+The `className` and `style` props apply to both bars.
+The other `PaperProps` apply to the inline bar only, and `actionBarProps` applies to the floating bar only.
+If you set `actionBarProps` on both `DataViewer` and `DataViewer.BulkActions`, the value on `DataViewer.BulkActions` replaces the whole object.
+
 The floating bar has `role="region"`, so screen reader users can reach it from the landmark list.
-The floating bar renders in a portal at the end of `body`, so a keyboard user reaches it after the rest of
-the page. Set `withinPortal: false` in `actionBarProps` to keep it in the page order.
-It sits above most content, so use `position` to move it clear of pagination or a cookie banner.
+Set the region name with the `bulkActions` label.
+The floating bar renders in a portal at the end of `body`, so a keyboard user reaches it after the rest of the page.
+Set `withinPortal: false` in `actionBarProps` to keep it in the page order.
+The bar sits above most content, so use `position` to move it clear of pagination or a cookie banner.
+
+When the selection clears, the bar stays for a short exit transition and is inert during that time.
+It keeps showing the last selection, and its buttons do not respond.
+Focus does not move after the clear action.
+When a user clears the selection with the close button, focus moves to `body`.
+Move focus yourself if your page needs it.
 
 Escape does not clear the selection by default.
-If you set `closeOnEscape`, the bar listens on the whole window, so Escape pressed in the Columns
-popover or a filter popover also clears the selection.
+If you set `closeOnEscape`, the bar listens on the whole window.
+Escape pressed in the Columns popover or a filter popover then also clears the selection.
 
 The `selection` object exposes the current selection and methods to change it.
 
@@ -1635,8 +1647,10 @@ to your backend and reflect the change instantly:
 
 #### Placement rules and snapping
 
-Mantine 9.7 added rules that decide where an event may land. Pass them through `scheduleProps` or
-`resourcesProps`. A consumer value replaces the library value for the same prop.
+Mantine 9.7 added rules that decide where an event may land.
+Pass them through `scheduleProps` or `resourcesProps`.
+A consumer value replaces the library value for the same prop.
+The library forwards these props to Mantine and does not add behavior of its own.
 
 | Prop                                       | Where it goes                                                                 | Takes effect when                    |
 | ------------------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------ |
@@ -1647,8 +1661,8 @@ Mantine 9.7 added rules that decide where an event may land. Pass them through `
 | `eventOverlapMode` (`"cascade"`)           | `dayViewProps` and `weekViewProps` inside `scheduleProps` only                | Always                               |
 
 The resource views do not have `eventOverlapMode`.
-An `onEventDrop` or `onEventResize` handler in `scheduleProps` replaces the handler the library builds
-from `onEventMove` or `onEventResize`, so use one or the other.
+An `onEventDrop` or `onEventResize` handler in `scheduleProps` replaces the handler the library builds from `onEventMove` or `onEventResize`.
+Use one or the other.
 
 ```tsx
 <DataSchedule
@@ -1834,9 +1848,9 @@ Deliberate positions on commonly requested capabilities, so scope questions have
   cursor slice in a future release.
 - **Schedule times are browser-local.** Date windows and event times render in the browser's
   timezone. Named-timezone rendering awaits downstream `@mantine/schedule` support.
-- **RTL is untested.** Column pinning uses logical start and end offsets, and column resizing reads
-  the Mantine direction, so both follow the reading direction. Card arrow-key navigation is physical, so right-to-left locales will have
-  inverted affordances in the cards view.
+- **Right to left needs `DirectionProvider`.** Column pinning uses logical start and end offsets, and column resizing and the pin icons read the Mantine direction.
+  Wrap your app in the Mantine `DirectionProvider` so these follow the reading direction.
+  Card arrow-key navigation is physical, so right-to-left locales have inverted affordances in the cards view.
 
 ## Development
 
