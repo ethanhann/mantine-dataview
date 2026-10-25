@@ -3,33 +3,44 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.13.0] - 2026-10-27
+## [0.13.0] - 2026-10-25
 
 ### Added
 
-- Table type aliases with the library's table features already applied. Each takes only your row type, so you never write the version 9 feature argument.
-  `DataViewTable`, `DataViewRow`, `DataViewColumn`, `DataViewHeader`, `DataViewCellContext` and `DataViewHeaderContext`.
-  `DataViewFeatures` is the feature set type.
-- `createColumnHelper` is now exported from this library and takes only your row type, as in `createColumnHelper<User>()`.
+- Type aliases for the table, its rows, columns, headers and cell renderers.
+  In TanStack Table version 9, types such as `Table` and `Row` take the set of table features as their first type argument, as in `Table<TFeatures, TData>`.
+  Sometimes you type a function that receives `view.table`, a row, or the argument of a cell renderer.
+  Use these aliases for that, and pass only your row type, as in `DataViewTable<User>`.
+  The aliases are `DataViewTable`, `DataViewRow`, `DataViewColumn` and `DataViewHeader`.
+  `DataViewCellContext` types the argument of a column `cell` renderer, and `DataViewHeaderContext` types the argument of a `header` or `footer` renderer.
+  `DataViewFeatures` is the feature set that the aliases apply.
+- `createColumnHelper` is exported from this library.
+  Import it in place of the TanStack version, and pass only your row type, as in `createColumnHelper<User>()`.
+  The TanStack version needs the feature set as an extra type argument.
 - Pin button labels `pinColumnStart` and `pinColumnEnd`.
-- A floating bulk action bar.
-  Set `floating` on `DataBulkActions`, or `bulkActionsProps={{ floating: true }}` on `DataViewer`, to render it as a Mantine `ActionBar` fixed to the viewport.
-  `actionBarProps` passes props to the bar, and the type `FloatingBulkActionsProps` is exported.
-  The bar has `role="region"` and renders in a portal.
-  `ActionBar` needs Mantine 9.6 or later.
-  The default stays the inline bar.
-- Documentation for the Mantine 9.7 schedule placement rules.
-  The library already forwards them through `scheduleProps` and `resourcesProps`.
-- A Direction control in the Storybook toolbar and a `PlacementRules` story.
+- A floating mode for the bulk action bar.
+  Sometimes you want the bar to stay in view while the user scrolls a long page.
+  Set `floating` on `DataBulkActions`, or `bulkActionsProps={{ floating: true }}` on `DataViewer`, to render the bar as a Mantine `ActionBar` fixed to the bottom of the viewport.
+  For example, `<DataViewer view={view} bulkActionsProps={{ floating: true }} />`.
+  Pass `actionBarProps` to change the position or the transition, and import the type `FloatingBulkActionsProps` when you build those props yourself.
+  The bar has `role="region"`, so screen reader users find it in the landmark list.
+  Focus moves to `body` when the user clears the selection with the close button.
+  The floating mode needs Mantine 9.6 or later, and the inline bar stays the default.
+- Placement rules for schedule events.
+  Sometimes you need to stop a user from dropping an event on top of another event.
+  Mantine 9.7 added `preventEventOverlap`, `canDropEvent` and `onEventPlacementRejected` for this.
+  Pass them through `scheduleProps` on `DataSchedule`, or through `resourcesProps` on `DataResourceSchedule`.
+  The README lists where each placement prop goes.
 
 ### Changed
 
-- **Breaking:** The Mantine peer range is now `^9.7.0` for `@mantine/core`, `@mantine/dates`, `@mantine/hooks` and `@mantine/schedule`.
-  The pin buttons and the floating bulk action bar need components that Mantine added in 9.6 and 9.7.
-- The pin buttons in the Columns menu are `Toggle` buttons and expose a pressed state to screen readers.
-  `Toggle` needs Mantine 9.7 or later.
-- The pin icons mirror in right to left layouts, so the start icon always points to the start edge.
-  Wrap your app in the Mantine `DirectionProvider` for this to apply.
+- **Breaking:** The peer range of `@mantine/core`, `@mantine/dates`, `@mantine/hooks` and `@mantine/schedule` is now `^9.7.0`.
+  If you use Mantine 9.6 or earlier, upgrade these packages to 9.7 or later.
+  The pin buttons use `Toggle`, which Mantine added in 9.7.
+- The pin buttons in the Columns menu are `Toggle` buttons.
+  A screen reader announces which pin button is pressed.
+- In a right to left layout, the pin icons show the bar on the edge the button pins to.
+  Wrap your app in the Mantine `DirectionProvider` so the icons read the direction.
 - **Breaking:** The library requires `@tanstack/react-table` version 9 (`^9.0.0`) and no longer supports version 8.
 - **Breaking:** Replace the import of `createColumnHelper` from `@tanstack/react-table` with the import from `@ethanhann/mantine-dataview`.
 - **Breaking:** Row types must satisfy TanStack's `RowData`, which in version 9 is an object or an array.
