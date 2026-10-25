@@ -9,7 +9,7 @@
 A reusable React library that renders **server-driven, paginated datasets** as either a
 **table** or a **card grid**, switchable at runtime, with full feature parity between the two.
 
-Built on [Mantine](https://mantine.dev) v9 and [TanStack Table](https://tanstack.com/table) v9.
+Built on [Mantine](https://mantine.dev) v9.7 or later and [TanStack Table](https://tanstack.com/table) v9.
 
 ## Changelog
 
@@ -50,6 +50,8 @@ npm install @ethanhann/mantine-dataview
 ```sh
 npm install react react-dom @mantine/core @mantine/dates @mantine/hooks @tanstack/react-table
 ```
+
+The Mantine packages must be version 9.7 or later.
 
 The library renders Mantine components, so your app must import Mantine's styles and wrap the
 tree in a provider:
@@ -617,6 +619,7 @@ const view = useDataViewFetcher<User>({
 The **Columns** dropdown in the toolbar includes pin toggle buttons (start/end) next to each
 column's visibility checkbox. Clicking a pin button freezes that column to the corresponding
 edge. Clicking it again unpins.
+The pin buttons are toggle buttons, so a screen reader announces which one is pressed.
 The button labels are `pinColumnStart` and `pinColumnEnd` in the `labels` option.
 
 ### Programmatic
@@ -948,6 +951,29 @@ Provide a `BulkActions` slot to add actions when rows are selected:
 	}}
 />;
 ```
+
+By default the bar sits in the page flow. Set `floating` to render it as a Mantine `ActionBar` fixed to
+the bottom of the viewport:
+
+```tsx
+<DataViewer view={view} bulkActionsProps={{ floating: true }} slots={slots} />;
+// or, with custom composition
+<DataViewer.BulkActions
+	floating
+	actionBarProps={{ position: { bottom: 24, right: 24 } }}
+/>;
+```
+
+`actionBarProps` accepts the `ActionBar` props except `opened`, `onClose`, `children` and `aria-label`.
+The `PaperProps` apply to the inline bar only, and `actionBarProps` applies to the floating bar only.
+Set the group name with the `bulkActions` label.
+The floating bar renders in a portal at the end of `body`, so a keyboard user reaches it after the rest of
+the page. Set `withinPortal: false` in `actionBarProps` to keep it in the page order.
+It sits above most content, so use `position` to move it clear of pagination or a cookie banner.
+
+Escape does not clear the selection by default.
+If you set `closeOnEscape`, the bar listens on the whole window, so Escape pressed in the Columns
+popover or a filter popover also clears the selection.
 
 The `selection` object exposes the current selection and methods to change it.
 
@@ -1605,6 +1631,34 @@ to your backend and reflect the change instantly:
 
 `canDragEvent`, `canResizeEvent`, and external-drag handlers remain available through the
 `scheduleProps` / `resourcesProps` escape hatch.
+
+#### Placement rules and snapping
+
+Mantine 9.7 added rules that decide where an event may land. Pass them through `scheduleProps` or
+`resourcesProps`. A consumer value replaces the library value for the same prop.
+
+| Prop                                       | Where it goes                                                                 | Takes effect when                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------ |
+| `preventEventOverlap`, `canDropEvent`      | Top level of `scheduleProps` or `resourcesProps`                              | `onEventMove` or `onEventResize` set |
+| `onEventPlacementRejected`                 | Top level of `scheduleProps` or `resourcesProps`                              | `onEventMove` or `onEventResize` set |
+| `withInteractiveBackgroundEvents`          | Top level of `scheduleProps` or `resourcesProps`                              | Always                               |
+| `eventDragInterval`, `eventResizeInterval` | `dayViewProps` and `weekViewProps` inside `scheduleProps` or `resourcesProps` | `onEventMove` or `onEventResize` set |
+| `eventOverlapMode` (`"cascade"`)           | `dayViewProps` and `weekViewProps` inside `scheduleProps` only                | Always                               |
+
+The resource views do not have `eventOverlapMode`.
+An `onEventDrop` or `onEventResize` handler in `scheduleProps` replaces the handler the library builds
+from `onEventMove` or `onEventResize`, so use one or the other.
+
+```tsx
+<DataSchedule
+	view={view}
+	onEventMove={moveRow}
+	scheduleProps={{
+		preventEventOverlap: true,
+		dayViewProps: { eventDragInterval: 15 },
+	}}
+/>;
+```
 
 ### Fetching by date window
 

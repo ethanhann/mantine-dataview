@@ -12,9 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DataViewFeatures` is the feature set type.
 - `createColumnHelper` is now exported from this library and takes only your row type, as in `createColumnHelper<User>()`.
 - Pin button labels `pinColumnStart` and `pinColumnEnd`.
+- A floating bulk action bar.
+  Set `floating` on `DataBulkActions`, or `bulkActionsProps={{ floating: true }}` on `DataViewer`, to render it as a Mantine `ActionBar` fixed to the viewport.
+  `actionBarProps` passes props to the bar, and the type `FloatingBulkActionsProps` is exported.
+  The default stays the inline bar.
 
 ### Changed
 
+- **Breaking:** The Mantine peer range is now `^9.7.0` for `@mantine/core`, `@mantine/dates`, `@mantine/hooks` and `@mantine/schedule`.
+  The pin buttons and the floating bulk action bar need components that Mantine added in 9.6 and 9.7.
+- The pin buttons in the Columns menu are `Toggle` buttons and expose a pressed state to screen readers.
 - **Breaking:** The library requires `@tanstack/react-table` version 9 (`^9.0.0`) and no longer supports version 8.
 - **Breaking:** Replace the import of `createColumnHelper` from `@tanstack/react-table` with the import from `@ethanhann/mantine-dataview`.
 - **Breaking:** Row types must satisfy TanStack's `RowData`, which in version 9 is an object or an array.

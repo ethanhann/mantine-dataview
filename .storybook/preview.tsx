@@ -1,7 +1,15 @@
-import { MantineProvider } from "@mantine/core";
+import { DirectionProvider, MantineProvider } from "@mantine/core";
 import type { Preview } from "@storybook/react-vite";
+import { useEffect } from "react";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
+
+function ApplyDirection({ dir }: { dir: "ltr" | "rtl" }) {
+	useEffect(() => {
+		document.documentElement.setAttribute("dir", dir);
+	}, [dir]);
+	return null;
+}
 
 const preview: Preview = {
 	tags: ["autodocs"],
@@ -15,6 +23,18 @@ const preview: Preview = {
 				items: [
 					{ value: "light", title: "Light" },
 					{ value: "dark", title: "Dark" },
+				],
+			},
+		},
+		direction: {
+			name: "Direction",
+			description: "Text direction",
+			defaultValue: "ltr",
+			toolbar: {
+				icon: "transfer",
+				items: [
+					{ value: "ltr", title: "Left to right" },
+					{ value: "rtl", title: "Right to left" },
 				],
 			},
 		},
@@ -35,10 +55,18 @@ const preview: Preview = {
 			const scheme = (context.globals.colorScheme || "light") as
 				| "light"
 				| "dark";
+			const dir = (context.globals.direction || "ltr") as "ltr" | "rtl";
 			return (
-				<MantineProvider forceColorScheme={scheme}>
-					<Story />
-				</MantineProvider>
+				<DirectionProvider
+					key={dir}
+					initialDirection={dir}
+					detectDirection={false}
+				>
+					<MantineProvider forceColorScheme={scheme}>
+						<ApplyDirection dir={dir} />
+						<Story />
+					</MantineProvider>
+				</DirectionProvider>
 			);
 		},
 	],

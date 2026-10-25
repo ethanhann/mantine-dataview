@@ -14,6 +14,7 @@ export type {
 export {
 	DataBulkActions,
 	type DataBulkActionsProps,
+	type FloatingBulkActionsProps,
 } from "./components/DataBulkActions";
 export { DataCards, type DataCardsProps } from "./components/DataCards";
 export {

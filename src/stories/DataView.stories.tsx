@@ -221,6 +221,38 @@ export const BulkActions: Story = {
 	},
 };
 
+/** The bulk action bar fixed to the bottom of the viewport. Select rows to reveal it. */
+export const FloatingBulkActions: Story = {
+	render: () => {
+		function Example() {
+			const fetcher = useMemo(() => createMockFetcher(), []);
+			const view = useDataViewFetcher<Person>({ columns, getRowId, fetcher });
+			return (
+				<DataViewer
+					view={view}
+					bulkActionsProps={{ floating: true }}
+					slots={{
+						BulkActions: (selection) => (
+							<Button
+								size="xs"
+								color="red"
+								variant="light"
+								onClick={() => {
+									window.alert(`Delete ${selection.ids.join(", ")}`);
+									selection.clear();
+								}}
+							>
+								Delete {selection.count}
+							</Button>
+						),
+					}}
+				/>
+			);
+		}
+		return <Example />;
+	},
+};
+
 /** Multi-sort: Shift+click column headers to add secondary sort keys. */
 export const MultiSort: Story = {
 	render: () => {

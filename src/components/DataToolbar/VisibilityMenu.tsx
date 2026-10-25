@@ -10,6 +10,7 @@ import {
 	Group,
 	Popover,
 	Stack,
+	Toggle,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { resolveColumnLabel } from "../../core/columns/cardComposition";
@@ -86,24 +87,22 @@ function PinControls<TData extends RowData>({
 	const pinned = column.getIsPinned();
 	return (
 		<Group gap={2}>
-			<ActionIcon
+			<Toggle
 				size="xs"
-				variant={pinned === "start" ? "filled" : "subtle"}
-				color={pinned === "start" ? "blue" : "gray"}
+				active={pinned === "start"}
+				onActiveChange={(next) => column.pin(next ? "start" : false)}
 				aria-label={labels.pinColumnStart(resolveColumnLabel(column))}
-				onClick={() => column.pin(pinned === "start" ? false : "start")}
 			>
 				<PinStartIcon />
-			</ActionIcon>
-			<ActionIcon
+			</Toggle>
+			<Toggle
 				size="xs"
-				variant={pinned === "end" ? "filled" : "subtle"}
-				color={pinned === "end" ? "blue" : "gray"}
+				active={pinned === "end"}
+				onActiveChange={(next) => column.pin(next ? "end" : false)}
 				aria-label={labels.pinColumnEnd(resolveColumnLabel(column))}
-				onClick={() => column.pin(pinned === "end" ? false : "end")}
 			>
 				<PinEndIcon />
-			</ActionIcon>
+			</Toggle>
 		</Group>
 	);
 }

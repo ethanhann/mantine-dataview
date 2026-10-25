@@ -37,6 +37,11 @@ export interface DataViewerProps<TData extends RowData>
 	 */
 	views?: RegisteredView<TData>[];
 	/**
+	 * Props for the default bulk action bar. For example `{ floating: true }` renders it as a floating
+	 * `ActionBar`. With custom `children`, pass the props to `<DataViewer.BulkActions />` instead.
+	 */
+	bulkActionsProps?: Omit<DataBulkActionsProps<TData>, "view" | "slots">;
+	/**
 	 * Custom composition. It defaults to Toolbar, BulkActions, Body, and Pagination. To pass
 	 * `tableProps`/`cardsProps` to the body or props to the pagination, compose manually with the
 	 * compound parts, e.g. `<DataViewer.Body tableProps={...} />` — these aren't exposed on the
@@ -53,6 +58,7 @@ export function DataViewer<TData extends RowData>({
 	lockSwitcherOnMobile,
 	animateRows,
 	views,
+	bulkActionsProps,
 	children,
 	...stackProps
 }: DataViewerProps<TData>) {
@@ -67,6 +73,7 @@ export function DataViewer<TData extends RowData>({
 		lockSwitcherOnMobile,
 		animateRows,
 		views,
+		bulkActionsProps,
 	};
 
 	return (
@@ -156,8 +163,15 @@ function DataViewPagination<TData extends RowData>(
 function DataViewBulkActions<TData extends RowData>(
 	props: Omit<DataBulkActionsProps<TData>, "view" | "slots">,
 ) {
-	const { view, slots } = useDataViewContext<TData>();
-	return <DataBulkActions view={view} slots={slots} {...props} />;
+	const { view, slots, bulkActionsProps } = useDataViewContext<TData>();
+	return (
+		<DataBulkActions
+			view={view}
+			slots={slots}
+			{...bulkActionsProps}
+			{...props}
+		/>
+	);
 }
 
 DataViewer.Toolbar = DataViewToolbar;

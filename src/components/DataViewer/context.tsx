@@ -8,6 +8,7 @@ import type { ComposeCardOptions } from "../../core/columns/cardComposition";
 import type { UseDataViewReturn } from "../../types/options";
 import type { RowData } from "../../types/table";
 import type { DataViewSlots, RegisteredView } from "../_shared/types";
+import type { DataBulkActionsProps } from "../DataBulkActions";
 import type { DataCardsProps } from "../DataCards";
 
 export interface DataViewContextValue<TData extends RowData> {
@@ -17,6 +18,8 @@ export interface DataViewContextValue<TData extends RowData> {
 	fallbackRole?: ComposeCardOptions["fallbackRole"];
 	lockSwitcherOnMobile?: boolean;
 	animateRows?: boolean;
+	/** Props for the default bulk action bar, such as `floating`. */
+	bulkActionsProps?: Omit<DataBulkActionsProps<TData>, "view" | "slots">;
 	/** Opt-in presentations (e.g. the schedule view) registered by the consumer. */
 	views?: RegisteredView<TData>[];
 }
